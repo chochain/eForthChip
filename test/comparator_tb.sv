@@ -4,10 +4,10 @@
 module comparator_tb;
     // test parameters
     localparam N   = 32;            /// 32-bit comparator
-    localparam MAX = $pow(2,N) - 1; /// upper limit
-    localparam LT = 6'b011100;
-    localparam EQ = 6'b100101;
-    localparam GT = 6'b010011;
+    localparam LT  = 6'b011100;
+    localparam EQ  = 6'b100101;
+    localparam GT  = 6'b010011;
+    integer    MAX = $pow(2,N) - 1;
     // IO
     logic [N-1:0]a;
     logic [N-1:0]b;
@@ -18,20 +18,24 @@ module comparator_tb;
     comparator #(N) dut_s(.s(1'b1), .a, .b, .o(so));  /// signed comparator
     // debug trace
     task check(input [5:0]o, [5:0]v); begin
-        $write("t=%04t, a=%h b=%h, %x[%b] => %x[%b]", $time, a, b, o, o, v, v);
+        $write("t=%3t, a=%10d[%h] b=%10d[%h], %d[%b] => %d[%b]",
+            $time, $signed(a), a, $signed(b), b, o, o, v, v);
         $display(" %s", o===v ? "ok" : "err");
     end
     endtask
 
     initial begin
         //$monitor("t=%04t, a=%h b=%h, eq,neq,lt,lte,qt,qte=%b", $time, a, b, {eq,neq,lt,lte,gt,gte});
-        /* t1 */ a = 0; b = 1;  #1; check(uo, LT); check(so, LT);
-        /* t2 */ a = 1;         #1; check(uo, EQ); check(so, EQ);
-        /* t3 */ b = 0;         #1; check(uo, GT); check(so, GT);
-        /* t4 */ a = MAX;       #1; check(uo, GT); check(so, LT);
-        /* t5 */ b = MAX;       #1; check(uo, EQ); check(so, EQ);
-        /* t6 */ a = MAX - 1;   #1; check(uo, LT); check(so, GT);
-        /* t7 */ b = 0;         #1; check(uo, GT); check(so, LT);
+        a = 0; b = 1;  #1; check(uo, LT); check(so, LT);   // t1
+        a = 1;         #1; check(uo, EQ); check(so, EQ);   // t2
+        b = 0;         #1; check(uo, GT); check(so, GT);   // t3
+        a = MAX;       #1; check(uo, GT); check(so, LT);   // t4
+        b = MAX;       #1; check(uo, EQ); check(so, EQ);   // t5
+        a = a - 1;     #1; check(uo, LT); check(so, LT);   // t6
+        b = 0;         #1; check(uo, GT); check(so, LT);   // t7
+        a = MAX>>1;    #1; check(uo, GT); check(so, GT);   // t8
+        b = MAX>>1;    #1; check(uo, EQ); check(so, EQ);   // t9
+        a = a - 1;     #1; check(uo, LT); check(so, LT);   // t10
         $finish;
     end
 endmodule // comparator_tb
