@@ -11,25 +11,25 @@ cModel Technology
 Z0 d/u01/devel/fpga/forthsuper/vsim
 vcomparator
 Z1 DXx6 sv_std 3 std 0 22 VYECXdT12H8WgbUP_5Y6:3
-DXx4 work 18 comparator_sv_unit 0 22 @mB4ngEVO[l]<EY:[N^:T0
-Z2 !s110 1637110169
+DXx4 work 18 comparator_sv_unit 0 22 JU2dOSD5_@R>j`7c5Ne1g1
+Z2 !s110 1637163935
 Z3 VDg1SIo80bB@j0V0VzS_@n1
 r1
 !s85 0
 !i10b 1
-!s100 4ECz8k=3nW;`MeICLgX4<2
-II?QVzGGR?4PG`LahKfJ4H1
+!s100 PUDBRHiDgkP=HKI=]4RJW0
+I`RPWVkVbn`Z@CWJWZ@UHe2
 !s105 comparator_sv_unit
 S1
 R0
-Z4 w1637109837
+Z4 w1637163118
 Z5 8/u01/devel/fpga/forthsuper/source/comparator.sv
 Z6 F/u01/devel/fpga/forthsuper/source/comparator.sv
-!i122 3
-L0 8 15
+!i122 30
+L0 8 16
 Z7 OT;L;2020.3;71
 31
-Z8 !s108 1637110169.000000
+Z8 !s108 1637163935.000000
 Z9 !s107 /u01/devel/fpga/forthsuper/source/comparator.sv|
 Z10 !s90 -reportprogress|300|-work|work|-sv|-stats=none|/u01/devel/fpga/forthsuper/source/comparator.sv|
 !s101 -O0
@@ -39,19 +39,19 @@ Z12 tCvgOpt 0
 Xcomparator_sv_unit
 R1
 R2
-V@mB4ngEVO[l]<EY:[N^:T0
+VJU2dOSD5_@R>j`7c5Ne1g1
 r1
 !s85 0
 !i10b 1
-!s100 6k7k9Nj;0:2>iiU_T<FF`0
-I@mB4ngEVO[l]<EY:[N^:T0
+!s100 L^gFH5U^FzPhBG;e4A=`_1
+IJU2dOSD5_@R>j`7c5Ne1g1
 !i103 1
 S1
 R0
 R4
 R5
 R6
-!i122 3
+!i122 30
 L0 4 0
 R7
 31
@@ -66,24 +66,24 @@ vcomparator_tb
 R1
 R2
 !i10b 1
-!s100 9]OUi=YFBVSdhH86@gOK53
+!s100 Ifj9c@`hn?ig`8nZ>jmQ^2
 !s11b Dg1SIo80bB@j0V0VzS_@n1
-IRP<@ZLWQV?JD0[hWzD2Q00
+I6:S^6?_m^?L:z^>?S^9822
 S1
 R0
-w1637110162
-8/u01/devel/fpga/forthsuper/source/comparator_tb.sv
-F/u01/devel/fpga/forthsuper/source/comparator_tb.sv
-!i122 4
-L0 4 29
+w1637163447
+8/u01/devel/fpga/forthsuper/test/comparator_tb.sv
+F/u01/devel/fpga/forthsuper/test/comparator_tb.sv
+!i122 31
+L0 4 33
 R3
 R7
 r1
 !s85 0
 31
 R8
-!s107 /u01/devel/fpga/forthsuper/source/comparator_tb.sv|
-!s90 -reportprogress|300|-work|work|-sv|-stats=none|/u01/devel/fpga/forthsuper/source/comparator_tb.sv|
+!s107 /u01/devel/fpga/forthsuper/test/comparator_tb.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|/u01/devel/fpga/forthsuper/test/comparator_tb.sv|
 !s101 -O0
 !i113 1
 R11
