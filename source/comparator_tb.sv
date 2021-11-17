@@ -7,7 +7,6 @@ module comparator_tb #(
     );
     logic [N-1:0]a;
     logic [N-1:0]b;
-    logic s;
     logic [5:0]o;                 /// ModelSim does not like types from other file, TODO:
     
     comparator #(N) dut(.a, .b, .o);  /// instantiate a comparator  
@@ -20,7 +19,6 @@ module comparator_tb #(
     endtask
 
     initial begin
-        s = 0;
         //$monitor("t=%04t, a=%h b=%h, eq,neq,lt,lte,qt,qte=%b", $time, a, b, {eq,neq,lt,lte,gt,gte});
         a = 0; b = 1;          check(6'b011100);
         a = 1;                 check(6'b100101);
