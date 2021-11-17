@@ -1,1 +1,0 @@
-/usr/local/radiant/3.0/bin/lin64/moduleparser -PROJ vsim -pf /usr/local/radiant/3.0/cae_library/synthesis/vhdl/iCE40UP.vhd -pf /usr/local/radiant/3.0/cae_library/synthesis/verilog/iCE40UP.v -lib iCE40UP -lst /u01/devel/fpga/forthsuper/vsim/source_files.lst
