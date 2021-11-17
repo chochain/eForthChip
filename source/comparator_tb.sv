@@ -7,9 +7,10 @@ module comparator_tb #(
     );
     logic [N-1:0]a;
     logic [N-1:0]b;
-    logic [5:0]o;                 /// ModelSim does not like type from other file, TODO:
+    logic s;
+    logic [5:0]o;                 /// ModelSim does not like types from other file, TODO:
     
-    comparator #(N) cmp0(.a, .b, .o);  /// instantiate a comparator  
+    comparator #(N) dut(.a, .b, .o);  /// instantiate a comparator  
 
     task check(input [5:0]v); begin
         #1; 
@@ -19,11 +20,12 @@ module comparator_tb #(
     endtask
 
     initial begin
+        s = 0;
         //$monitor("t=%04t, a=%h b=%h, eq,neq,lt,lte,qt,qte=%b", $time, a, b, {eq,neq,lt,lte,gt,gte});
         a = 0; b = 1;          check(6'b011100);
         a = 1;                 check(6'b100101);
         b = 0;                 check(6'b010011);
-        a = MAX; b = MAX - 1;  check(6'b010011);
+        a = MAX;               check(6'b010011);
         b = MAX;               check(6'b100101);
         a = MAX - 1;           check(6'b011100);
         b = 0;                 check(6'b010011);
