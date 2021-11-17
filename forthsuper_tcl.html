@@ -40,7 +40,48 @@ if (a)
 <BODY>
 
 <DIV id="content" onclick="hideTocList()"><PRE>
+<A name="pn211116181220"></A><B><U><big>pn211116181220</big></U></B>
+#Start recording tcl command: 11/16/2021 16:47:44
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_create -name "forthsuper" -impl "impl_1" -dev iCE40UP5K-UWG30ITR -performance "High-Performance_1.2V" -synthesis "lse"
+prj_add_source "/u01/devel/fpga/forthsuper/source/comparator.sv" "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_save 
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/comparator.sv"
+prj_enable_source "/u01/devel/fpga/forthsuper/source/comparator.sv"
+prj_run Synthesis -impl impl_1
+prj_run Map -impl impl_1
+prj_run PAR -impl impl_1
+prj_run Export -impl impl_1
+prj_run Synthesis -impl impl_1
+prj_run Synthesis -impl impl_1
+prj_run Map -impl impl_1
+prj_run PAR -impl impl_1
+prj_run Export -impl impl_1
+prj_run Synthesis -impl impl_1 -task Lattice_Synthesis
+prj_run Synthesis -impl impl_1
+prj_run Synthesis -impl impl_1
+prj_run Map -impl impl_1
+prj_run PAR -impl impl_1
+prj_run Export -impl impl_1
+prj_run Synthesis -impl impl_1
+prj_run Synthesis -impl impl_1
+prj_run Export -impl impl_1
+prj_disable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+#Stop recording: 11/16/2021 18:12:20
+
+
+
 </PRE></DIV>
+
+<DIV id="toc" class="radiant"><span onmousemove="showTocList()">Contents</span>
+<UL id="toc_list">
+<LI><A href=#pn211116181220>pn211116181220</A></LI>
+</UL>
+</DIV>
 
 <button id="back_to_top" class="radiant" onclick="scrollToTop()">&lt;</button>
 <script type="text/javascript">
