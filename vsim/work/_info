@@ -1,0 +1,90 @@
+m255
+K4
+z2
+!s11f vlog 2020.3 2021.02, Feb 11 2021
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/u01/devel/fpga/forthsuper/vsim
+vcomparator
+Z1 DXx6 sv_std 3 std 0 22 VYECXdT12H8WgbUP_5Y6:3
+DXx4 work 18 comparator_sv_unit 0 22 @mB4ngEVO[l]<EY:[N^:T0
+Z2 !s110 1637110169
+Z3 VDg1SIo80bB@j0V0VzS_@n1
+r1
+!s85 0
+!i10b 1
+!s100 4ECz8k=3nW;`MeICLgX4<2
+II?QVzGGR?4PG`LahKfJ4H1
+!s105 comparator_sv_unit
+S1
+R0
+Z4 w1637109837
+Z5 8/u01/devel/fpga/forthsuper/source/comparator.sv
+Z6 F/u01/devel/fpga/forthsuper/source/comparator.sv
+!i122 3
+L0 8 15
+Z7 OT;L;2020.3;71
+31
+Z8 !s108 1637110169.000000
+Z9 !s107 /u01/devel/fpga/forthsuper/source/comparator.sv|
+Z10 !s90 -reportprogress|300|-work|work|-sv|-stats=none|/u01/devel/fpga/forthsuper/source/comparator.sv|
+!s101 -O0
+!i113 1
+Z11 o-work work -sv -O0
+Z12 tCvgOpt 0
+Xcomparator_sv_unit
+R1
+R2
+V@mB4ngEVO[l]<EY:[N^:T0
+r1
+!s85 0
+!i10b 1
+!s100 6k7k9Nj;0:2>iiU_T<FF`0
+I@mB4ngEVO[l]<EY:[N^:T0
+!i103 1
+S1
+R0
+R4
+R5
+R6
+!i122 3
+L0 4 0
+R7
+31
+R8
+R9
+R10
+!s101 -O0
+!i113 1
+R11
+R12
+vcomparator_tb
+R1
+R2
+!i10b 1
+!s100 9]OUi=YFBVSdhH86@gOK53
+!s11b Dg1SIo80bB@j0V0VzS_@n1
+IRP<@ZLWQV?JD0[hWzD2Q00
+S1
+R0
+w1637110162
+8/u01/devel/fpga/forthsuper/source/comparator_tb.sv
+F/u01/devel/fpga/forthsuper/source/comparator_tb.sv
+!i122 4
+L0 4 29
+R3
+R7
+r1
+!s85 0
+31
+R8
+!s107 /u01/devel/fpga/forthsuper/source/comparator_tb.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|/u01/devel/fpga/forthsuper/source/comparator_tb.sv|
+!s101 -O0
+!i113 1
+R11
+R12

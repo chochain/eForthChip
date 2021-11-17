@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RadiantProject version="4.2" title="forthsuper" device="iCE40UP5K-UWG30ITR" performance_grade="High-Performance_1.2V" default_implementation="impl_1">
+    <Options/>
+    <Implementation title="impl_1" dir="impl_1" description="impl_1" synthesis="lse" default_strategy="Strategy1">
+        <Options/>
+        <Source name="source/comparator.sv" type="Verilog" type_short="Verilog">
+            <Options VerilogStandard="System Verilog"/>
+        </Source>
+        <Source name="source/comparator_tb.sv" type="Verilog" type_short="Verilog">
+            <Options VerilogStandard="System Verilog"/>
+        </Source>
+    </Implementation>
+    <Strategy name="Strategy1" file="forthsuper1.sty"/>
+</RadiantProject>

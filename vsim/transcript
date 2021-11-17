@@ -1,0 +1,85 @@
+# do /u01/devel/fpga/forthsuper/vsim/vsim.mdo
+# Loading project vsim
+# Model Technology ModelSim - Lattice FPGA Edition vlog 2020.3 Compiler 2021.02 Feb 11 2021
+# Start time: 16:48:47 on Nov 16,2021
+# vlog -reportprogress 300 -sv -mfcu "+incdir+/u01/devel/fpga/forthsuper/source" -work work /u01/devel/fpga/forthsuper/source/comparator.sv /u01/devel/fpga/forthsuper/source/comparator_tb.sv 
+# -- Compiling package comparator_sv_unit
+# -- Compiling module comparator
+# -- Compiling module comparator_tb
+# 
+# Top level modules:
+# 	comparator_tb
+# End time: 16:48:47 on Nov 16,2021, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vsim -L work -L pmi_work -L ovi_ice40up comparator_tb 
+# Start time: 16:48:47 on Nov 16,2021
+# //  ModelSim - Lattice FPGA Edition 2020.3 Feb 11 2021 Linux 5.4.0-89-generic
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim - Lattice FPGA Edition and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.comparator_sv_unit
+# Loading work.comparator_tb
+# Loading work.comparator
+# .main_pane.wave.interior.cs.body.pw.wf
+# t=   1, a=00000000 b=00000001, $b==01110028  ok
+# t=   2, a=00000001 b=00000001, $b==10010137  ok
+# t=   3, a=00000001 b=00000000, $b==01001119  ok
+# t=   4, a=ffffffff b=fffffffe, $b==01001119  ok
+# t=   5, a=ffffffff b=ffffffff, $b==10010137  ok
+# t=   6, a=fffffffe b=ffffffff, $b==01110028  ok
+# t=   7, a=fffffffe b=00000000, $b==01001119  ok
+# ** Note: $stop    : /u01/devel/fpga/forthsuper/source/comparator_tb.sv(30)
+#    Time: 7 ps  Iteration: 0  Instance: /comparator_tb
+# Break in Module comparator_tb at /u01/devel/fpga/forthsuper/source/comparator_tb.sv line 30
+# Compile of comparator.sv was successful with warnings.
+# Compile of comparator_tb.sv was successful.
+# 2 compiles, 0 failed with no errors.
+restart
+# ** Note: (vsim-12125) Error and warning message counts have been reset to '0' because of 'restart'.
+# Loading work.comparator_tb
+# Loading work.comparator_sv_unit
+# Loading work.comparator
+run
+# t=   1, a=00000000 b=00000001, $b==01110028  ok
+# t=   2, a=00000001 b=00000001, $b==10010137  ok
+# t=   3, a=00000001 b=00000000, $b==01001119  ok
+# t=   4, a=ffffffff b=fffffffe, $b==01001119  ok
+# t=   5, a=ffffffff b=ffffffff, $b==10010137  ok
+# t=   6, a=fffffffe b=ffffffff, $b==01110028  ok
+# t=   7, a=fffffffe b=00000000, $b==01001119  ok
+# ** Note: $stop    : /u01/devel/fpga/forthsuper/source/comparator_tb.sv(30)
+#    Time: 7 ps  Iteration: 0  Instance: /comparator_tb
+# Break in Module comparator_tb at /u01/devel/fpga/forthsuper/source/comparator_tb.sv line 30
+# Compile of comparator.sv was successful.
+# Compile of comparator_tb.sv was successful.
+# 2 compiles, 0 failed with no errors.
+restart
+# ** Note: (vsim-12125) Error and warning message counts have been reset to '0' because of 'restart'.
+# Loading work.comparator_tb
+# Loading work.comparator_sv_unit
+# Loading work.comparator
+run
+# t=   1, a=00000000 b=00000001, 011100==011100  ok
+# t=   2, a=00000001 b=00000001, 100101==100101  ok
+# t=   3, a=00000001 b=00000000, 010011==010011  ok
+# t=   4, a=ffffffff b=fffffffe, 010011==010011  ok
+# t=   5, a=ffffffff b=ffffffff, 100101==100101  ok
+# t=   6, a=fffffffe b=ffffffff, 011100==011100  ok
+# t=   7, a=fffffffe b=00000000, 010011==010011  ok
+# ** Note: $stop    : /u01/devel/fpga/forthsuper/source/comparator_tb.sv(30)
+#    Time: 7 ps  Iteration: 0  Instance: /comparator_tb
+# Break in Module comparator_tb at /u01/devel/fpga/forthsuper/source/comparator_tb.sv line 30
+write format wave -window .main_pane.wave.interior.cs.body.pw.wf /u01/devel/fpga/forthsuper/vsim/wave.do
+quit -sim
+# End time: 16:52:56 on Nov 16,2021, Elapsed time: 0:04:09
+# Errors: 0, Warnings: 1

@@ -1,0 +1,8 @@
+<RadiantSimulationProject language="1" name="vsim" path="." simType="ModelSim" stage="0" version="2.0">
+    <Source langstandard="System Verilog" path="source/comparator.sv" include="none" type="VERILOG" worklib="work"/>
+    <Source langstandard="System Verilog" path="source/comparator_tb.sv" include="none" type="VERILOG" worklib="work"/>
+    <SimLib value="pmi_work ovi_ice40up"/>
+    <GlbInc value=""/>
+    <Macro value=""/>
+    <TopModule language="" name="comparator_tb" instance=""/>
+</RadiantSimulationProject>

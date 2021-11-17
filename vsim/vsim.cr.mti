@@ -1,0 +1,10 @@
+/u01/devel/fpga/forthsuper/source/comparator.sv {2 {vlog -work work -sv -stats=none /u01/devel/fpga/forthsuper/source/comparator.sv
+Model Technology ModelSim - Lattice FPGA Edition vlog 2020.3 Compiler 2021.02 Feb 11 2021
+** Warning: /u01/devel/fpga/forthsuper/source/comparator.sv(4): (vlog-13233) Design unit "comparator_sv_unit" already exists and will be overwritten. Overwriting SystemVerilog $unit with different source files.
+-- Compiling package comparator_sv_unit
+-- Compiling module comparator
+
+Top level modules:
+	comparator
+
+} {} {}}
