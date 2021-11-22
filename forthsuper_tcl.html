@@ -75,11 +75,184 @@ prj_run Export -impl impl_1
 
 
 
+<A name="pn211117102111"></A><B><U><big>pn211117102111</big></U></B>
+#Start recording tcl command: 11/16/2021 18:12:38
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_enable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_run Export -impl impl_1
+prj_enable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_run Export -impl impl_1
+prj_enable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_run Export -impl impl_1
+prj_enable_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_remove_source "/u01/devel/fpga/forthsuper/source/comparator_tb.sv"
+prj_add_source "/u01/devel/fpga/forthsuper/test/comparator_tb.sv"
+prj_run Export -impl impl_1
+prj_syn_sim_source -src "/u01/devel/fpga/forthsuper/test/comparator_tb.sv" SimulateOnly
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/source/memory.sv"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/memory.sv"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/comparator.sv"
+prj_enable_source "/u01/devel/fpga/forthsuper/source/memory.sv"
+prj_run Export -impl impl_1
+#Stop recording: 11/17/2021 10:21:11
+
+
+
+<A name="pn211118175710"></A><B><U><big>pn211118175710</big></U></B>
+#Start recording tcl command: 11/18/2021 17:55:56
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+#Stop recording: 11/18/2021 17:57:10
+
+
+
+<A name="pn211119083731"></A><B><U><big>pn211119083731</big></U></B>
+#Start recording tcl command: 11/18/2021 18:06:01
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/bank0/bank0.ipx"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_save 
+prj_close
+#Stop recording: 11/19/2021 08:37:31
+
+
+
+<A name="pn211120083447"></A><B><U><big>pn211120083447</big></U></B>
+#Start recording tcl command: 11/20/2021 07:57:47
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/spram.sv"
+prj_remove_source "/u01/devel/fpga/forthsuper/bank0/bank0.ipx"
+prj_enable_source "/u01/devel/fpga/forthsuper/source/memory.sv"
+prj_add_source "/u01/devel/fpga/forthsuper/ram8k/ram8k.ipx"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/memory.sv"
+prj_run Export -impl impl_1
+prj_set_device -part iCE40UP5K-SG48I -performance "High-Performance_1.2V"
+prj_run Export -impl impl_1
+#Stop recording: 11/20/2021 08:34:47
+
+
+
+<A name="pn211120171236"></A><B><U><big>pn211120171236</big></U></B>
+#Start recording tcl command: 11/20/2021 13:21:49
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+prj_run Export -impl impl_1
+prj_disable_source "/u01/devel/fpga/forthsuper/test/spram_tb.sv"
+prj_add_source "/u01/devel/fpga/forthsuper/test/dut_inst.v" "/u01/devel/fpga/forthsuper/test/dut_params.v" "/u01/devel/fpga/forthsuper/test/tb_top.v"
+prj_syn_sim_source -src "/u01/devel/fpga/forthsuper/test/dut_inst.v" SimulateOnly
+prj_syn_sim_source -src "/u01/devel/fpga/forthsuper/test/dut_params.v" SimulateOnly
+prj_syn_sim_source -src "/u01/devel/fpga/forthsuper/test/tb_top.v" SimulateOnly
+prj_disable_source "/u01/devel/fpga/forthsuper/source/spram.sv"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_remove_source "/u01/devel/fpga/forthsuper/test/dut_inst.v" "/u01/devel/fpga/forthsuper/test/dut_params.v" "/u01/devel/fpga/forthsuper/test/tb_top.v"
+prj_enable_source "/u01/devel/fpga/forthsuper/source/spram.sv"
+prj_enable_source "/u01/devel/fpga/forthsuper/test/spram_tb.sv"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/pl_24M/pl_24M.ipx"
+prj_remove_source "/u01/devel/fpga/forthsuper/ebr_spram/ebr_spram.ipx"
+prj_remove_source "/u01/devel/fpga/forthsuper/pl_24M/pl_24M.ipx"
+prj_add_source "/u01/devel/fpga/forthsuper/bram8k/bram8k.ipx"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/pll_24m/pll_24m.ipx"
+prj_remove_source "/u01/devel/fpga/forthsuper/pll_24m/pll_24m.ipx"
+#Stop recording: 11/20/2021 17:12:36
+
+
+
+<A name="pn211121135424"></A><B><U><big>pn211121135424</big></U></B>
+#Start recording tcl command: 11/20/2021 18:11:35
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_disable_source "/u01/devel/fpga/forthsuper/source/spram.sv"
+prj_enable_source "/u01/devel/fpga/forthsuper/source/spram.sv"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/pll_24/pll_24.ipx"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_disable_source "/u01/devel/fpga/forthsuper/bram8k/bram8k.ipx"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_remove_source "/u01/devel/fpga/forthsuper/pll_24/pll_24.ipx"
+prj_enable_source "/u01/devel/fpga/forthsuper/bram8k/bram8k.ipx"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_remove_source "/u01/devel/fpga/forthsuper/bram8k/bram8k.ipx"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+#Stop recording: 11/21/2021 13:54:24
+
+
+
+<A name="pn211121161909"></A><B><U><big>pn211121161909</big></U></B>
+#Start recording tcl command: 11/21/2021 13:54:57
+#Project Location: /u01/devel/fpga/forthsuper; Project name: forthsuper
+prj_open "/u01/devel/fpga/forthsuper/forthsuper.rdf"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_add_source "/u01/devel/fpga/forthsuper/vsim/vsim.spf"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_disable_source "/u01/devel/fpga/forthsuper/source/spram.sv"
+prj_disable_source "/u01/devel/fpga/forthsuper/test/spram_tb.sv"
+prj_add_source "/u01/devel/fpga/forthsuper/test/stack_tb.sv"
+prj_syn_sim_source -src "/u01/devel/fpga/forthsuper/test/stack_tb.sv" SimulateOnly
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_enable_source "/u01/devel/fpga/forthsuper/source/stack.sv"
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+prj_run Export -impl impl_1
+#Stop recording: 11/21/2021 16:19:09
+
+
+
 </PRE></DIV>
 
 <DIV id="toc" class="radiant"><span onmousemove="showTocList()">Contents</span>
 <UL id="toc_list">
 <LI><A href=#pn211116181220>pn211116181220</A></LI>
+<LI><A href=#pn211117102111>pn211117102111</A></LI>
+<LI><A href=#pn211118175710>pn211118175710</A></LI>
+<LI><A href=#pn211119083731>pn211119083731</A></LI>
+<LI><A href=#pn211120083447>pn211120083447</A></LI>
+<LI><A href=#pn211120171236>pn211120171236</A></LI>
+<LI><A href=#pn211121135424>pn211121135424</A></LI>
+<LI><A href=#pn211121161909>pn211121161909</A></LI>
 </UL>
 </DIV>
 
