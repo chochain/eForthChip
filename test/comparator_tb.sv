@@ -1,13 +1,14 @@
 ///
 /// ForthSuper comparator testbench
 ///
-module comparator_tb;
+module comparator_tb #(
     // test parameters
-    localparam N   = 32;            /// 32-bit comparator
-    localparam LT  = 6'b011100;
-    localparam EQ  = 6'b100101;
-    localparam GT  = 6'b010011;
-    integer    MAX = $pow(2,N) - 1;
+    localparam N   = 32,            /// 32-bit comparator
+    localparam LT  = 6'b011100,
+    localparam EQ  = 6'b100101,
+    localparam GT  = 6'b010011
+    );
+    integer MAX = $pow(2,N) - 1;    /// so, MAX is not a real number
     // IO
     logic [N-1:0]a;
     logic [N-1:0]b;
