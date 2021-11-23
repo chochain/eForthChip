@@ -1,6 +1,7 @@
 ///
 /// ForthSuper stack (FILO)
 ///
+/*
 module stack #(
     parameter DSZ   = 32,         /// data bus size
     parameter DEPTH = 16,
@@ -62,38 +63,43 @@ module stack2 #(
 
     assign vo = tos;
 endmodule
-
+*/
 module stack3 #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
     parameter SSZ   = $clog2(DEPTH)
     ) (
     input  logic           clk,   /// clock
+    input  logic           rst,
     input  logic           push,
     input  logic           pop,
     input  logic [DSZ-1:0] vi,    /// push value
+    output logic [SSZ-1:0] idx,   /// register
     output logic [DSZ-1:0] vo     /// return value (top of stack)
     );
-    logic we;
-    logic [SSZ-1:0] idx;
-    stack64 data(
-        .clk_i(clk),
-        .rst_i(1'b0),
-        .clk_en_i(1'b1),
-        .wr_en_i(we),
-        .wr_data_i(vi),
-        .addr_i(idx),
-        .rd_data_o(vo)
+    logic [SSZ-1:0] idx_1;        /// idx_1 = index - 1
+    ///
+    /// instance of EBR Single Port Memory
+    ///
+    pmi_ram_dq #(DEPTH, SSZ, DSZ) data(
+        .Data      (vi),
+        .Address   (pop ? idx_1 : idx),
+        .Clock     (clk),
+        .ClockEn   (1'b1),
+        .WE        (push),
+        .Reset     (rst),
+        .Q         (vo)
     );
-    
+    ///
+    /// blocking assignment, reg value created before the always block
+    ///
+    assign idx_1 = idx - 6'b1;
+    ///
+    /// using FF implies a pipedline design
+    ///
     always_ff @(posedge clk) begin
-        if (push) begin
-            we  <= 1;
-            idx <= idx + 6'b1;
-        end    
-        else begin
-            we <= 0;
-            if (pop) idx <= idx - 6'b1;
-        end 
+        if (rst) idx <= 0;
+        if (push)      idx <= idx + 6'b1;
+        else if (pop)  idx <= idx_1;
     end
 endmodule // stack3
