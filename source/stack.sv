@@ -81,7 +81,7 @@ module stack3 #(
     ///
     /// instance of EBR Single Port Memory
     ///
-    pmi_ram_dq #(DEPTH, SSZ, DSZ) data(
+    pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") data(    /// noreg saves a cycle
         .Data      (vi),
         .Address   (pop ? idx_1 : idx),
         .Clock     (clk),
