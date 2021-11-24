@@ -6,15 +6,17 @@ module spram_tb;
     localparam ASZ  = 16;   // 64K
     localparam DSZ  = 32;   // 32-bit data
     logic clk, we;
+    logic [3:0] bmsk;
     logic [ASZ-1:0] a;
     logic [DSZ-1:0] vi, vo;
 
-    spram64k u1(.clk, .we, .a, .vi, .vo);
+    spram64k u1(.clk, .we, .bmsk, .a, .vi, .vo);
 
     always #10 clk  = ~clk;
 
     initial begin
-        {clk, we, a, vi, vo} = 0;
+        {clk, we, a, vi, vo}  = 0;
+        bmsk = 4'b1011;
 
         // init clock
         repeat(2) @(posedge clk);

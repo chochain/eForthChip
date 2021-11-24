@@ -1,10 +1,11 @@
 ///
 /// ForthSuper 32-bit Single-Port Memory (64K block)
 ///
-module spram64k(
+module spram64k (
     input         clk,
-    input         we,
-    input [15:0]  a,
+    input         we,   /// we:0 read, we:1 write
+    input [3:0]   bmsk, /// byte mask
+    input [15:0]  a, 
     input [31:0]  vi,
     output [31:0] vo
     );
@@ -15,7 +16,7 @@ module spram64k(
     SP256K bank0 (
         .AD(a[13:0]),
         .DI(vi[31:16]),
-        .MASKWE(4'b1111),
+        .MASKWE({bmsk[3:3],bmsk[3:3],bmsk[2:2],bmsk[2:2]}),
         .WE(we),
         .CS(1'b1),
         .CK(clk),
@@ -27,7 +28,7 @@ module spram64k(
     SP256K bank1 (
         .AD(a[13:0]),
         .DI(vi[15:0]),
-        .MASKWE(4'b1111),
+        .MASKWE({bmsk[1:1],bmsk[1:1],bmsk[0:0],bmsk[0:0]}),
         .WE(we),
         .CS(1'b1),
         .CK(clk),
