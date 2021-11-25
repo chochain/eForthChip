@@ -21,30 +21,49 @@ module spram32_tb;
         // init clock
         repeat(2) @(posedge clk);
 
-        // write
+        // byte check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = 'h1 << i;
+                a    = i;
                 we   = 1;
-                vi   = ~i << i;
+                vi   = (1 << i) | (i & 3);
             end
+        end
+        for (integer i = 0; i < ASZ + 4; i = i + 1) begin
+            repeat(1) @(posedge clk) begin
+                a    = i;
+                we   = 0;
+                $display("%d[%x]: %x => %x", i, a, (1 << i) | (i & 3), vo);
+            end
+        end
+        // range check
+        for (integer i = 0; i < ASZ; i = i + 1) begin
+            repeat(1) @(posedge clk) begin
+                a    = 31 + (1 << i);
+                we   = 1;
+                vi   = (~i << i) | (i & 3);
+            end
+        end
+        for (integer i = 0; i < ASZ + 4; i = i + 1) begin
+            repeat(1) @(posedge clk) begin
+                a  = 31 + (1 << i);
+                we = 0;
+                $display("%d[%x]: %x => %x", i, a, (~i << i) | (i & 3), vo);
+            end
+        end
+        // high byte check
+        for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
                 a    = 'h7fff - i;
                 we   = 1;
-                vi   = ~i << i;
+                vi   = (1 << i) | (i & 3);
             end
         end
-        // read
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a  = (i < ASZ) ? 1 << i : 0;
+                a  = 'h7fff - i;
                 we = 0;
-                $display("%d[%x]: %x => %x", i, a, ~i << i, vo);
-            end
-            repeat(1) @(posedge clk) begin
-                a  = (i < ASZ) ? 'h7fff - i : 0;
-                we = 0;
-                $display("%d[%x]: %x => %x", i, a, ~i << i, vo);
+                $display("%d[%x]: %x => %x", i, a, (1 << i) | (i & 3), vo);
             end
         end
 
