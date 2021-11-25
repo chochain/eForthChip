@@ -11,16 +11,8 @@ module spram32_tb;
     logic [DSZ-1:0] vi, vo;
 
     spram32_32k u1(.clk, .we, .bmsk, .a, .vi, .vo);
-
-    always #10 clk  = ~clk;
-
-    initial begin
-        {clk, we, a, vi}  = 0;
-        bmsk = 4'b1111;
-        
-        // init clock
-        repeat(2) @(posedge clk);
-
+    
+    task one_pass(); begin
         // byte check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
@@ -65,6 +57,21 @@ module spram32_tb;
                 we = 0;
                 $display("%d[%x]: %x => %x", i, a, (1 << i) | (i & 3), vo);
             end
+        end
+    end
+    endtask
+
+    always #10 clk  = ~clk;
+
+    initial begin
+        {clk, we, a, vi}  = 0;
+        
+        // init clock
+        repeat(2) @(posedge clk);
+        
+        for (integer j = 0; j < 3; j = j + 1) begin
+            bmsk = 4'b1 << j;
+            one_pass();
         end
 
         #20 $finish;
