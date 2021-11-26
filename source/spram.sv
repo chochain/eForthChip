@@ -75,21 +75,24 @@ module spram8_128k (
     input        we,    /// we:0 read, we:1 write
     input [16:0] a,     /// 128K depth
     input [7:0]  vi,    /// byte IO
-    output [3:0] bmsk,
-    output [31:0] vo
+    output logic [7:0] vo
     );
     logic [31:0] vi32, vo32;
-    //logic [3:0]  bmsk;  /// byte index
+    logic [1:0]  b, _b; /// byte index
+    logic [3:0]  bmsk;  /// decoder
     
-    spram32_32k m0(clk, we, bmsk, a[16:2], vi32, vo);
+    spram32_32k m0(clk, we, bmsk, a[16:2], vi32, vo32);
     
-    assign vi32 = { vi, vi, vi, vi };
-    assign bmsk = 4'b1 << a[1:0];
-/*    
-    assign vo   = a[1:1] 
-        ? (a[0:0] ? vo32[31:24] : vo32[23:16])
-        : (a[0:0] ? vo32[15:8]  : vo32[7:0]);
-*/        
+    assign vi32 = {vi, vi, vi, vi};
+    assign b    = a[1:0];
+    assign bmsk = 4'b1 << b;
+    assign vo   = _b[1:1]   /// byte mask from previous cycle
+            ? (_b[0:0] ? vo32[31:24] : vo32[23:16])
+            : (_b[0:0] ? vo32[15:8]  : vo32[7:0]);
+    
+    always_ff @(posedge clk) begin
+        if (!we) _b <= b;   /// read needs to wait for one cycle
+    end
 endmodule // spram8_128k
 `endif // FORTHSUPER_SPRAM
 
