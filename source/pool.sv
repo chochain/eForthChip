@@ -26,47 +26,42 @@ module pool #(
     output logic           we,
     output logic [1:0]     st,  /// state
     output logic           bsy, /// 0:busy, 1:done
+    output logic           eq,
     output logic [ASZ-1:0] ao,  /// output address 0:not found
     output logic [ASZ-1:0] ao1
     );
     logic [ASZ-1:0]        here;       /// dictionary starting address
     logic [1:0]            _st;
     logic                  _bsy;
-    logic                  _eq;
     logic [DSZ-1:0]        _vo;        /// src memory value
     logic [ASZ-1:0]        a, a0, a1;  /// string addresses
     logic [3:0]            bmsk;
-    cmp_t                  eq;
+    cmp_t                  cmp_r;
 
     spram8_128k mem(.clk, .we, .a, .vi, .vo);
-    comparator #(8) cmp(.s(1'b0), .a(_vo), .b(vo), .o(eq));
+    comparator #(8) cmp(.s(1'b0), .a(_vo), .b(vo), .o(cmp_r));
     ///
     /// find - 4-always state machine (Cummings & Chambers)
     ///
-    always_ff @(posedge clk, posedge rst) begin // clocked present state
-        if (rst) st <= MEM0;
-        else begin
-            st  <= _st;
-            bsy <= _bsy;
-        end
+    always_ff @(posedge clk) begin // clocked present state
+        if (rst) st <= MEM0;       // synchronous reset (TODO: asyn)
+        else     st <= _st;        // transition to next state
     end
     
     always_comb begin   // logic for next state (state diagram)
         case (st)
-        MEM0: _st = (op==FIND && _bsy) ? MEM1 : MEM0;
+        MEM0: _st = (op==FIND && bsy) ? MEM1 : MEM0;
         MEM1: _st = CMP;
-        CMP:  _st = eq[0:0] ? (_vo==0 ? DONE : MEM1) : DONE;
+        CMP:  _st = cmp_r[0:0] ? (vo==0 ? DONE : MEM1) : DONE;
         DONE: _st = MEM0;
         endcase
     end
     
-    always_comb begin  // logic for next output
+    always_comb begin   // logic for next output
         we   = op==W1;
-        _eq  = eq[0:0];
-        _bsy = 1'b1;
-        _vo  = vo;
+        bsy  = 1'b1;
         case (st)
-        MEM0: begin 
+        MEM0: begin
             a  = ai;        
             a1 = ai + 1;
             a0 = here;
@@ -79,16 +74,18 @@ module pool #(
             a  = a1;
             a1 = a1 + 1;
         end
-        DONE: _bsy = 1'b0;
+        DONE: bsy = 1'b0;
         endcase
     end
     
-    always_ff @(posedge clk, posedge rst) begin  // logic for current output
-        if (rst) begin
+    always_ff @(posedge clk) begin  // logic for current output
+        if (rst) begin              // synchronous reset (TODO: async)
             here <= 0;
         end
         else begin
-            ao  <= a0; //(_eq && !_bsy) ? a0 : 'h0;
+            eq  <= cmp_r[0:0];
+            _vo <= vo;
+            ao  <= a0;
             ao1 <= a1;
         end            
     end
