@@ -11,12 +11,12 @@ module pool_tb;
     logic [1:0]     st;
     logic [ASZ-1:0] ai, ao, ao1;
     logic [DSZ-1:0] vi, vo;
-    logic           we;
+    logic           we, eq;
     
     string str_a  = "abcdefghijklmnop";
     string str_b  = "abcd";
 
-    pool dict(.clk, .rst, .op, .ai, .vi, .we, .vo, .st, .bsy, .ao, .ao1);
+    pool dict(.clk, .rst, .op, .ai, .vi, .we, .vo, .st, .bsy, .eq, .ao, .ao1);
     
     function integer calc_v(input integer i);
         calc_v = str_a.getc(i);
@@ -28,10 +28,8 @@ module pool_tb;
     always #10 clk  = ~clk;
         
     task reset(); begin
-        repeat(1) @(posedge clk);
-        rst = 1;
-        repeat(1) @(posedge clk);
-        rst = 0;
+        repeat(1) @(posedge clk) rst = 1;
+        repeat(1) @(posedge clk) rst = 0;
     end
     endtask
         
@@ -48,10 +46,11 @@ module pool_tb;
         // write
         for (integer i=0; i < str_a.len(); i = i + 1) add_u8(i, str_a.getc(i));
         add_u8(str_a.len(), 0);
+        add_u8(4, 0);
         for (integer i=0; i < str_b.len(); i = i + 1) add_u8(str_a.len()+1+i, str_b.getc(i));
         add_u8(str_a.len() + 1 + str_b.len(), 0);
         // verify - read back
-        
+/*        
         for (integer i=0; i < str_a.len() + 1 + str_b.len() + 3; i = i + 1) begin
             repeat(1) @(posedge clk) begin
                 op  = R1;
@@ -59,7 +58,7 @@ module pool_tb;
                 $display("%x:%x=>%x", i, calc_v(i), vo);
             end
         end
-        
+*/        
     end
     endtask
         
@@ -71,7 +70,7 @@ module pool_tb;
         reset();
         ai = 'h11;
         op = FIND;
-        repeat(20) @(posedge clk);
+        repeat(40) @(posedge clk);
         
         #20 $finish;
     end       
