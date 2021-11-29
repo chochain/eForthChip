@@ -9,7 +9,7 @@ module pool_tb;
     localparam ASZ  = 17;   // 64K
     localparam DSZ  = 8;    // 32-bit data
     logic           clk, rst, bsy;
-    logic [2:0]     op;
+    logic [1:0]     op;
     logic [2:0]     st;
     logic [ASZ-1:0] ai, ao0, ao1;
     logic [15:0]    lfa, here;
