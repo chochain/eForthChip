@@ -24,7 +24,7 @@ module pool_tb;
         "mnop"
     };
 
-    pool dict(.clk, .rst, .op, .ai, .vi, .we, .vo, .st, .bsy, .hit, .ao0, .ao1);
+    pool dict(.clk, .rst, .op, .ai, .vi, .we, .vo, .bsy, .hit, .st, .ao0, .ao1);
     
     always #10 clk  = ~clk;
         
@@ -69,7 +69,7 @@ module pool_tb;
             add_word(string'(word_list[wi]));
         end;
         $display("lfa=%x, here=%x", lfa, here);
-/*        
+        
         // verify - read back
         for (integer i=0; i < here + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
@@ -78,7 +78,7 @@ module pool_tb;
                 $display("%x:%x", i, vo);
             end
         end
-*/
+
     end
     endtask
         
