@@ -4,18 +4,20 @@
 `timescale 1ps / 1ps
 `include "../source/pool.sv"
 module pool_tb;
-    localparam TIB  = 0;
-    localparam DICT = 'h10;
-    localparam ASZ  = 17;   // 64K
-    localparam DSZ  = 8;    // 32-bit data
-    logic           clk, rst, bsy;
-    logic [1:0]     op;
-    logic [2:0]     st;
-    logic [ASZ-1:0] ai, ao0, ao1;
-    logic [15:0]    lfa, here;
-    logic [DSZ-1:0] vi, vo;
-    logic           we, hit;
+    localparam ASZ  = 17;      // 64K
+    localparam DSZ  = 8;       // 32-bit data
+    localparam TIB  = 0;       // Terminal input buffer address
+    localparam DICT = 'h10;        // dictionary starting address
     
+    pool_ops op;               // opcodes
+    pool_sts st;               // DEBUG: pool state
+    logic clk, rst;            // input signals
+    logic bsy, we, hit;        // output signals
+    logic [ASZ-1:0] ai;        // input address
+    logic [ASZ-1:0] ao0, ao1;  // DEBUG output addresses
+    logic [DSZ-1:0] vi, vo;    // I/O values
+    
+    integer lfa, here;
     string tib = "abcd";
     string word_list[4] = {
         "abcd",
