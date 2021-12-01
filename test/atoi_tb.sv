@@ -8,20 +8,21 @@ module atoi_tb;
     localparam DSZ  = 32;      // 32-bit data
     localparam ASZ  = 17;      // 64K
     localparam TIB  = 0;       // Terminal input buffer address
+    localparam HEX  = 1'b1;
     
     logic clk, rst, en, we;    // input signals
     logic [ASZ-1:0] ai;        /// input address
-    logic [7:0]     ch, _ch;
+    logic [7:0]     ch;
     logic [2:0]     st;        /// DEBUG state
     logic           bsy;       /// 0:busy, 1:done
-    logic [ASZ-1:0] ao;        /// endptr
+    logic           ao;        /// endptr
     logic [DSZ-1:0] vo;        /// DEBUG memory
     logic [7:0]     vi;
                   
-    string tib = "123";
+    string tib = "7F8";
 
-    spram8_128k mem(.clk, .we, .a(ai), .vi, .vo(_ch));
-    atoi u0(.clk, .rst, .en, .ai, .ch, .st, .bsy, .ao, .vo);
+    spram8_128k mem(.clk, .we, .a(ai), .vi, .vo(ch));
+    atoi u0(.clk, .rst, .en, .hex(HEX), .ch, .st, .bsy, .ao, .vo);
     
     always #10 clk  = ~clk;
         
@@ -67,15 +68,10 @@ module atoi_tb;
         reset();
         we  = 1'b0;
         en  = 1'b1;
-        repeat(40) @(posedge clk);
+        repeat(40) @(posedge clk) begin
+            if (en) ai <= ai + ao;
+        end
         
         #20 $finish;
     end       
-    
-    always @(posedge clk) begin
-        if (en) begin
-            ai <= ao;
-            ch <= _ch;
-        end
-    end
 endmodule // atoi_tb

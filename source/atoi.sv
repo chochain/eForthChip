@@ -4,7 +4,7 @@
 `ifndef FORTHSUPER_ATOI
 `define FORTHSUPER_ATOI
 `include "comparator.sv"
-typedef enum logic [2:0] { INI, SGN, BSE, CHR, HX0, HX1, DEC, RST } atoi_sts;
+typedef enum logic [2:0] { INI, SGN, NEG, DC0, DC9, HX0, SUM, RET } atoi_sts;
 
 module atoi #(
     parameter DSZ = 32,
@@ -13,21 +13,21 @@ module atoi #(
     input                  clk, /// clock
     input                  rst, /// reset
     input                  en,  /// enable
-    input [ASZ-1:0]        ai, /// input address
-    input [7:0]            ch,
-    output atoi_sts        st, /// state: DEBUG
-    output logic           bsy, /// 0:busy, 1:done
-    output logic [ASZ-1:0] ao, /// endptr
-    output logic [DSZ-1:0] vo    /// DEBUG: output data (for memory read)
+    input                  hex, /// 0:decimal, 1:hex
+    input [7:0]            ch,  /// input charcter
+    output atoi_sts        st,  /// DEBUG: state
+    output logic           bsy, /// 1:busy, 0:done
+    output logic           ao,  /// advance address
+    output logic [DSZ-1:0] vo   /// output value (for memory read)
     );
+    localparam NA = 5'b10000;    /// not avilable
     atoi_sts               _st;  /// next state
-    logic [7:0]            _ch;  /// char fetch and char to match
-    logic [3:0]            inc;
+    logic [7:0]            cx;   ///char to match
+    logic [4:0]            inc;
     logic                  neg;
-    logic                  hex;
     cmp_t                  cv;
 
-    comparator  cmp(.s(1'b0), .a(ch), .b(_ch), .o(cv));
+    comparator  cmp(.s(1'b0), .a(ch), .b(cx), .o(cv));
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -42,56 +42,43 @@ module atoi #(
     always_comb begin
         case (st)
         INI: _st = en ? SGN : INI;
-        SGN: _st = BSE;
-        BSE: _st = CHR;
-        CHR: _st = ch ? (cv.ge ? DEC : HX0) : RST;
-        HX0: _st = cv.ge ? DEC : HX1;
-        HX1: _st = cv.lt ? RST : DEC;
-        DEC: _st = cv.gt ? RST : CHR;
-        RST: _st = INI;
+        SGN: _st = cv.eq ? NEG : DC0;
+        NEG: _st = DC0;                             // wait for one extra memory cycle
+        DC0: _st = cv.lt ? SUM : DC9;               // if (ch < '0') quit
+        DC9: _st = cv.le ? SUM : (hex ? HX0 : RET); 
+        HX0: _st = SUM;
+        SUM: _st = (inc!=NA || cv.ge) ? DC0 : RET;  // if 
+        RET: _st = INI;
         default: _st = INI;
         endcase
     end
     ///
-    /// logic for memory access
+    /// logic for input character range check
     ///
     always_comb begin
-        _ch = "x";
+        cx = "0";
+        ao = 'h0;
         case (st)
-        SGN: _ch = "-";    // ch == '-'
-        BSE: _ch = "$";    // ch == '$'
-        CHR: _ch = "a";    // ch >= 'a'
-        HX0: _ch = "A";    // ch >= 'A'
-        HX1: _ch = "0";    // ch <  '0'
-        DEC: _ch = "9";    // ch <= '9'
+        SGN: begin cx = "-"; ao = cv.eq; end  // if (ch == '-') advance address by 1
+        DC0: cx = "0";
+        DC9: begin cx = "9"; ao = 1'b1;  end  // ch <= '9', prefetch next char
+        HX0: cx = "a";                        // ch >= 'a'
+        SUM: cx = "A";
         endcase
     end
     
     task step(); begin
         case (st)
         INI: bsy <= en;
-        SGN: begin
-            if (cv.eq) begin
-                neg <= 1'b1;
-                ao  <= ao + 1'b1;
-            end
-        end
-        BSE: begin
-            if (cv.eq) begin
-                hex <= 1'b1;
-                ao  <= ao + 1'b1;
-            end
-        end
-        CHR: begin
-            inc <= cv.ge ? ch - "a" + 10 : 1'b0;
-            ao  <= ao + 1'b1;
-        end
-        HX0: inc <= cv.ge ? ch - "A" + 10 : 1'b0;
-        DEC: begin
+        SGN: neg <= cv.eq;
+        DC0: inc <= NA;
+        DC9: if (cv.le) inc <= ch - "0";
+        HX0: inc <= ch - (cv.ge ? 'h57 : 'h37); // "a" - 10 = 'h57, "A" - 10 = 'h37
+        SUM: if (ch) begin
             vo <= (hex ? vo<<4 : (vo << 3) + (vo << 1))
-                   + (inc ? inc : ch - "0");
+                   + (inc<NA ? inc : 1'b0);
         end
-        RST: begin
+        RET: begin
             bsy <= 1'b0;
             vo  <= neg ? -vo : vo;
         end
@@ -104,9 +91,7 @@ module atoi #(
     ///
     always_ff @(posedge clk) begin
         if (rst) begin
-            ao  <= ai;
             vo  <= 'h0;
-            hex <= 1'b0;
             neg <= 1'b0;
         end
         else step();
