@@ -13,7 +13,7 @@ module atoi_tb;
     logic clk, rst, en, we;    // input signals
     logic [ASZ-1:0] ai;        /// input address
     logic [7:0]     ch;
-    logic [2:0]     st;        /// DEBUG state
+    logic [1:0]     st;        /// DEBUG state
     logic           bsy;       /// 0:busy, 1:done
     logic           ao;        /// endptr
     logic [DSZ-1:0] vo;        /// DEBUG memory
@@ -68,7 +68,7 @@ module atoi_tb;
         reset();
         we  = 1'b0;
         en  = 1'b1;
-        repeat(40) @(posedge clk) begin
+        repeat(30) @(posedge clk) begin
             if (en) ai <= ai + ao;
         end
         

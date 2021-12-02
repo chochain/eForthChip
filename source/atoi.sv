@@ -1,10 +1,36 @@
 ///
 /// ForthSuper strtol (or atoi) module
 ///
+/*
+ * reference C code
+ * 
+int atoi(const char *s, size_t base)
+{
+    int ret = 0, neg = 0;
+ REDO:
+    switch(*s) {
+    case '-': neg = 1;		// fall through.
+    case '+': s++;	        break;
+    case ' ': s++;          goto REDO;
+    }
+    char ch;
+    int  n;
+    while ((ch = *s++) != '\0') {
+        if ('0' <= ch && ch <= '9') n = ch - '0';
+        else if (ch >= 'a') n = ch - 'a' + 10;
+        else if (ch >= 'A') n = ch - 'A' + 10;
+        else break;
+
+        if (n >= base) break;
+
+        ret = ret * base + n;
+    }
+    return (neg) ? -ret : ret;
+}
+*/
 `ifndef FORTHSUPER_ATOI
 `define FORTHSUPER_ATOI
-`include "comparator.sv"
-typedef enum logic [2:0] { INI, SGN, NEG, DC0, DC9, HX0, SUM, RET } atoi_sts;
+typedef enum logic [1:0] { INI, MEM, ACC } atoi_sts;
 
 module atoi #(
     parameter DSZ = 32,
@@ -21,13 +47,9 @@ module atoi #(
     output logic [DSZ-1:0] vo   /// output value (for memory read)
     );
     localparam NA = 5'b10000;    /// not avilable
+    logic [4:0]            inc;  /// incremental value
+    logic                  neg;  /// negative flag
     atoi_sts               _st;  /// next state
-    logic [7:0]            cx;   ///char to match
-    logic [4:0]            inc;
-    logic                  neg;
-    cmp_t                  cv;
-
-    comparator  cmp(.s(1'b0), .a(ch), .b(cx), .o(cv));
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -41,14 +63,9 @@ module atoi #(
     ///
     always_comb begin
         case (st)
-        INI: _st = en ? SGN : INI;
-        SGN: _st = cv.eq ? NEG : DC0;
-        NEG: _st = DC0;                             // wait for one extra memory cycle
-        DC0: _st = cv.lt ? SUM : DC9;               // if (ch < '0') quit
-        DC9: _st = cv.le ? SUM : (hex ? HX0 : RET); 
-        HX0: _st = SUM;
-        SUM: _st = (inc!=NA || cv.ge) ? DC0 : RET;  // if 
-        RET: _st = INI;
+        INI: _st = en ? (ch == "-" ? MEM : ACC) : INI;    /// look for negative number
+        MEM: _st = bsy ? ACC : INI;                       /// one extra memory cycle wait
+        ACC: _st = MEM;                                   /// accumulator
         default: _st = INI;
         endcase
     end
@@ -56,30 +73,32 @@ module atoi #(
     /// logic for input character range check
     ///
     always_comb begin
-        cx = "0";
-        ao = 'h0;
+        ao  = 1'b0;
+        inc = NA;
         case (st)
-        SGN: begin cx = "-"; ao = cv.eq; end  // if (ch == '-') advance address by 1
-        DC0: cx = "0";
-        DC9: begin cx = "9"; ao = 1'b1;  end  // ch <= '9', prefetch next char
-        HX0: cx = "a";                        // ch >= 'a'
-        SUM: cx = "A";
+        INI: if (en && (ch == "-")) ao = 1'b1;            /// handle negative number
+        ACC: begin
+            ao = 1'b1;                                    /// prefetch next byte
+            if ("0" <= ch && ch <= "9") inc = ch - "0";  
+            else if (ch >= "a") inc = ch - "W";           /// "a" - 10 = "W"
+            else if (ch >= "A") inc = ch - "7";           /// "A" - 10 = "7"
+        end
         endcase
-    end
+    end // always_comb
     
     task step(); begin
         case (st)
-        INI: bsy <= en;
-        SGN: neg <= cv.eq;
-        DC0: inc <= NA;
-        DC9: if (cv.le) inc <= ch - "0";
-        HX0: inc <= ch - (cv.ge ? "W" : "7"); // "a" - 10 = "W", "A" - 10 = "7"
-        SUM: if (ch) begin
-            vo <= vo * (hex ? 16 : 10) + (inc<NA ? inc : 1'b0);
+        INI: begin
+            bsy <= en;
+            neg <= (ch == "-");
         end
-        RET: begin
-            bsy <= 1'b0;
-            vo  <= neg ? -vo : vo;
+        ACC: begin
+            if (ch && inc < NA)
+                vo  <= vo * (hex ? 16 : 10) + inc;
+            else begin
+                bsy <= 1'b0;
+                if (neg) vo <= -vo;
+            end
         end
         endcase // case (st)
     end
