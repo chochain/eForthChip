@@ -19,7 +19,7 @@ module atoi_tb;
     logic [DSZ-1:0] vo;        /// DEBUG memory
     logic [7:0]     vi;
                   
-    string tib = "7F8";
+    string tib = "-7f8";
 
     spram8_128k mem(.clk, .we, .a(ai), .vi, .vo(ch));
     atoi u0(.clk, .rst, .en, .hex(HEX), .ch, .st, .bsy, .ao, .vo);

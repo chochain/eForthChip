@@ -73,10 +73,9 @@ module atoi #(
         SGN: neg <= cv.eq;
         DC0: inc <= NA;
         DC9: if (cv.le) inc <= ch - "0";
-        HX0: inc <= ch - (cv.ge ? 'h57 : 'h37); // "a" - 10 = 'h57, "A" - 10 = 'h37
+        HX0: inc <= ch - (cv.ge ? "W" : "7"); // "a" - 10 = "W", "A" - 10 = "7"
         SUM: if (ch) begin
-            vo <= (hex ? vo<<4 : (vo << 3) + (vo << 1))
-                   + (inc<NA ? inc : 1'b0);
+            vo <= vo * (hex ? 16 : 10) + (inc<NA ? inc : 1'b0);
         end
         RET: begin
             bsy <= 1'b0;
