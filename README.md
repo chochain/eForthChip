@@ -12,6 +12,8 @@
 ### atoi
 |   |case0|case1|
 |---|---|---|
+|   |8-state, dedicated comparator|3-state, synthesizer gen comparators|
+|LUT|220 LUTS|182 LUTS|
 |src|<img src="./img/atoi_0_src.png">|<img src="./img/atoi_1_src.png">|
 |syn|<img src="./img/atoi_0_syn.png">|<img src="./img/atoi_1_syn.png">|
 |sim|<img src="./img/atoi_0_sim.png">|<img src="./img/atoi_1_sim.png">|
