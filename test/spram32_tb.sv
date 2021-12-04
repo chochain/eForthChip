@@ -5,40 +5,39 @@
 module spram32_tb;
     localparam ASZ  = 15;   // 32K
     localparam DSZ  = 32;   // 32-bit data
-    logic clk, we;
-    logic [3:0] bmsk;
-    logic [ASZ-1:0] a;
-    logic [DSZ-1:0] vi, vo;
+    logic clk;
 
-    spram32_32k u1(.clk, .we, .bmsk, .a, .vi, .vo);
+    iBus32      bus();
+    spram32_32k u1(.bus, .clk);
     
     task one_pass(); begin
         // byte check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = i;
-                we   = 1;
-                vi   = (1 << i) | (i & 3);
+                bus.ai = i;
+                bus.we = 1;
+                bus.vi = (1 << i) | (i & 3);
             end
         end
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = i;
-                we   = 0;
-                $display("%d[%x]: %x => %x", i, a, (1 << i) | (i & 3), vo);
+                bus.ai = i;
+				bus.we = 0;
+                $display("%d[%x]: %x => %x", i, bus.ai, (1 << i) | (i & 3), bus.vo);
             end
         end
+		/*
         // range check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = 31 + (1 << i);
+                ai   = 31 + (1 << i);
                 we   = 1;
                 vi   = (~i << i) | (i & 3);
             end
         end
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a  = 31 + (1 << i);
+                ai = 31 + (1 << i);
                 we = 0;
                 $display("%d[%x]: %x => %x", i, a, (~i << i) | (i & 3), vo);
             end
@@ -46,31 +45,33 @@ module spram32_tb;
         // high byte check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = 'h7fff - i;
+                ai   = 'h7fff - i;
                 we   = 1;
                 vi   = (1 << i) | (i & 3);
             end
         end
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a  = 'h7fff - i;
+                ai = 'h7fff - i;
                 we = 0;
-                $display("%d[%x]: %x => %x", i, a, (1 << i) | (i & 3), vo);
+                $display("%d[%x]: %x => %x", i, ai, (1 << i) | (i & 3), vo);
             end
         end
+		*/
     end
     endtask
 
     always #10 clk  = ~clk;
 
     initial begin
-        {clk, we, a, vi}  = 0;
+        clk    = 0;
+		bus.ai = 0;
         
         // init clock
         repeat(2) @(posedge clk);
         
         for (integer j = 0; j < 3; j = j + 1) begin
-            bmsk = 4'b1111 >> j;
+            bus.bmsk = 4'b1111 >> j;
             one_pass();
         end
 
