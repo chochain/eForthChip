@@ -80,6 +80,7 @@ endmodule // spram32_32k
 ///
 /// single byte access for debugging
 ///
+/*
 interface iBus8;
     logic we;
     modport slave(input we);
@@ -110,6 +111,7 @@ module spram8_128k (
         if (!bus.we) _b <= b;   /// read needs to wait for one cycle
     end
 endmodule // spram8_128k
+*/
 `endif // FORTHSUPER_SPRAM
 
 

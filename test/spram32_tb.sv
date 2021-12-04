@@ -22,42 +22,40 @@ module spram32_tb;
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
                 bus.ai = i;
-				bus.we = 0;
+			    bus.we = 0;
                 $display("%d[%x]: %x => %x", i, bus.ai, (1 << i) | (i & 3), bus.vo);
             end
         end
-		/*
         // range check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ai   = 31 + (1 << i);
-                we   = 1;
-                vi   = (~i << i) | (i & 3);
+                bus.ai = 31 + (1 << i);
+                bus.we = 1;
+                bus.vi = (~i << i) | (i & 3);
             end
         end
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ai = 31 + (1 << i);
-                we = 0;
-                $display("%d[%x]: %x => %x", i, a, (~i << i) | (i & 3), vo);
+                bus.ai = 31 + (1 << i);
+                bus.we = 0;
+                $display("%d[%x]: %x => %x", i, bus.ai, (~i << i) | (i & 3), bus.vo);
             end
         end
         // high byte check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ai   = 'h7fff - i;
-                we   = 1;
-                vi   = (1 << i) | (i & 3);
+                bus.ai   = 'h7fff - i;
+                bus.we   = 1;
+                bus.vi   = (1 << i) | (i & 3);
             end
         end
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ai = 'h7fff - i;
-                we = 0;
-                $display("%d[%x]: %x => %x", i, ai, (1 << i) | (i & 3), vo);
+                bus.ai = 'h7fff - i;
+                bus.we = 0;
+                $display("%d[%x]: %x => %x", i, bus.ai, (1 << i) | (i & 3), bus.vo);
             end
         end
-		*/
     end
     endtask
 
