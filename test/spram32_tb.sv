@@ -70,7 +70,7 @@ module spram32_tb;
         repeat(2) @(posedge clk);
         
         for (integer j = 0; j < 3; j = j + 1) begin
-            bmsk = 4'b1 << j;
+            bmsk = 4'b1111 >> j;
             one_pass();
         end
 
