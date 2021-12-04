@@ -5,18 +5,28 @@
 ///
 `ifndef FORTHSUPER_SPRAM
 `define FORTHSUPER_SPRAM
-interface iBus32;
+interface iBus32(input logic clk);
     logic        we;
     logic [3:0]  bmsk;
     logic [14:0] ai;
     logic [31:0] vi;
     logic [31:0] vo;
-    modport slave(input we, bmsk, ai, vi, output vo);
-endinterface
+    
+    clocking master_cb @(posedge clk);
+        default input #1 output #1;
+    endclocking // master_cb
+
+    clocking slave_cb @(posedge clk);
+        default input #1 output #1;
+    endclocking // slave_cb
+    
+    modport master(clocking master_cb, output we, bmsk, ai, vi);
+    modport slave(clocking slave_cb, input we, bmsk, ai, vi, output vo);
+endinterface // iBus32
 
 module spram32_32k (
-    iBus32.slave  bus,
-    input         clk
+    iBus32.slave bus,
+    input        clk               // memory can be driven with different clock
     );
     logic [3:0]  msk[1:0];
     logic [15:0] vo16[1:0][1:0];  // 4 16-bit output
