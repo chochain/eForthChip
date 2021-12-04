@@ -16,7 +16,7 @@ module pool_tb;
     logic [ASZ-1:0] ai;        // input address
     logic [ASZ-1:0] ao0, ao1;  // DEBUG output addresses
     logic [DSZ-1:0] vi, vo;    // I/O values
-    
+
     integer lfa, here;
     string tib = "abcd";
     string word_list[4] = {
