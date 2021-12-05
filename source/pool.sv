@@ -82,7 +82,7 @@ module pool #(
     ///
     /// register values for state machine input
     ///
-    task step(); begin
+    task step();
         case (st)
         MEM: begin                  // memory read/write
             a0  <= ctx;             // low-byte of lfa
@@ -107,7 +107,6 @@ module pool #(
             else a1  <= a1 + 1'b1;  // ready for next tib (here vs TIB: timing look nicer)
         end    
         endcase
-    end
     endtask
     ///
     /// logic for current output

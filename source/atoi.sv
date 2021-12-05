@@ -86,7 +86,7 @@ module atoi #(
         endcase
     end // always_comb
     
-    task step(); begin
+    task step();
         case (st)
         INI: begin
             bsy <= en;
@@ -101,7 +101,6 @@ module atoi #(
             end
         end
         endcase // case (st)
-    end
     endtask
     ///
     /// logic for current output
