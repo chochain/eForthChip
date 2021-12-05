@@ -10,12 +10,12 @@ module finder_tb;
     localparam TIB  = 0;       // Terminal input buffer address
     localparam DICT = 'h10;    // dictionary starting address
     
-    logic [2:0] st;            // DEBUG: finder state
     logic clk, rst, en;        // input signals
-    logic bsy, we, hit;        // output signals
-    logic [ASZ-1:0] tib;       // TIB address
+    logic bsy, hit;            // output signals
+    logic [ASZ-1:0] aw;        // word address
+    logic [DSZ-1:0] vw;        // memory value of word
+    logic [2:0] st;            // DEBUG: finder state
     logic [ASZ-1:0] ao0, ao1;  // DEBUG output addresses
-    logic [DSZ-1:0] v;
 
     integer lfa, here;
     string word_tib = "abcd";
@@ -26,9 +26,9 @@ module finder_tb;
         "mnop"
     };
 
-    iBus8  b8();
-    spram8_128k m0(b8.slave, clk);
-    finder u1(.*, .bus(b8.master));
+    iBus8       b8();                      // memory bus
+    spram8_128k m0(b8.slave, clk);         // memory module
+    finder      f0(.*, .bus(b8.master));   // word finder module
     
     always #10 clk  = ~clk;
         
@@ -52,7 +52,9 @@ module finder_tb;
         add_u8(here,     lfa & 'hff);
         add_u8(here + 1, lfa >> 8);
         add_u8(here + 2, n);
-        for (integer i = 0; i < n; i = i + 1) add_u8(here + 3 + i, w[i]);
+        for (integer i = 0; i < n; i = i + 1) begin
+            add_u8(here + 3 + i, w[i]);
+        end
         add_u8(pfa,     'hbe);
         add_u8(pfa + 1, 'hef);
         
@@ -83,19 +85,21 @@ module finder_tb;
             end
         end
     endtask
+    
+    assign vw = b8.vo;   // direct feed from memory to finder
         
     initial begin
         clk = 0;         // start the clock
         en  = 1'b0;      // disable finder
         reset();
         setup_mem();
-/*
-        tib = TIB;       // set TIB word address
-        en  = 1'b1;      // enable finder
-        repeat(60) @(posedge clk) begin
-            v = b8.vo;
-        end
-*/        
+
+        aw    = lfa;     // setup CONTEXT word address
+        repeat (1) @(posedge clk);
+        en    = 1'b1;    // enable finder
+        aw    = TIB;     // set TIB word address to be find
+        repeat(60) @(posedge clk);
+        
         #20 $finish;
     end       
 endmodule // finder_tb
