@@ -31,20 +31,18 @@ int atoi(const char *s, size_t base)
 `ifndef FORTHSUPER_ATOI
 `define FORTHSUPER_ATOI
 typedef enum logic [1:0] { INI, MEM, ACC } atoi_sts;
-
 module atoi #(
-    parameter DSZ = 32,
-    parameter ASZ = 17
+    parameter DSZ = 32,         /// 32-bit value
+    parameter ASZ = 17          /// 128K address space
     ) (
     input                  clk, /// clock
-    input                  rst, /// reset
     input                  en,  /// enable
     input                  hex, /// 0:decimal, 1:hex
     input [7:0]            ch,  /// input charcter
-    output atoi_sts        st,  /// DEBUG: state
     output logic           bsy, /// 1:busy, 0:done
-    output logic           ao,  /// advance address
-    output logic [DSZ-1:0] vo   /// output value (for memory read)
+    output logic           af,  /// address advance flag (a = a + 1)
+    output logic [DSZ-1:0] vo,  /// resultant value
+    output atoi_sts        st   /// DEBUG: state
     );
     localparam NA = 5'b10000;    /// not avilable
     logic [4:0]            inc;  /// incremental value
@@ -55,7 +53,7 @@ module atoi #(
     /// Note: synchronous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        if (rst) st <= INI;
+        if (!en) st <= INI;
         else     st <= _st;
     end
     ///
@@ -73,12 +71,12 @@ module atoi #(
     /// logic for input character range check
     ///
     always_comb begin
-        ao  = 1'b0;
+        af  = 1'b0;
         inc = NA;
         case (st)
-        INI: if (en && (ch == "-")) ao = 1'b1;            /// handle negative number
+        INI: if (en && (ch == "-")) af = 1'b1;            /// handle negative number
         ACC: begin
-            ao = 1'b1;                                    /// prefetch next byte
+            af = 1'b1;                                    /// prefetch next byte
             if ("0" <= ch && ch <= "9") inc = ch - "0";  
             else if (ch >= "a") inc = ch - "W";           /// "a" - 10 = "W"
             else if (ch >= "A") inc = ch - "7";           /// "A" - 10 = "7"
@@ -93,8 +91,9 @@ module atoi #(
             neg <= (ch == "-");
         end
         ACC: begin
-            if (ch && inc < NA)
-                vo  <= vo * (hex ? 16 : 10) + inc;
+            if (ch && inc < NA) begin
+                vo <= vo * (hex ? 16 : 10) + inc;
+            end
             else begin
                 bsy <= 1'b0;
                 if (neg) vo <= -vo;
@@ -107,7 +106,7 @@ module atoi #(
     /// Note: synchronoous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        if (rst) begin
+        if (!en) begin
             vo  <= 'h0;
             neg <= 1'b0;
         end
