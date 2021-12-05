@@ -8,7 +8,7 @@ module spram8_tb;
     logic clk;
    
     iBus8       b8();
-    spram8_128k u1(.b8, .clk);
+    spram8_128k u1(b8.slave, clk);
 
     always #10 clk = ~clk;
 

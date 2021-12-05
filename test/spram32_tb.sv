@@ -7,8 +7,8 @@ module spram32_tb;
     localparam DSZ  = 32;   // 32-bit data
     logic clk;
 
-    iBus32      b32(.clk);          // bus instance
-    spram32_32k m0(.b32, .clk);     // memory block bus slave
+    iBus32      b32(clk);               // bus instance
+    spram32_32k m0(b32.slave, clk);     // memory block bus slave
     
     task one_pass(); begin
         // byte check

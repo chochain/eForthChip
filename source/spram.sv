@@ -25,8 +25,8 @@ interface iBus32(input logic clk);
 endinterface // iBus32
 
 module spram32_32k (
-    iBus32.slave b32,
-    input        clk               // memory can be driven with different clock
+    iBus32 b32,              // 32-bit bus slave
+    input  clk               // memory can be driven with different clock
     );
     logic [3:0]  msk[1:0];
     logic [15:0] vo16[1:0][1:0];  // 4 16-bit output
@@ -85,7 +85,7 @@ module spram32_32k (
         {b32.bmsk[1:1], b32.bmsk[1:1], b32.bmsk[0:0], b32.bmsk[0:0]}
     };
     assign cs     = b32.ai[14:14];
-    assign b32.vo = {vo16[cs][1], vo16[cs][0]};
+    assign b32.vo = {vo16[cs][1], vo16[cs][0]};   // slave response
 endmodule // spram32_32k
 ///
 /// single byte access for debugging
@@ -95,30 +95,31 @@ interface iBus8;
     logic [16:0] ai;
     logic [7:0]  vi;
     logic [7:0]  vo;
+    
     modport master(output we, ai, vi);
     modport slave(input we, ai, vi, output vo);
 endinterface
 
 module spram8_128k (
-    iBus8.slave  b8,
-    input        clk
+    iBus8  b8,
+    input  clk
     );
-    logic [1:0] i, _i; /// byte index of (current and previous cycle)
+    logic [1:0] m, _m; /// byte index of (current and previous cycle)
     
     iBus32      b32(clk);
-    spram32_32k m0(b32, clk);
+    spram32_32k m0(b32.slave, clk);
     
-    assign i        = b8.ai[1:0];
+    assign m        = b8.ai[1:0];
     assign b32.we   = b8.we;
-    assign b32.bmsk = 4'b1 << i;
+    assign b32.bmsk = 4'b1 << m;
     assign b32.ai   = b8.ai[16:2];
     assign b32.vi   = {b8.vi, b8.vi, b8.vi, b8.vi};
-    assign b8.vo    = _i[1:1]   /// byte mask from previous cycle
-            ? (_i[0:0] ? b32.vo[31:24] : b32.vo[23:16])
-            : (_i[0:0] ? b32.vo[15:8]  : b32.vo[7:0]);
+    assign b8.vo    = _m[1:1]         /// byte mask from previous cycle
+            ? (_m[0:0] ? b32.vo[31:24] : b32.vo[23:16])
+            : (_m[0:0] ? b32.vo[15:8]  : b32.vo[7:0]);
     
     always_ff @(posedge clk) begin
-        if (!b8.we) _i <= i;          /// read needs to wait for one cycle
+        if (!b8.we) _m <= m;          /// read needs to wait for one cycle
     end
 endmodule // spram8_128k
 `endif // FORTHSUPER_SPRAM
