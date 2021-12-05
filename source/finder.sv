@@ -9,7 +9,7 @@ module finder #(
     parameter DSZ = 8,
     parameter ASZ = 17
     ) (
-    interface              bus,           /// master to drive memory block
+    iBus8                  bus,           /// generic master to drive memory block
     input                  clk,           /// clock
     input                  en,            /// enable
     input [ASZ-1:0]        tib,           /// initial TIB address

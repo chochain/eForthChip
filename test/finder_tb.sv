@@ -10,8 +10,7 @@ module finder_tb;
     localparam TIB  = 0;       // Terminal input buffer address
     localparam DICT = 'h10;    // dictionary starting address
     
-    finder_sts st;             // DEBUG: finder state
-    
+    logic [2:0] st;            // DEBUG: finder state
     logic clk, rst, en;        // input signals
     logic bsy, we, hit;        // output signals
     logic [ASZ-1:0] tib;       // TIB address
@@ -63,7 +62,9 @@ module finder_tb;
         
     task setup_mem();
         // write
-        for (integer i=0; i < word_tib.len(); i = i + 1) add_u8(TIB + i, word_tib.getc(i));
+        for (integer i=0; i < word_tib.len(); i = i + 1) begin
+            add_u8(TIB + i, word_tib.getc(i));
+        end
         add_u8(TIB+word_tib.len(), 0);
 
         lfa  = 'hffff;
@@ -86,6 +87,7 @@ module finder_tb;
     initial begin
         clk = 0;         // start the clock
         en  = 1'b0;      // disable finder
+        reset();
         setup_mem();
 /*
         tib = TIB;       // set TIB word address
