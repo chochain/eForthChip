@@ -25,7 +25,7 @@ interface iBus32(input logic clk);
 endinterface // iBus32
 
 module spram32_32k (
-    iBus32.slave bus,
+    iBus32.slave b32,
     input        clk               // memory can be driven with different clock
     );
     logic [3:0]  msk[1:0];
@@ -33,10 +33,10 @@ module spram32_32k (
     logic cs;           
 
     SP256K bank00 (
-        .AD(bus.ai[13:0]),
-        .DI(bus.vi[31:16]),
+        .AD(b32.ai[13:0]),
+        .DI(b32.vi[31:16]),
         .MASKWE(msk[0]),
-        .WE(bus.we),
+        .WE(b32.we),
         .CS(~cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -45,10 +45,10 @@ module spram32_32k (
         .DO(vo16[0][0])
     );
     SP256K bank01 (
-        .AD(bus.ai[13:0]),
-        .DI(bus.vi[15:0]),
+        .AD(b32.ai[13:0]),
+        .DI(b32.vi[15:0]),
         .MASKWE(msk[1]),
-        .WE(bus.we),
+        .WE(b32.we),
         .CS(~cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -57,10 +57,10 @@ module spram32_32k (
         .DO(vo16[0][1])
     );
     SP256K bank10 (
-        .AD(bus.ai[13:0]),
-        .DI(bus.vi[31:16]),
+        .AD(b32.ai[13:0]),
+        .DI(b32.vi[31:16]),
         .MASKWE(msk[0]),
-        .WE(bus.we),
+        .WE(b32.we),
         .CS(cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -69,10 +69,10 @@ module spram32_32k (
         .DO(vo16[1][0])
     );
     SP256K bank11 (
-        .AD(bus.ai[13:0]),
-        .DI(bus.vi[15:0]),
+        .AD(b32.ai[13:0]),
+        .DI(b32.vi[15:0]),
         .MASKWE(msk[1]),
-        .WE(bus.we),
+        .WE(b32.we),
         .CS(cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -81,43 +81,44 @@ module spram32_32k (
         .DO(vo16[1][1])
     );
     assign msk = {
-        {bus.bmsk[3:3], bus.bmsk[3:3], bus.bmsk[2:2], bus.bmsk[2:2]},
-        {bus.bmsk[1:1], bus.bmsk[1:1], bus.bmsk[0:0], bus.bmsk[0:0]}
+        {b32.bmsk[3:3], b32.bmsk[3:3], b32.bmsk[2:2], b32.bmsk[2:2]},
+        {b32.bmsk[1:1], b32.bmsk[1:1], b32.bmsk[0:0], b32.bmsk[0:0]}
     };
-    assign cs     = bus.ai[14:14];
-    assign bus.vo = {vo16[cs][0], vo16[cs][1]};
+    assign cs     = b32.ai[14:14];
+    assign b32.vo = {vo16[cs][1], vo16[cs][0]};
 endmodule // spram32_32k
 ///
 /// single byte access for debugging
 ///
 interface iBus8;
-    logic we;
-    modport slave(input we);
+    logic        we;
+    logic [16:0] ai;
+    logic [7:0]  vi;
+    logic [7:0]  vo;
+    modport master(output we, ai, vi);
+    modport slave(input we, ai, vi, output vo);
 endinterface
 
 module spram8_128k (
-	iBus8.slave  bus,
-    input        clk,
-    input [16:0] ai,    /// 128K depth
-    input [7:0]  vi,    /// byte IO
-    output logic [7:0] vo
+    iBus8.slave  b8,
+    input        clk
     );
-    logic [31:0] vo32;  /// 32-bit output
-    logic [1:0]  b, _b; /// byte index of (current and previous cycle)
+    logic [1:0] i, _i; /// byte index of (current and previous cycle)
     
-    iBus32      bus32(clk);
-    spram32_32k m0(bus32, clk);
+    iBus32      b32(clk);
+    spram32_32k m0(b32, clk);
     
-    assign bus32.ai   = ai[16:2];
-    assign b          = ai[1:0];
-    assign bus32.bmsk = 4'b1 << b;
-    assign bus32.vi   = {vi, vi, vi, vi};
-    assign vo = _b[1:1]   /// byte mask from previous cycle
-            ? (_b[0:0] ? vo32[31:24] : vo32[23:16])
-            : (_b[0:0] ? vo32[15:8]  : vo32[7:0]);
+    assign i        = b8.ai[1:0];
+    assign b32.we   = b8.we;
+    assign b32.bmsk = 4'b1 << i;
+    assign b32.ai   = b8.ai[16:2];
+    assign b32.vi   = {b8.vi, b8.vi, b8.vi, b8.vi};
+    assign b8.vo    = _i[1:1]   /// byte mask from previous cycle
+            ? (_i[0:0] ? b32.vo[31:24] : b32.vo[23:16])
+            : (_i[0:0] ? b32.vo[15:8]  : b32.vo[7:0]);
     
     always_ff @(posedge clk) begin
-        if (!bus.we) _b <= b;   /// read needs to wait for one cycle
+        if (!b8.we) _i <= i;          /// read needs to wait for one cycle
     end
 endmodule // spram8_128k
 `endif // FORTHSUPER_SPRAM
