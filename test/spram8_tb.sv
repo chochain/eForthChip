@@ -1,19 +1,16 @@
 ///
-/// ForthSuper Single-Port Memory Testbench
+/// ForthSuper 8-bit Single-Port Memory Testbench
 ///
 `timescale 1ps / 1ps
 module spram8_tb;
     localparam ASZ  = 17;   // 128K
     localparam DSZ  = 8;    // 8-bit data
-    logic clk, we;
-    logic [ASZ-1:0] ai;
-    logic [DSZ-1:0] vi;
-    logic [DSZ-1:0] vo;
+    logic clk;
+   
+    iBus8       b8();
+    spram8_128k u1(.b8, .clk);
 
-    iBus8       bus();
-    spram8_128k u1(.bus, .clk, .ai, .vi, .vo);
-
-    always #10 clk  = ~clk;
+    always #10 clk = ~clk;
 
     initial begin
         clk = 0;
@@ -24,53 +21,53 @@ module spram8_tb;
         // byte order check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ai     = i;
-                bus.we = 1;
-                vi     = i;
+                b8.we = 1'b1;
+                b8.ai = i;
+                b8.vi = i;
             end
         end
         repeat(2) @(posedge clk);
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ai     = i;
-                bus.we = 0;
-                $display("%d[%x]: %x => %x", i, ai, i, vo);
+                b8.we = 1'b0;
+                b8.ai = i;
+                $display("%d[%x]: %x => %x", i, b8.ai, i, b8.vo);
             end
         end
-		/*
+        
         // range check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = ('h1 << i) | (i & 3);
-                we   = 1;
-                vi   = (i < 8) ? ('h1 << i) : ('hff >> (i-8));
+                b8.we = 1'b1;
+                b8.ai = ('h1 << i) | (i & 3);
+                b8.vi = (i < 8) ? ('h1 << i) : ('hff >> (i-8));
             end
         end
         repeat(2) @(posedge clk);
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = ('h1 << i) | (i & 3);
-                we   = 0;
-                $display("%d[%x]: %x => %x", i, a, i<8 ? ('h1 << i) : ('hff >> (i-8)), vo);
+                b8.we = 1'b0;
+                b8.ai = ('h1 << i) | (i & 3);
+                $display("%d[%x]: %x => %x", i, b8.ai, i<8 ? ('h1 << i) : ('hff >> (i-8)), b8.vo);
             end
         end
         // high address check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = 'h1ffff - i;
-                we   = 1;
-                vi   = i;
+                b8.we = 1'b1;
+                b8.ai = 'h1ffff - i;
+                b8.vi = i;
             end
         end
         repeat(2) @(posedge clk);
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                a    = 'h1ffff - i;
-                we   = 0;
-                $display("%d[%x]: %x => %x", i, a, i, vo);
+                b8.we = 1'b0;
+                b8.ai = 'h1ffff - i;
+                $display("%d[%x]: %x => %x", i, b8.ai, i, b8.vo);
             end
         end
-		*/
+        
         #20 $finish;
     end       
 endmodule // spram8_tb
