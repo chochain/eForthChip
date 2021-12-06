@@ -5,38 +5,34 @@
 ///
 `ifndef FORTHSUPER_SPRAM
 `define FORTHSUPER_SPRAM
-interface iBus32(input logic clk);
+interface mb32_io(input logic clk);
     logic        we;
     logic [3:0]  bmsk;
     logic [14:0] ai;
     logic [31:0] vi;
     logic [31:0] vo;
     
-    clocking master_cb @(posedge clk);
+    clocking ioDrv @(posedge clk);
         default input #1 output #1;
-    endclocking // master_cb
+    endclocking // ioMaster
 
-    clocking slave_cb @(posedge clk);
-        default input #1 output #1;
-    endclocking // slave_cb
-    
-    modport master(clocking master_cb, output we, bmsk, ai, vi);
-    modport slave(clocking slave_cb, input we, bmsk, ai, vi, output vo);
-endinterface // iBus32
+    modport master(clocking ioDrv, output we, bmsk, ai, vi);
+    modport slave(clocking ioDrv, input we, bmsk, ai, vi, output vo);
+endinterface : mb32_io
 
 module spram32_32k (
-    iBus32 b32,              // 32-bit bus slave
-    input  clk               // memory can be driven with different clock
+    mb32_io b32_if,              /// 32-bit bus slave
+    input   clk                  /// memory can be driven with different clock
     );
     logic [3:0]  msk[1:0];
-    logic [15:0] vo16[1:0][1:0];  // 4 16-bit output
+    logic [15:0] vo16[1:0][1:0]; /// 4 16-bit output
     logic cs;           
 
     SP256K bank00 (
-        .AD(b32.ai[13:0]),
-        .DI(b32.vi[31:16]),
+        .AD(b32_if.ai[13:0]),
+        .DI(b32_if.vi[31:16]),
         .MASKWE(msk[0]),
-        .WE(b32.we),
+        .WE(b32_if.we),
         .CS(~cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -45,10 +41,10 @@ module spram32_32k (
         .DO(vo16[0][0])
     );
     SP256K bank01 (
-        .AD(b32.ai[13:0]),
-        .DI(b32.vi[15:0]),
+        .AD(b32_if.ai[13:0]),
+        .DI(b32_if.vi[15:0]),
         .MASKWE(msk[1]),
-        .WE(b32.we),
+        .WE(b32_if.we),
         .CS(~cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -57,10 +53,10 @@ module spram32_32k (
         .DO(vo16[0][1])
     );
     SP256K bank10 (
-        .AD(b32.ai[13:0]),
-        .DI(b32.vi[31:16]),
+        .AD(b32_if.ai[13:0]),
+        .DI(b32_if.vi[31:16]),
         .MASKWE(msk[0]),
-        .WE(b32.we),
+        .WE(b32_if.we),
         .CS(cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -69,10 +65,10 @@ module spram32_32k (
         .DO(vo16[1][0])
     );
     SP256K bank11 (
-        .AD(b32.ai[13:0]),
-        .DI(b32.vi[15:0]),
+        .AD(b32_if.ai[13:0]),
+        .DI(b32_if.vi[15:0]),
         .MASKWE(msk[1]),
-        .WE(b32.we),
+        .WE(b32_if.we),
         .CS(cs),
         .CK(clk),
         .STDBY(1'b0),
@@ -81,23 +77,23 @@ module spram32_32k (
         .DO(vo16[1][1])
     );
     assign msk = {
-        {b32.bmsk[3:3], b32.bmsk[3:3], b32.bmsk[2:2], b32.bmsk[2:2]},
-        {b32.bmsk[1:1], b32.bmsk[1:1], b32.bmsk[0:0], b32.bmsk[0:0]}
+        {b32_if.bmsk[3:3], b32_if.bmsk[3:3], b32_if.bmsk[2:2], b32_if.bmsk[2:2]},
+        {b32_if.bmsk[1:1], b32_if.bmsk[1:1], b32_if.bmsk[0:0], b32_if.bmsk[0:0]}
     };
-    assign cs     = b32.ai[14:14];
-    assign b32.vo = {vo16[cs][1], vo16[cs][0]};   // slave response
-endmodule // spram32_32k
+    assign cs        = b32_if.ai[14:14];
+    assign b32_if.vo = {vo16[cs][1], vo16[cs][0]};   // slave response
+endmodule : spram32_32k
 ///
 /// single byte access for debugging
 ///
-interface iBus8;
+interface mb8_io;
     logic        we;
     logic [16:0] ai;
     logic [7:0]  vi;
     logic [7:0]  vo;
     
-    modport master(output we, ai, vi);
-    modport slave(input we, ai, vi, output vo);
+    modport master(output we, ai, vi, import put_u8);
+    modport slave(input we, ai, vi, output vo, import put_u8, get_u8);
     
     task put_u8([16:0] ax, [7:0] vx);
         we = 1'b1;
@@ -110,30 +106,28 @@ interface iBus8;
         ai = ax;
         // return vo
     endtask
-endinterface
+endinterface : mb8_io
 
 module spram8_128k (
-    iBus8  b8,
+    mb8_io b8_if,
     input  clk
     );
     logic [1:0] m, _m; /// byte index of (current and previous cycle)
     
-    iBus32      b32(clk);
-    spram32_32k m0(b32.slave, clk);
+    mb32_io     b32_if(clk);
+    spram32_32k m0(b32_if.slave, clk);
     
-    assign m        = b8.ai[1:0];
-    assign b32.we   = b8.we;
-    assign b32.bmsk = 4'b1 << m;
-    assign b32.ai   = b8.ai[16:2];
-    assign b32.vi   = {b8.vi, b8.vi, b8.vi, b8.vi};
-    assign b8.vo    = _m[1:1]         /// byte mask from previous cycle
-            ? (_m[0:0] ? b32.vo[31:24] : b32.vo[23:16])
-            : (_m[0:0] ? b32.vo[15:8]  : b32.vo[7:0]);
+    assign m           = b8_if.ai[1:0];
+    assign b32_if.we   = b8_if.we;
+    assign b32_if.bmsk = 4'b1 << m;
+    assign b32_if.ai   = b8_if.ai[16:2];
+    assign b32_if.vi   = {b8_if.vi, b8_if.vi, b8_if.vi, b8_if.vi};
+    assign b8_if.vo    = _m[1:1]         /// byte mask from previous cycle
+            ? (_m[0:0] ? b32_if.vo[31:24] : b32_if.vo[23:16])
+            : (_m[0:0] ? b32_if.vo[15:8]  : b32_if.vo[7:0]);
     
     always_ff @(posedge clk) begin
-        if (!b8.we) _m <= m;          /// read needs to wait for one cycle
+        if (!b8_if.we) _m <= m;          /// read needs to wait for one cycle
     end
-endmodule // spram8_128k
+endmodule : spram8_128k
 `endif // FORTHSUPER_SPRAM
-
-
