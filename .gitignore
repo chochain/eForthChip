@@ -11,7 +11,7 @@ dist/
 impl_1/
 vsim/
 .recovery
-*.html
+*_tcl.html
 *_tcr.dir/
 *.ini
 *.xml
