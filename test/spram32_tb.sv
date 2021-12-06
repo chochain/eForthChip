@@ -2,6 +2,7 @@
 /// ForthSuper Single-Port Memory Testbench
 ///
 `timescale 1ps / 1ps
+`include "../source/spram.sv"
 module spram32_tb;
     localparam ASZ  = 15;   // 32K
     localparam DSZ  = 32;   // 32-bit data

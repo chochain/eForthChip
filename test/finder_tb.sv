@@ -2,6 +2,7 @@
 /// ForthSuper Dictionary Word Finder Testbench
 ///
 `timescale 1ps / 1ps
+`include "../source/spram.sv"
 `include "../source/finder.sv"
 module finder_tb;
     localparam ASZ  = 17;      // 128K

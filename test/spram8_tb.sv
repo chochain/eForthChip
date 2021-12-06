@@ -2,6 +2,7 @@
 /// ForthSuper 8-bit Single-Port Memory Testbench
 ///
 `timescale 1ps / 1ps
+`include "../source/spram.sv"
 module spram8_tb;
     localparam ASZ  = 17;   // 128K
     localparam DSZ  = 8;    // 8-bit data
