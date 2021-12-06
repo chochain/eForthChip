@@ -24,5 +24,5 @@ module comparator #(
         o.gt = !o.le;          /// Note: these inverters add extra delay, TODO:
         o.ge = !o.lt;
     end
-endmodule // comparator
+endmodule: comparator
 `endif // FORTHSUPER_COMPARATOR

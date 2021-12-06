@@ -18,12 +18,11 @@ module comparator_tb #(
     comparator #(N) dut_u(.s(1'b0), .a, .b, .o(uo));  /// unsigned comparator  
     comparator #(N) dut_s(.s(1'b1), .a, .b, .o(so));  /// signed comparator
     // debug trace
-    task check(input [5:0]o, [5:0]v); begin
+    task check(input [5:0]o, [5:0]v);
         $write("t=%3t, a=%10d[%h] b=%10d[%h], %d[%b] => %d[%b]",
             $time, $signed(a), a, $signed(b), b, o, o, v, v);
         $display(" %s", o===v ? "ok" : "err");
-    end
-    endtask
+    endtask: check
 
     initial begin
         //$monitor("t=%04t, a=%h b=%h, eq,neq,lt,lte,qt,qte=%b", $time, a, b, {eq,neq,lt,lte,gt,gte});
@@ -39,4 +38,4 @@ module comparator_tb #(
         a = a - 1;     #1; check(uo, LT); check(so, LT);   // t10
         $finish;
     end
-endmodule // comparator_tb
+endmodule: comparator_tb

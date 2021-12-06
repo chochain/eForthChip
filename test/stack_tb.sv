@@ -2,6 +2,7 @@
 /// ForthSuper Stack Testbench
 ///
 `timescale 1ps / 1ps
+`include "../source/stack.sv"
 module stack_tb;
     localparam DSZ   = 32;              // 32-bit stack
     localparam DEPTH = 64;              // 64 cells
@@ -19,7 +20,7 @@ module stack_tb;
         
     function integer calc_v(input integer i);
         calc_v = (i < DSZ) ? FF >> i : FF << (i - DSZ);
-    endfunction        
+    endfunction: calc_v
 
     initial begin
         {clk, we, vi, vo, idx} = 0;
@@ -48,4 +49,4 @@ module stack_tb;
 
         #20 $finish;
     end       
-endmodule // stack_tb
+endmodule: stack_tb

@@ -102,4 +102,4 @@ module stack3 #(
         if (push)      idx <= idx + 6'b1;
         else if (pop)  idx <= idx_1;
     end
-endmodule // stack3
+endmodule: stack3
