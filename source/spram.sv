@@ -98,6 +98,18 @@ interface iBus8;
     
     modport master(output we, ai, vi);
     modport slave(input we, ai, vi, output vo);
+    
+    task put_u8([16:0] ax, [7:0] vx);
+        we = 1'b1;
+        ai = ax;
+        vi = vx;
+    endtask
+    
+    task get_u8([16:0] ax);
+        we = 1'b0;
+        ai = ax;
+        // return vo
+    endtask
 endinterface
 
 module spram8_128k (

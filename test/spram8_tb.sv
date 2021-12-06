@@ -38,32 +38,29 @@ module spram8_tb;
         // range check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                b8.we = 1'b1;
-                b8.ai = ('h1 << i) | (i & 3);
-                b8.vi = (i < 8) ? ('h1 << i) : ('hff >> (i-8));
+                b8.put_u8(
+                    ('h1 << i) | (i & 3),
+                    (i < 8) ? ('h1 << i) : ('hff >> (i-8))
+                );
             end
         end
         repeat(2) @(posedge clk);
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                b8.we = 1'b0;
-                b8.ai = ('h1 << i) | (i & 3);
+                b8.get_u8(('h1 << i) | (i & 3));
                 $display("%d[%x]: %x => %x", i, b8.ai, i<8 ? ('h1 << i) : ('hff >> (i-8)), b8.vo);
             end
         end
         // high address check
         for (integer i = 0; i < ASZ; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                b8.we = 1'b1;
-                b8.ai = 'h1ffff - i;
-                b8.vi = i;
+                b8.put_u8('h1ffff - i, i);
             end
         end
         repeat(2) @(posedge clk);
         for (integer i = 0; i < ASZ + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                b8.we = 1'b0;
-                b8.ai = 'h1ffff - i;
+                b8.get_u8('h1ffff - i);
                 $display("%d[%x]: %x => %x", i, b8.ai, i, b8.vo);
             end
         end
