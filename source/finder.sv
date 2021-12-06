@@ -9,7 +9,7 @@ module finder #(
     parameter DSZ = 8,                    /// 8-bit data path
     parameter ASZ = 17                    /// 128K address path
     ) (
-    iBus8                  bus,           /// generic master to drive memory block
+    interface              mb_if,         /// generic master to drive memory block
     input                  clk,           /// clock
     input                  en,            /// enable
     input [ASZ-1:0]        aw,            /// address of word to find (or intial context)
@@ -54,22 +54,22 @@ module finder #(
     /// Note: one-hot encoding automatically done by synthesizer
     ///
     always_comb begin
-        bus.we = 1'b0;
+        mb_if.we = 1'b0;
         case (st)
-        MEM: bus.ai = aw;           // memory read/write
-        LF0: bus.ai = a0;           // fetch low-byte of lfa
-        LF1: bus.ai = a0;           // fetch high-byte of lfa
-        LEN: bus.ai = a0;           // fetch nfa length
-        NFA: bus.ai = a0;           // read from nfa
-        TIB: bus.ai = a1;           // read from tib
-        CMP: bus.ai = a0;           // read next nfa, loop back to TIB
-        default: bus.ai = aw;
+        MEM: mb_if.ai = aw;        // memory read/write
+        LF0: mb_if.ai = a0;        // fetch low-byte of lfa
+        LF1: mb_if.ai = a0;        // fetch high-byte of lfa
+        LEN: mb_if.ai = a0;        // fetch nfa length
+        NFA: mb_if.ai = a0;        // read from nfa
+        TIB: mb_if.ai = a1;        // read from tib
+        CMP: mb_if.ai = a0;        // read next nfa, loop back to TIB
+        default: mb_if.ai = aw;
         endcase
     end
     ///
     /// register values for state machine input
     ///
-    task step();
+    task step;
         case (st)
         MEM: begin                  // memory read/write
             a0  <= ctx;             // low-byte of lfa
@@ -94,7 +94,7 @@ module finder #(
             else a1  <= a1 + 1'b1;  // ready for next tib (here vs TIB: timing look nicer)
         end    
         endcase
-    endtask
+    endtask: step
     ///
     /// logic for current output
     /// Note: synchronoous reset (TODO: async)
@@ -112,5 +112,5 @@ module finder #(
             ao1 <= a1;             // debug output
         end
     end
-endmodule // finder
+endmodule: finder
 `endif // FORTHSUPER_FINDER

@@ -84,7 +84,7 @@ module atoi #(
         endcase
     end // always_comb
     
-    task step();
+    task step;
         case (st)
         INI: begin
             bsy <= en;
@@ -100,7 +100,7 @@ module atoi #(
             end
         end
         endcase // case (st)
-    endtask
+    endtask: step
     ///
     /// logic for current output
     /// Note: synchronoous reset (TODO: async)
@@ -112,5 +112,5 @@ module atoi #(
         end
         else step();
     end
-endmodule // atoi
+endmodule : atoi
 `endif // FORTHSUPER_ATOI

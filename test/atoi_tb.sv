@@ -19,26 +19,24 @@ module atoi_tb;
                   
     string tib = "-7f8";
 
-    iBus8         b8();
-    spram8_128k   m0(b8.slave, clk);
+    mb8_io        b8_if();
+    spram8_128k   m0(b8_if.slave, clk);
     atoi          u0(.clk, .en, .hex(HEX), .ch, .bsy, .af, .vo, .st);
     
     always #10 clk  = ~clk;
         
-    task reset();
+    task reset;
         repeat(1) @(posedge clk) rst = 1;
         repeat(1) @(posedge clk) rst = 0;
-    endtask
+    endtask: reset
         
     task add_u8([ASZ-1:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
-            b8.we = 1'b1;
-            b8.ai = ax;
-            b8.vi = vx;
+            b8_if.put_u8(ax, vx);
         end            
-    endtask
+    endtask: add_u8
     
-    task setup_mem();
+    task setup_mem;
         // write
         for (integer i=0; i < tib.len(); i  = i + 1) begin
             add_u8(TIB + i, tib[i]);
@@ -48,27 +46,26 @@ module atoi_tb;
         // read back validation
         for (integer i=0; i < tib.len() + 4; i  = i + 1) begin
             repeat(1) @(posedge clk) begin
-                b8.we = 1'b0;
-                b8.ai = TIB + i;
+                b8_if.get_u8(TIB + i);
             end
         end
-    endtask
+    endtask: setup_mem
     
-    assign ch = b8.vo;       // feed value fetched from memory to atoi module 
+    assign ch = b8_if.vo;       // feed value fetched from memory to atoi module 
     
     initial begin
         clk = 0;
         en  = 1'b0;
         setup_mem();
 
-        b8.ai = TIB;         // initialize tib address for atoi conversion
+        b8_if.ai = TIB;         // initialize tib address for atoi conversion
         repeat(1) @(posedge clk);
         
         en  = 1'b1;          // start conversion
         repeat(30) @(posedge clk) begin
-            if (en) b8.ai <= b8.ai + af; // advance address if requested by atoi module
+            if (en) b8_if.ai <= b8_if.ai + af; // advance address if requested by atoi module
         end
         
         #20 $finish;
     end       
-endmodule // atoi_tb
+endmodule: atoi_tb

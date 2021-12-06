@@ -26,25 +26,22 @@ module finder_tb;
         "mnop"
     };
 
-    iBus8       b8();                      // memory bus
-    spram8_128k m0(b8.slave, clk);         // memory module
-    finder      f0(.*, .bus(b8.master));   // word finder module
+    mb8_io      b8_if();                         // memory bus
+    spram8_128k m0(b8_if.slave, clk);            // memory module
+    finder      f0(.*, .mb_if(b8_if.master));    // word finder module
     
     always #10 clk  = ~clk;
         
-    task reset(); begin
+    task reset;
         repeat(1) @(posedge clk) rst = 1;
         repeat(1) @(posedge clk) rst = 0;
-    end
-    endtask
+    endtask: reset
         
     task add_u8([ASZ-1:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
-            b8.we = 1'b1;
-            b8.ai = ax;
-            b8.vi = vx;
+            b8_if.put_u8(ax, vx);
         end 
-    endtask
+    endtask: add_u8
     
     task add_word(string w);
         automatic integer n   = w.len();
@@ -60,9 +57,9 @@ module finder_tb;
         
         lfa  = here;
         here = pfa + 2;
-    endtask;
+    endtask: add_word
         
-    task setup_mem();
+    task setup_mem;
         // write
         for (integer i=0; i < word_tib.len(); i = i + 1) begin
             add_u8(TIB + i, word_tib.getc(i));
@@ -79,27 +76,26 @@ module finder_tb;
         // verify - read back
         for (integer i=0; i < here + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                b8.we = 1'b0;
-                b8.ai = i;
-                $display("%x:%x", i, b8.vo);
+                b8_if.get_u8(i);
+                $display("%x:%x", i, b8_if.vo);
             end
         end
-    endtask
+    endtask: setup_mem
     
-    assign vw = b8.vo;   // direct feed from memory to finder
+    assign vw = b8_if.vo;   // direct feed from memory to finder
         
     initial begin
-        clk = 0;         // start the clock
-        en  = 1'b0;      // disable finder
+        clk = 0;            // start the clock
+        en  = 1'b0;         // disable finder
         reset();
         setup_mem();
 
-        aw    = lfa;     // setup CONTEXT word address
+        aw    = lfa;        // setup CONTEXT word address
         repeat (1) @(posedge clk);
-        en    = 1'b1;    // enable finder
-        aw    = TIB;     // set TIB word address to be find
+        en    = 1'b1;       // enable finder
+        aw    = TIB;        // set TIB word address to be find
         repeat(60) @(posedge clk);
         
         #20 $finish;
     end       
-endmodule // finder_tb
+endmodule: finder_tb
