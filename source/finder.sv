@@ -3,7 +3,7 @@
 ///
 `ifndef FORTHSUPER_FINDER
 `define FORTHSUPER_FINDER
-`include "../source/spram.sv"             /// iBus32 or iBus8 interfaces
+`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
 typedef enum logic [2:0] { MEM, LF0, LF1, LEN, NFA, TIB, CMP } finder_sts;
 module finder #(
     parameter DSZ = 8,                    /// 8-bit data path
@@ -21,8 +21,8 @@ module finder #(
     output logic [ASZ-1:0] ao0,           /// a0: DEBUG, pfa if found
     output logic [ASZ-1:0] ao1            /// a1: DEBUG
     );
-    logic [ASZ-1:0]        ctx;           /// dictionary, context address
-    logic [ASZ-1:0]        lfa, pfa;      /// link, parameter field address
+    logic [ASZ-1:0]        lfa;           /// link field address (initial=context address)
+    logic [ASZ-1:0]        pfa;           /// parameter field address
     logic [DSZ-1:0]        _vw;           /// previous memory value
     finder_sts             _st;           /// next state
     logic [ASZ-1:0]        a0, a1;        /// string addresses
@@ -72,7 +72,7 @@ module finder #(
     task step;
         case (st)
         MEM: begin                  // memory read/write
-            a0  <= ctx;             // low-byte of lfa
+            a0  <= lfa;             // low-byte of lfa
             bsy <= en;              // turn on busy signal
         end
         LF0: a0 <= a0 + 1'b1;       // high-byte of lfa
@@ -101,7 +101,7 @@ module finder #(
     ///
     always_ff @(posedge clk) begin
         if (!en) begin
-            ctx <=  aw;            // setup word search context
+            lfa <=  aw;            // initial context (dictionary word address)
         end
         else begin
             step();                // prepare state machie input
