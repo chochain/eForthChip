@@ -30,7 +30,7 @@ int atoi(const char *s, size_t base)
 */
 `ifndef FORTHSUPER_ATOI
 `define FORTHSUPER_ATOI
-typedef enum logic [1:0] { INI, MEM, ACC } atoi_sts;
+typedef enum logic [1:0] { AI0, MEM, ACC } atoi_sts;
 module atoi #(
     parameter DSZ = 32,         /// 32-bit value
     parameter ASZ = 17          /// 128K address space
@@ -44,16 +44,16 @@ module atoi #(
     output logic [DSZ-1:0] vo,  /// resultant value
     output atoi_sts        st   /// DEBUG: state
     );
-    localparam NA = 5'b10000;    /// not avilable
-    logic [4:0]            inc;  /// incremental value
-    logic                  neg;  /// negative flag
-    atoi_sts               _st;  /// next state
+    localparam NA = 5'b10000;   /// not avilable
+    logic [4:0]            inc; /// incremental value
+    logic                  neg; /// negative flag
+    atoi_sts               _st; /// next state
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        if (!en) st <= INI;
+        if (!en) st <= AI0;
         else     st <= _st;
     end
     ///
@@ -61,10 +61,10 @@ module atoi #(
     ///
     always_comb begin
         case (st)
-        INI: _st = en ? (ch == "-" ? MEM : ACC) : INI;    /// look for negative number
-        MEM: _st = bsy ? ACC : INI;                       /// one extra memory cycle wait
+        AI0: _st = en ? (ch == "-" ? MEM : ACC) : AI0;    /// look for negative number
+        MEM: _st = bsy ? ACC : AI0;                       /// one extra memory cycle wait
         ACC: _st = MEM;                                   /// accumulator
-        default: _st = INI;
+        default: _st = AI0;
         endcase
     end
     ///
@@ -74,7 +74,7 @@ module atoi #(
         af  = 1'b0;
         inc = NA;
         case (st)
-        INI: if (en && (ch == "-")) af = 1'b1;            /// handle negative number
+        AI0: if (en && (ch == "-")) af = 1'b1;            /// handle negative number
         ACC: begin
             af = 1'b1;                                    /// prefetch next byte
             if ("0" <= ch && ch <= "9") inc = ch - "0";  
@@ -86,7 +86,7 @@ module atoi #(
     
     task step;
         case (st)
-        INI: begin
+        AI0: begin
             bsy <= en;
             neg <= (ch == "-");
         end

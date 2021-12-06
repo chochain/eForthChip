@@ -4,12 +4,12 @@
 `ifndef FORTHSUPER_FINDER
 `define FORTHSUPER_FINDER
 `include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
-typedef enum logic [2:0] { MEM, LF0, LF1, LEN, NFA, TIB, CMP } finder_sts;
+typedef enum logic [2:0] { FD0, LF0, LF1, LEN, NFA, TIB, CMP } finder_sts;
 module finder #(
     parameter DSZ = 8,                    /// 8-bit data path
     parameter ASZ = 17                    /// 128K address path
     ) (
-    interface              mb_if,         /// generic master to drive memory block
+    mb8_io                 mb_if,         /// generic master to drive memory block
     input                  clk,           /// clock
     input                  en,            /// enable
     input [ASZ-1:0]        aw,            /// address of word to find (or intial context)
@@ -31,7 +31,7 @@ module finder #(
     /// Note: synchronous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        if (!en) st <= MEM;
+        if (!en) st <= FD0;
         else     st <= _st;
     end
     ///
@@ -39,14 +39,14 @@ module finder #(
     ///
     always_comb begin
         case (st)
-        MEM: _st = en ? LF0 : MEM;
-        LF0: _st = bsy ? LF1 : MEM;                        // fetch low-byte of lfa
+        FD0: _st = en ? LF0 : FD0;
+        LF0: _st = bsy ? LF1 : FD0;                        // fetch low-byte of lfa
         LF1: _st = LEN;                                    // fetch high-byte of lfa
         LEN: _st = NFA;                                    // read word length
         NFA: _st = TIB;                                    // read one byte from nfa
         TIB: _st = CMP;                                    // read one byte from tib
         CMP: _st = (_vw != vw || a0 == pfa) ? LF0 : TIB;   // compare and check word len
-        default: _st = MEM;
+        default: _st = FD0;
         endcase
     end
     ///
@@ -56,7 +56,7 @@ module finder #(
     always_comb begin
         mb_if.we = 1'b0;
         case (st)
-        MEM: mb_if.ai = aw;        // memory read/write
+        FD0: mb_if.ai = aw;        // memory read/write
         LF0: mb_if.ai = a0;        // fetch low-byte of lfa
         LF1: mb_if.ai = a0;        // fetch high-byte of lfa
         LEN: mb_if.ai = a0;        // fetch nfa length
@@ -71,7 +71,7 @@ module finder #(
     ///
     task step;
         case (st)
-        MEM: begin                  // memory read/write
+        FD0: begin                  // memory read/write
             a0  <= lfa;             // low-byte of lfa
             bsy <= en;              // turn on busy signal
         end
