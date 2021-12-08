@@ -30,10 +30,10 @@ int atoi(const char *s, size_t base)
 */
 `ifndef FORTHSUPER_ATOI
 `define FORTHSUPER_ATOI
-typedef enum logic [1:0] { AI0, MEM, ACC } atoi_sts;
+`include "../source/forthsuper_if.sv"
+typedef enum logic [1:0] { AI0, GET, ACC } atoi_sts;
 module atoi #(
-    parameter DSZ = 32,         /// 32-bit value
-    parameter ASZ = 17          /// 128K address space
+    parameter DSZ = 32          /// return 32-bit integer
     ) (
     input                  clk, /// clock
     input                  en,  /// enable
@@ -55,20 +55,20 @@ module atoi #(
     always_ff @(posedge clk) begin
         if (!en) st <= AI0;
         else     st <= _st;
-    end
+    end // always_ff
     ///
     /// logic for next state (state diagram)
     ///
     always_comb begin
         case (st)
-        AI0: _st = en ? (ch == "-" ? MEM : ACC) : AI0;    /// look for negative number
-        MEM: _st = bsy ? ACC : AI0;                       /// one extra memory cycle wait
-        ACC: _st = MEM;                                   /// accumulator
+        AI0: _st = en ? (ch == "-" ? GET : ACC) : AI0;    /// look for negative number
+        GET: _st = bsy ? ACC : AI0;                       /// one extra memory cycle wait
+        ACC: _st = GET;                                   /// accumulator
         default: _st = AI0;
         endcase
-    end
+    end // always_comb
     ///
-    /// logic for input character range check
+    /// next output logic - character range check
     ///
     always_comb begin
         af  = 1'b0;
@@ -112,5 +112,28 @@ module atoi #(
         end
         else step();
     end
-endmodule : atoi
+endmodule: atoi
+///
+/// bus master wrapper for atoi module
+///
+module atoier #(
+    parameter DSZ = 32            /// return 32-bit integer
+    ) (
+    mb8_io                 mb_if, /// memory bus driver
+    input                  clk,   /// clock
+    input                  en,    /// enable
+    input                  hex,   /// 0:decimal, 1:hex
+    input [7:0]            ch,    /// character fetched from memory
+    output logic           bsy,   /// 1:busy, 0:done
+    output logic [DSZ-1:0] vo,    /// resultant value
+    output atoi_sts        st     /// DEBUG: state
+    );
+    logic af;                     /// address advance flag (a = a + 1)
+    
+    atoi #(DSZ) a2i(.*);
+
+    always_ff @(posedge clk) begin
+        if (en) mb_if.ai <= mb_if.ai + af;
+    end // always_ff
+endmodule: atoier
 `endif // FORTHSUPER_ATOI

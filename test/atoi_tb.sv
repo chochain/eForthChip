@@ -11,9 +11,8 @@ module atoi_tb;
     localparam HEX  = 1'b1;
     
     logic clk, rst, en;        /// input signals
-    logic [7:0]     ch;
     logic           bsy;       /// 0:busy, 1:done
-    logic           af;        /// address advance flag
+    logic [7:0]     ch;        /// charater fetched from memory 
     logic [DSZ-1:0] vo;        /// resultant value
     logic [1:0]     st;        /// DEBUG: state
                   
@@ -21,7 +20,7 @@ module atoi_tb;
 
     mb8_io        b8_if();
     spram8_128k   m0(b8_if.slave, clk);
-    atoi          u0(.clk, .en, .hex(HEX), .ch, .bsy, .af, .vo, .st);
+    atoier #(DSZ) u0(.*, .hex(HEX), .mb_if(b8_if.master));
     
     always #10 clk  = ~clk;
         
@@ -51,20 +50,18 @@ module atoi_tb;
         end
     endtask: setup_mem
     
-    assign ch = b8_if.vo;       // feed value fetched from memory to atoi module 
+    assign ch = b8_if.vo;
     
     initial begin
         clk = 0;
         en  = 1'b0;
         setup_mem();
 
-        b8_if.ai = TIB;         // initialize tib address for atoi conversion
+        b8_if.ai = TIB;         // get first character from TIB
         repeat(1) @(posedge clk);
         
-        en  = 1'b1;          // start conversion
-        repeat(30) @(posedge clk) begin
-            if (en) b8_if.ai <= b8_if.ai + af; // advance address if requested by atoi module
-        end
+        en  = 1'b1;             // start conversion
+        repeat(30) @(posedge clk);
         
         #20 $finish;
     end       
