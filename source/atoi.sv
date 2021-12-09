@@ -33,21 +33,20 @@ int atoi(const char *s, size_t base)
 `include "../source/forthsuper_if.sv"
 typedef enum logic [1:0] { AI0, GET, ACC } atoi_sts;
 module atoi #(
-    parameter DSZ = 32          /// return 32-bit integer
+    parameter DSZ = 32              /// return 32-bit integer
     ) (
-    input                  clk, /// clock
-    input                  en,  /// enable
-    input                  hex, /// 0:decimal, 1:hex
-    input [7:0]            ch,  /// input charcter
-    output logic           bsy, /// 1:busy, 0:done
-    output logic           af,  /// address advance flag (a = a + 1)
-    output logic [DSZ-1:0] vo,  /// resultant value
-    output atoi_sts        st   /// DEBUG: state
+    input                  clk,     /// clock
+    input                  en,      /// enable
+    input                  hex,     /// 0:decimal, 1:hex
+    input [7:0]            ch,      /// input charcter
+    output logic           bsy,     /// 1:busy, 0:done
+    output logic           af,      /// address advance flag (a = a + 1)
+    output logic [DSZ-1:0] vo       /// resultant value
     );
-    localparam NA = 5'b10000;   /// not avilable
-    logic [4:0]            inc; /// incremental value
-    logic                  neg; /// negative flag
-    atoi_sts               _st; /// next state
+    localparam NA = 5'b10000;       /// not avilable
+    logic [4:0]            inc;     /// incremental value
+    logic                  neg;     /// negative flag
+    atoi_sts               _st, st; /// next and current states
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -125,8 +124,7 @@ module atoier #(
     input                  hex,   /// 0:decimal, 1:hex
     input [7:0]            ch,    /// character fetched from memory
     output logic           bsy,   /// 1:busy, 0:done
-    output logic [DSZ-1:0] vo,    /// resultant value
-    output atoi_sts        st     /// DEBUG: state
+    output logic [DSZ-1:0] vo     /// resultant value
     );
     logic af;                     /// address advance flag (a = a + 1)
     
