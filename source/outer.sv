@@ -97,19 +97,30 @@ module outer #(
     ///
     always_comb begin
         {en_fdr,en_exe,en_a2i,en_num,en_psh} = 0;
-        cma_if.put_u8(here, vw_fdr);
         aw_fdr = ctx0;
         case (st)
         RDY: if (en) begin
-            en_fdr = 1'b1;
-            aw_fdr = TIB;
+            en_fdr   = 1'b1;
+            mb_if.we = 1'b0;
+            mb_if.ai = fdr_if.ai;
+            aw_fdr   = TIB;
         end
         FND: begin
-            en_fdr = 1'b1;
-            aw_fdr = TIB;
+            en_fdr   = 1'b1;
+            mb_if.we = 1'b0;
+            mb_if.ai = fdr_if.ai;
+            aw_fdr   = TIB;
         end
         EXE: en_exe = 1'b1;
-        A2I: en_a2i = 1'b1;
+        CMA: begin
+            mb_if.we = 1'b1;
+            mb_if.ai = here;
+            mb_if.vi = vw_fdr;
+        end
+        A2I: begin
+            en_a2i   = 1'b1;
+            mb_if.ai = TIB;
+        end
         NUM: en_num = 1'b1;
         PSH: en_psh = 1'b1;
         endcase
@@ -121,20 +132,7 @@ module outer #(
     /// register values for state machine input
     ///
     task step;
-        case (st)
-        FND: begin
-            {mb_if.we, mb_if.ai, mb_if.vi} <= 
-                {fdr_if.we, fdr_if.ai, fdr_if.vi};
-        end
-        CMA: begin
-            {mb_if.we, mb_if.ai, mb_if.vi} <= 
-                {cma_if.we, cma_if.ai, cma_if.vi};
-        end
-        A2I: begin
-            {mb_if.we, mb_if.ai, mb_if.vi} <= 
-                {a2i_if.we, a2i_if.ai, a2i_if.vi};
-        end
-        endcase
+        /* no ouput register for now */
     endtask: step
     ///
     /// logic for current output

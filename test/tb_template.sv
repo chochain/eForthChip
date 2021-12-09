@@ -6,7 +6,7 @@ class Txn;
     bit [14:0] ai;
     bit [31:0] vi;
     bit [31:0] vo;
-endclass // Txn
+endclass: Txn
 
 class Gen;
     Txn        txn;
@@ -25,7 +25,7 @@ class Gen;
             mbx.push_back(txn);
         end
     endtask
-endclass // Gen
+endclass: Gen
 
 class Drv;
     Txn        mbx[$];

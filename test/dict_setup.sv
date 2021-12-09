@@ -46,7 +46,7 @@ module dict_setup #(
         '{ MAX,   "max"  },
         '{ MIN,   "min"  }
     };
-    string tib = "123 456 +";
+    string tib = "min max 0>";
     
     task add_u8([16:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
