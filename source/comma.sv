@@ -14,18 +14,16 @@ module comma #(
     input                  en,            /// enable
     input [ASZ-1:0]        ai,            /// here: memory address to add code
     input [DSZ-1:0]        vi,            /// value to add
-    output logic           bsy,           /// 0:busy, 1:done
-    // debug output        
-    output                 comma_sts st   /// state: DEBUG
+    output logic           bsy            /// 0:busy, 1:done
     );
-    comma_sts              _st;           /// next state
+    comma_sts              _st, st;       /// next state
     logic [7:0]            op;
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        if (!en) st <= EX0;
+        if (!en) st <= CM0;
         else     st <= _st;
     end
     ///

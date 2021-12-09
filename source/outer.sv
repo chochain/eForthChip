@@ -4,8 +4,10 @@
 `ifndef FORTHSUPER_OUTER
 `define FORTHSUPER_OUTER
 `include "../source/forthsuper_if.sv"    /// iBus32 or iBus8 interfaces
-`include "../source/finder.sv"
-`include "../source/atoi.sv"
+`include "../source/finder.sv"           /// dictionary word search module
+`include "../source/atoi.sv"             /// string to number module
+`include "../source/inner.sv"            /// mock inner interpreter module
+`include "../source/comma.sv"            /// memory append module
 typedef enum logic [2:0] { RDY, FND, EXE, CMA, A2I, NUM, PSH } outer_sts;
 module outer #(
     parameter TIB  = 'h0,                /// terminal input buffer address
@@ -25,7 +27,7 @@ module outer #(
     outer_sts             _st;
     logic [ASZ-1:0]       ctx;           /// word search context
     logic [ASZ-1:0]       here;          /// dictionary 
-    logic                 compile;       /// TODO: compile flag
+    logic                 compile = 1'b0;/// TODO: compile flag
     // finder control
     logic                 en_fdr;        /// finder module enable signal
     logic [ASZ-1:0]       aw_fdr;        /// search address of word
@@ -43,31 +45,51 @@ module outer #(
     logic [31:0]          vo_a2i;        /// value returned from atoi module
     atoi_sts              st_a2i;        /// DEBUG: atoi state
     // fake controls for inner interpreter, number, and data stack push
-    logic                 en_exe,  en_num,  en_psh;
-    logic                 bsy_exe, bsy_num, bsy_psh;
+    logic                 en_exe,  en_cma, en_num,  en_psh;
+    logic                 bsy_exe, bsy_cma, bsy_num, bsy_psh;
+    logic [ASZ-1:0]       pfa;
+    logic [DSZ-1:0]       op;
     // master buses
     mb8_io fdr_if();
+    mb8_io exe_if();
     mb8_io cma_if();
     mb8_io a2i_if();
     // finder and atoi modules
-    finder fdr(.clk,
+    finder fdr(
+        .mb_if(fdr_if.master),
+        .clk,
         .en(en_fdr),
         .aw(aw_fdr),
         .vw(vw_fdr),
         .bsy(bsy_fdr),
         .hit(hit_fdr),
-        .st(st_fdr),
-        .ao0,
-        .ao1,
-        .mb_if(fdr_if.master));
-    atoier a2i(.clk,
+        .st(st_fdr), .ao0, .ao1      // debug output
+        );
+    atoier a2i(
+        .mb_if(a2i_if.master),
+        .clk,
         .en(en_a2i),
         .hex(hex),
         .ch, 
         .bsy(bsy_a2i),
         .vo(vo_a2i),
-        .st(st_a2i),
-        .mb_if(a2i_if.master));
+        .st(st_a2i)                 // debug output
+        );
+    inner exe(
+        .mb_if(exe_if.master),
+        .clk,
+        .en(exe_en),
+        .pfa(pfa),
+        .bsy(bsy_exe)
+        );
+    comma cma(
+        .mb_if(cma_if.master),
+        .clk,
+        .en(cma_en),
+        .ai(here0),
+        .vi(op),
+        .bsy(cma_bsy)
+        );
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
