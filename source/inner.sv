@@ -12,11 +12,13 @@ module inner #(
     mb8_io                 mb_if,         /// generic master to drive memory block
     input                  clk,           /// clock
     input                  en,            /// enable
-    input [ASZ-1:0]        pfa,           /// pfa of the word to execute
+    input [ASZ-1:0]        pfa,           /// instruction pointer (pfa of the 1st opcode)
+    input [DSZ-1:0]        op,            /// opcode to be executed
     output logic           bsy            /// 0:busy, 1:done
     );
-    inner_sts             _st, st;        /// next state
-    logic [7:0]            op;
+    inner_sts              _st, st;       /// next state
+    logic [ASZ-1:0]        ip;
+    
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -40,7 +42,8 @@ module inner #(
     /// logic for next output
     ///
     always_comb begin
-        /* mock module, do nothing for now */
+        // mock code, the meat of VM goes here
+        if (st==EX1) $display("executing op: %x", op);
     end
     ///
     /// register values for state machine input
@@ -57,7 +60,7 @@ module inner #(
     ///
     always_ff @(posedge clk) begin
         if (!en) begin
-            /* mock module, do nothing now */
+            ip <= pfa;
         end
         else step();
     end
