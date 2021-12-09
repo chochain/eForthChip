@@ -9,16 +9,16 @@ module outer_tb;
     localparam DICT = 'h100;      /// starting address of dictionary
     logic clk, rst;
     logic en;                     /// outer interpreter enable signal
-    logic [16:0] ctx, here;       /// word context, dictionary top
+    logic [16:0] ctx0, here0;     /// word context, dictionary top
     logic [7:0]  mem;             /// value fetch from memory
     logic [2:0]  st;              /// DEBUG: outer interpreter state
     
     mb8_io      b8_if();
     spram8_128k m0(b8_if.slave, clk);
 
-    dict_setup #(TIB, DICT) dict(.b8_if(b8_if.master), .clk, .ctx, .here);
+    dict_setup #(TIB, DICT) dict(.b8_if(b8_if.master), .clk, .ctx(ctx0), .here(here0));
     outer      #(TIB) outi(
-        .mb_if(b8_if.master), .clk, .en, .mem, .ctx0(ctx), .here0(here), .st);
+        .mb_if(b8_if.master), .clk, .en, .mem, .ctx0, .here0);
 
     task reset;
         repeat(1) @(posedge clk) rst = 1;
@@ -38,7 +38,7 @@ module outer_tb;
 
         reset();
         en  = 1'b1;
-        repeat(30) @(posedge clk);
+        repeat(100) @(posedge clk);
         
         #20 $finish;
     end

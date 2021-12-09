@@ -19,12 +19,11 @@ module outer #(
     input                 en,            /// enable
     input [DSZ-1:0]       mem,           /// return value from memory
     input [ASZ-1:0]       ctx0,          /// context address
-    input [ASZ-1:0]       here0,         /// current dictionary top
-    // debug output        
-    output                outer_sts st   /// state: DEBUG
+    input [ASZ-1:0]       here0          /// current dictionary top
     );
     // outer interpreter control
-    outer_sts             _st;
+    outer_sts             _st, st;       /// outer interpreter states
+    logic [ASZ-1:0]       tib;           /// address to terminal input buffer
     logic [ASZ-1:0]       ctx;           /// word search context
     logic [ASZ-1:0]       here;          /// dictionary 
     logic                 compile = 1'b0;/// TODO: compile flag
@@ -34,8 +33,7 @@ module outer #(
     logic [DSZ-1:0]       vw_fdr;        /// result return from memory block
     logic                 bsy_fdr;       /// finder module busy signal
     logic                 hit_fdr;       /// finder hit flag, 1: found
-    finder_sts            st_fdr;        /// DEBUG: finder state
-    logic [ASZ-1:0]       ao0, ao1;      /// DEBUG: finder comparison addresses
+    logic [ASZ-1:0]       tib_fdr;       /// current tib pointer
     // atoi control
     logic                 en_a2i;        /// atoi module enable signal
     logic                 hex;           /// TODO: hex parser flag
@@ -43,12 +41,20 @@ module outer #(
     logic                 bsy_a2i;       /// atoi module busy signal
     logic                 af;            /// memory address advance flag
     logic [31:0]          vo_a2i;        /// value returned from atoi module
-    atoi_sts              st_a2i;        /// DEBUG: atoi state
-    // fake controls for inner interpreter, number, and data stack push
-    logic                 en_exe,  en_cma, en_num,  en_psh;
-    logic                 bsy_exe, bsy_cma, bsy_num, bsy_psh;
-    logic [ASZ-1:0]       pfa;
-    logic [DSZ-1:0]       op;
+    // mock inner interpreter
+    logic                 en_exe;        
+    logic [ASZ-1:0]       pfa;           /// take ai when finder module exits
+    logic [7:0]           op;
+    logic                 bsy_exe;
+    // mock comma module
+    logic                 en_cma;
+    logic [ASZ-1:0]       ai_cma;
+    logic [DSZ-1:0]       vi_cma;
+    logic                 bsy_cma;
+    // mock stack module
+    // mock number, and data stack
+    logic                 en_num, en_psh;
+    logic                 bsy_num, bsy_psh;
     // master buses
     mb8_io fdr_if();
     mb8_io exe_if();
@@ -63,7 +69,7 @@ module outer #(
         .vw(vw_fdr),
         .bsy(bsy_fdr),
         .hit(hit_fdr),
-        .st(st_fdr), .ao0, .ao1      // debug output
+        .tib(tib_fdr)
         );
     atoier a2i(
         .mb_if(a2i_if.master),
@@ -72,14 +78,14 @@ module outer #(
         .hex(hex),
         .ch, 
         .bsy(bsy_a2i),
-        .vo(vo_a2i),
-        .st(st_a2i)                 // debug output
+        .vo(vo_a2i)
         );
     inner exe(
         .mb_if(exe_if.master),
         .clk,
-        .en(exe_en),
-        .pfa(pfa),
+        .en(en_exe),
+        .pfa,
+        .op,
         .bsy(bsy_exe)
         );
     comma cma(
@@ -108,30 +114,30 @@ module outer #(
         EXE: _st = bsy_exe ? EXE : RDY;
         CMA: _st = RDY;
         A2I: _st = bsy_a2i ? A2I : (compile ? NUM : PSH);   // TODO: atoi error handler
-        NUM: _st = bsy_num ? NUM : RDY;
+        NUM: _st = bsy_num ? NUM : RDY;                      // TODO: expand comma module for 4 bytes
         PSH: _st = bsy_psh ? PSH : RDY;
         default: _st  = RDY;
         endcase
     end
     ///
-    /// next output logic - for memory access
-    /// Note: one-hot encoding automatically done by synthesizer
+    /// next output logic - glue logic between modules
     ///
     always_comb begin
-        {en_fdr,en_exe,en_a2i,en_num,en_psh} = 0;
+        {en_fdr,en_exe,en_a2i,en_num,en_psh} = 0;  // everyone off, keep the bus quiet
         aw_fdr = ctx0;
         case (st)
         RDY: if (en) begin
             en_fdr   = 1'b1;
             mb_if.we = 1'b0;
             mb_if.ai = fdr_if.ai;
-            aw_fdr   = TIB;
+            aw_fdr   = tib;
         end
         FND: begin
             en_fdr   = 1'b1;
             mb_if.we = 1'b0;
             mb_if.ai = fdr_if.ai;
-            aw_fdr   = TIB;
+            aw_fdr   = tib;
+            if (!bsy_fdr) pfa = fdr_if.ai;
         end
         EXE: en_exe = 1'b1;
         CMA: begin
@@ -150,11 +156,14 @@ module outer #(
     
     assign vw_fdr = mem;
     assign ch     = mem;
+    assign op     = mem;
     ///
     /// register values for state machine input
     ///
     task step;
-        /* no ouput register for now */
+        case (st)
+        FND: if (!bsy_fdr) tib <= tib_fdr + 1'b1;
+        endcase
     endtask: step
     ///
     /// logic for current output
@@ -162,8 +171,9 @@ module outer #(
     ///
     always_ff @(posedge clk) begin
         if (!en) begin
-            ctx  <=  ctx0;      // initial context (dictionary word address)
-            here <= here0;
+            tib  <= TIB;       // terminal input buffer (or UART target buffer)
+            ctx  <= ctx0;      // initial context (dictionary word address)
+            here <= here0;     // starting address of dictionary top
         end
         else step();
     end
