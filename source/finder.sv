@@ -16,15 +16,12 @@ module finder #(
     input [DSZ-1:0]        vw,            /// value fetched from memory block
     output logic           bsy,           /// 0:busy, 1:done
     output logic           hit,           /// 0:missed, 1:found
-    // debug output        
-    output                 finder_sts st, /// state: DEBUG
-    output logic [ASZ-1:0] ao0,           /// a0: DEBUG, pfa if found
-    output logic [ASZ-1:0] ao1            /// a1: DEBUG
+    output logic [ASZ-1:0] tib            /// next byte of tib address
     );
     logic [ASZ-1:0]        lfa;           /// link field address (initial=context address)
-    logic [ASZ-1:0]        pfa;           /// parameter field address
+    logic [ASZ-1:0]        a0n;           /// a0 address + len
     logic [DSZ-1:0]        _vw;           /// previous memory value
-    finder_sts             _st;           /// next state
+    finder_sts             _st, st;       /// next state
     logic [ASZ-1:0]        a0, a1;        /// string addresses
     ///
     /// find - 4-block state machine (Cummings & Chambers)
@@ -45,7 +42,7 @@ module finder #(
         LEN: _st = NFA;                                    // read word length
         NFA: _st = TIB;                                    // read one byte from nfa
         TIB: _st = CMP;                                    // read one byte from tib
-        CMP: _st = (_vw != vw || a0 == pfa) ? LF0 : TIB;   // compare and check word len
+        CMP: _st = (_vw != vw || a0 == a0n) ? LF0 : TIB;   // compare and check word len
         default: _st = FD0;
         endcase
     end
@@ -82,12 +79,12 @@ module finder #(
             a0  <= a0 + 1'b1;       // first byte of nfa
         end       
         NFA: begin                  // read from nfa
-            pfa <= a0 + vw;         // calc pfa
+            a0n <= a0 + vw;         // calc a0 + len (string stop)
             a1  <= aw;              // first byte of tib
         end        
         TIB: a0 <= a0 + 1'b1;       // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
-            if (_vw != vw || a0 == pfa) begin                 // done with current word?
+            if (_vw != vw || a0 == a0n) begin                 // done with current word?
                 if (_vw == vw || lfa == 'h0ffff) bsy <= 1'b0; // break on match or no more word
                 else a0 <= lfa;                               // link to next word
             end
@@ -101,15 +98,14 @@ module finder #(
     ///
     always_ff @(posedge clk) begin
         if (!en) begin
-            lfa <=  aw;            // initial context (dictionary word address)
+            lfa <=  aw;            // reset context address (dictionary word address)
         end
         else begin
             step();                // prepare state machie input
             /// output
             hit <= (_vw == vw);    // memory matched
             _vw <= vw;             // keep last memory value
-            ao0 <= a0;             // pfa: when !bsy && hit
-            ao1 <= a1;             // debug output
+            tib <= a1;             // next tib byte address
         end
     end
 endmodule: finder

@@ -18,7 +18,7 @@ module finder_tb;
     logic [ASZ-1:0] ao0, ao1;  // DEBUG output addresses
 
     integer lfa, here;
-    string word_tib = "abcd";
+    string word_tib = "  abcd";
     string word_list[4] = {
         "abcd",
         "efgh",
