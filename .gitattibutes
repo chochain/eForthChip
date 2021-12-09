@@ -1,0 +1,4 @@
+* text=auto
+*.sv text
+*.vh text
+
