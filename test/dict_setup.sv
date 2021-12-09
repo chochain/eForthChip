@@ -17,6 +17,7 @@ module dict_setup #(
     output logic [ASZ-1:0] here
     );
     opcode_e op;                /// opcode, for num()
+/*    
     word_s word_list[op.num()] = {
         '{ NOP,   "nop"  },
         '{ DUP,   "dup"  },
@@ -46,7 +47,16 @@ module dict_setup #(
         '{ MAX,   "max"  },
         '{ MIN,   "min"  }
     };
-    string tib = "min max 0>";
+*/        
+    word_s word_list[6] = {
+        '{ NOP,   "nop"  },
+        '{ DUP,   "dup"  },
+        '{ DROP,  "drop" },
+        '{ SWAP,  "swap" },
+        '{ PLUS,  "+"    },
+        '{ MINUS, "-"    }
+    };
+    string tib = "dup swap +";
     
     task add_u8([16:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
