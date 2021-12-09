@@ -6,15 +6,15 @@
 `include "../source/spram.sv"
 import FS1::*;
 module dict_setup #(
+    parameter TIB  = 'h0,
     parameter DICT = 'h100,     /// starting address of dictionary
     parameter DSZ  = 8,         /// 8-bit data path
     parameter ASZ  = 17         /// 128K address space
     ) (
-        mb8_io b8_if,           /// 8-bit memory bus master
-        input  clk,
-        input  en,
-        output logic [ASZ-1:0] ctx,
-        output logic [ASZ-1:0] here
+    mb8_io b8_if,               /// 8-bit memory bus master
+    input  clk,
+    output logic [ASZ-1:0] ctx,
+    output logic [ASZ-1:0] here
     );
     opcode_e op;                /// opcode, for num()
     word_s word_list[op.num()] = {
@@ -46,6 +46,7 @@ module dict_setup #(
         '{ MAX,   "max"  },
         '{ MIN,   "min"  }
     };
+    string tib = "123 456 +";
     
     task add_u8([16:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
@@ -76,8 +77,15 @@ module dict_setup #(
             add_word(string'(word_list[i].name), word_list[i].op);
         end;
     endtask: setup_mem
-endmodule: dict_setup
 
+    task setup_tib;
+        for (integer i = 0; i < tib.len(); i = i + 1) begin
+            add_u8(TIB + i, tib[i]);
+        end
+        add_u8(TIB + tib.len(), 'h0);
+    endtask: setup_tib
+endmodule: dict_setup
+/*
 module dict_setup_tb;
     localparam DICT = 'h100;      /// starting address of dictionary
     logic clk, rst, en;
@@ -116,3 +124,4 @@ module dict_setup_tb;
         #20 $finish;
     end
 endmodule: dict_setup_tb
+*/
