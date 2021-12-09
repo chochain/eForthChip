@@ -1,0 +1,45 @@
+///
+/// ForthSuper Outer Interpreter Testbench
+///
+`timescale 1ps / 1ps
+`include "../test/dict_setup.sv"
+`include "../source/outer.sv"
+module outer_tb;
+    localparam TIB  = 'h0;
+    localparam DICT = 'h100;      /// starting address of dictionary
+    logic clk, rst;
+    logic en;                     /// outer interpreter enable signal
+    logic [16:0] ctx, here;       /// word context, dictionary top
+    logic [7:0]  mem;             /// value fetch from memory
+    logic [2:0]  st;              /// DEBUG: outer interpreter state
+    
+    mb8_io      b8_if();
+    spram8_128k m0(b8_if.slave, clk);
+
+    dict_setup #(TIB, DICT) dict(.b8_if(b8_if.master), .clk, .ctx, .here);
+    outer      #(TIB) outi(
+        .mb_if(b8_if.master), .clk, .en, .mem, .ctx0(ctx), .here0(here), .st);
+
+    task reset;
+        repeat(1) @(posedge clk) rst = 1;
+        repeat(1) @(posedge clk) rst = 0;
+    endtask: reset
+
+    always #10 clk  = ~clk;
+
+    assign mem = b8_if.vo;
+        
+    initial begin
+        clk = 0;
+        en  = 1'b0;
+        reset();
+        dict.setup_mem();
+        dict.setup_tib();
+
+        reset();
+        en  = 1'b1;
+        repeat(30) @(posedge clk);
+        
+        #20 $finish;
+    end
+endmodule: outer_tb
