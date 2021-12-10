@@ -2,62 +2,35 @@
 <RadiantProject version="4.2" title="forthsuper" device="iCE40UP5K-SG48I" performance_grade="High-Performance_1.2V" default_implementation="impl_1">
     <Options/>
     <Implementation title="impl_1" dir="impl_1" description="impl_1" synthesis="lse" default_strategy="Strategy1">
-        <Options/>
-        <Source name="source/atoi.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Options def_top="outer"/>
+        <Source name="source/atoi.sv" type="Verilog" type_short="Verilog">
             <Options VerilogStandard="System Verilog"/>
         </Source>
-        <Source name="source/comparator.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/comma.sv" type="Verilog" type_short="Verilog">
             <Options VerilogStandard="System Verilog"/>
         </Source>
-        <Source name="source/finder.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/finder.sv" type="Verilog" type_short="Verilog">
             <Options VerilogStandard="System Verilog"/>
         </Source>
         <Source name="source/forthsuper.vh" type="Verilog" type_short="Verilog" excluded="TRUE">
             <Options/>
         </Source>
-        <Source name="source/j1.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/forthsuper_if.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
             <Options VerilogStandard="System Verilog"/>
         </Source>
-        <Source name="source/memory.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/inner.sv" type="Verilog" type_short="Verilog">
             <Options VerilogStandard="System Verilog"/>
         </Source>
-        <Source name="source/opcode.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/spram.sv" type="Verilog" type_short="Verilog">
+            <Options VerilogStandard="System Verilog" top_module="spram8_128k"/>
+        </Source>
+        <Source name="source/outer.sv" type="Verilog" type_short="Verilog">
+            <Options VerilogStandard="System Verilog" top_module="outer"/>
+        </Source>
+        <Source name="test/dict_setup.sv" type="Verilog" type_short="Verilog" syn_sim="SimOnly">
             <Options VerilogStandard="System Verilog"/>
         </Source>
-        <Source name="source/spram.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="source/stack.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="source/pool.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/atoi_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/comparator_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE" syn_sim="SimOnly">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/dict_setup.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/finder_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE" syn_sim="SimOnly">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/pool_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/spram32_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/spram8_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/stack_tb.sv" type="Verilog" type_short="Verilog" excluded="TRUE" syn_sim="SimOnly">
-            <Options VerilogStandard="System Verilog"/>
-        </Source>
-        <Source name="test/tb_template.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="test/outer_tb.sv" type="Verilog" type_short="Verilog" syn_sim="SimOnly">
             <Options VerilogStandard="System Verilog"/>
         </Source>
         <Source name="vsim/vsim.spf" type="Simulation Project File" type_short="SPF">
