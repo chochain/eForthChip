@@ -15,10 +15,10 @@ module finder_tb;
     logic [ASZ-1:0] aw;        // word address
     logic [DSZ-1:0] vw;        // memory value of word
     logic [2:0] st;            // DEBUG: finder state
-    logic [ASZ-1:0] ao0, ao1;  // DEBUG output addresses
+    logic [ASZ-1:0] tib;       // result tib addresses (for next input)
 
     integer lfa, here;
-    string word_tib = "  abcd";
+    string word_tib = "  abcx";
     string word_list[4] = {
         "abcd",
         "efgh",

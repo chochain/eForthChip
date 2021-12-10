@@ -43,7 +43,7 @@ module finder #(
         NFA: _st = TIB;                                    // read one byte from nfa
         TIB: _st = CMP;                                    // read one byte from tib
         CMP: _st = (_vw != vw || a0 == a0n) ? LF0 : TIB;   // compare and check word len
-		SPC: _st = LF0;                                    // skip space, advance tib
+        SPC: _st = LF0;                                    // skip space, advance tib
         default: _st = FD0;
         endcase
     end
@@ -61,7 +61,7 @@ module finder #(
         NFA: mb_if.ai = a0;        // read from nfa
         TIB: mb_if.ai = a1;        // read from tib
         CMP: mb_if.ai = a0;        // read next nfa, loop back to TIB
-	    SPC: mb_if.ai = a1;        // skip space
+        SPC: mb_if.ai = a1;        // skip space
         default: mb_if.ai = aw;
         endcase
     end
@@ -72,13 +72,14 @@ module finder #(
         case (st)
         FD0: begin                  // memory read/write
             a0  <= lfa;             // low-byte of lfa
-			a1  <= aw;              // setup tib address
-            bsy <= en;   			// turn on busy signal
+            a1  <= aw;              // setup tib address
+            bsy <= en;              // turn on busy signal
         end
         LF0: begin
-	        if (vw == " ") a1 <= a1 + 1'b1;  // space, skip
+            if (vw == " ") a1 <= a1 + 1'b1;  // space, skip
             else           a0 <= a0 + 1'b1;  // high-byte of lfa
-	    end
+            if (!bsy && hit) tib <= a1;      // keep next tib input address 
+        end
         LF1: a0 <= a0 + 1'b1;       // nfa length byte
         LEN: begin                  // fetch nfa length
             lfa <= {1'b0, vw, _vw}; // collect lfa
@@ -89,10 +90,14 @@ module finder #(
         CMP: begin                  // compare bytes from nfa and tib
             if (_vw != vw || a0 == a0n) begin                 // done with current word?
                 if (_vw == vw || lfa == 'h0ffff) bsy <= 1'b0; // break on match or no more word
-                else a0 <= lfa;                               // link to next word
+                else begin
+                    a0 <= lfa;                                // link to next word
+                    a1 <= tib;
+                end
             end
-            else a1 <= a1 + 1'b1;   // ready for next tib (here vs TIB: timing look nicer)
-        end    
+            else a1 <= a1 + 1'b1;   // ready for next tib char
+        end
+        SPC: tib <= a1;
         endcase
     endtask: step
     ///
@@ -108,7 +113,6 @@ module finder #(
             /// output
             hit <= (_vw == vw);    // memory matched
             _vw <= vw;             // keep last memory value
-            tib <= a1;             // next tib byte address
         end
     end
 endmodule: finder
