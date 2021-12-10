@@ -16,8 +16,8 @@ module dict_setup #(
     output logic [ASZ-1:0] ctx,
     output logic [ASZ-1:0] here
     );
+/*  use the shorter version below for debugging  
     opcode_e op;                /// opcode, for num()
-/*    
     word_s word_list[op.num()] = {
         '{ NOP,   "nop"  },
         '{ DUP,   "dup"  },
@@ -56,7 +56,7 @@ module dict_setup #(
         '{ PLUS,  "+"    },
         '{ MINUS, "-"    }
     };
-    string tib = "dup swap +";
+    string tib = "  dup swap +";
     
     task add_u8([16:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
@@ -93,6 +93,13 @@ module dict_setup #(
             add_u8(TIB + i, tib[i]);
         end
         add_u8(TIB + tib.len(), 'h0);
+        //
+        // prefetch TIB (prep for finder)
+        //
+        repeat(1) @(posedge clk) begin
+            b8_if.we = 1'b0;
+            b8_if.ai = TIB;
+        end
     endtask: setup_tib
 endmodule: dict_setup
 /*

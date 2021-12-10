@@ -147,7 +147,7 @@ module outer #(
         end
         A2I: begin
             en_a2i   = 1'b1;
-            mb_if.ai = TIB;
+            mb_if.ai = tib;
         end
         NUM: en_num = 1'b1;
         PSH: en_psh = 1'b1;

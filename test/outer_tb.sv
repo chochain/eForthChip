@@ -36,7 +36,6 @@ module outer_tb;
         dict.setup_mem();
         dict.setup_tib();
 
-        reset();
         en  = 1'b1;
         repeat(100) @(posedge clk);
         
