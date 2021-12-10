@@ -4,7 +4,7 @@
 `ifndef FORTHSUPER_FINDER
 `define FORTHSUPER_FINDER
 `include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
-typedef enum logic [2:0] { FD0, LF0, LF1, LEN, NFA, TIB, CMP } finder_sts;
+typedef enum logic [2:0] { FD0, LF0, LF1, LEN, NFA, TIB, CMP, SPC } finder_sts;
 module finder #(
     parameter DSZ = 8,                    /// 8-bit data path
     parameter ASZ = 17                    /// 128K address path
@@ -36,13 +36,14 @@ module finder #(
     ///
     always_comb begin
         case (st)
-        FD0: _st = en ? LF0 : FD0;
-        LF0: _st = bsy ? LF1 : FD0;                        // fetch low-byte of lfa
+        FD0: _st = en  ? LF0 : FD0;
+        LF0: _st = bsy ? ((vw == " ") ? SPC : LF1) : FD0;  // fetch low-byte of lfa
         LF1: _st = LEN;                                    // fetch high-byte of lfa
         LEN: _st = NFA;                                    // read word length
         NFA: _st = TIB;                                    // read one byte from nfa
         TIB: _st = CMP;                                    // read one byte from tib
         CMP: _st = (_vw != vw || a0 == a0n) ? LF0 : TIB;   // compare and check word len
+		SPC: _st = LF0;                                    // skip space, advance tib
         default: _st = FD0;
         endcase
     end
@@ -60,6 +61,7 @@ module finder #(
         NFA: mb_if.ai = a0;        // read from nfa
         TIB: mb_if.ai = a1;        // read from tib
         CMP: mb_if.ai = a0;        // read next nfa, loop back to TIB
+	    SPC: mb_if.ai = a1;        // skip space
         default: mb_if.ai = aw;
         endcase
     end
@@ -70,25 +72,26 @@ module finder #(
         case (st)
         FD0: begin                  // memory read/write
             a0  <= lfa;             // low-byte of lfa
-            bsy <= en;              // turn on busy signal
+			a1  <= aw;              // setup tib address
+            bsy <= en;   			// turn on busy signal
         end
-        LF0: a0 <= a0 + 1'b1;       // high-byte of lfa
+        LF0: begin
+	        if (vw == " ") a1 <= a1 + 1'b1;  // space, skip
+            else           a0 <= a0 + 1'b1;  // high-byte of lfa
+	    end
         LF1: a0 <= a0 + 1'b1;       // nfa length byte
         LEN: begin                  // fetch nfa length
             lfa <= {1'b0, vw, _vw}; // collect lfa
             a0  <= a0 + 1'b1;       // first byte of nfa
         end       
-        NFA: begin                  // read from nfa
-            a0n <= a0 + vw;         // calc a0 + len (string stop)
-            a1  <= aw;              // first byte of tib
-        end        
+        NFA: a0n<= a0 + vw;         // calc a0 + len (string stop)
         TIB: a0 <= a0 + 1'b1;       // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
             if (_vw != vw || a0 == a0n) begin                 // done with current word?
                 if (_vw == vw || lfa == 'h0ffff) bsy <= 1'b0; // break on match or no more word
                 else a0 <= lfa;                               // link to next word
             end
-            else a1  <= a1 + 1'b1;  // ready for next tib (here vs TIB: timing look nicer)
+            else a1 <= a1 + 1'b1;   // ready for next tib (here vs TIB: timing look nicer)
         end    
         endcase
     endtask: step
