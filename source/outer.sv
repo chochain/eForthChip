@@ -36,7 +36,7 @@ module outer #(
     logic [ASZ-1:0]       tib_fdr;       /// current tib pointer
     // atoi control
     logic                 en_a2i;        /// atoi module enable signal
-    logic                 hex;           /// TODO: hex parser flag
+    logic                 hex = 1'b0;    /// TODO: hex parser flag
     logic [7:0]           ch;            /// character fetched from memory
     logic                 bsy_a2i;       /// atoi module busy signal
     logic                 af;            /// memory address advance flag
@@ -139,7 +139,11 @@ module outer #(
             aw_fdr   = tib;
             if (!bsy_fdr) begin
                 pfa = fdr_if.ai;
-                if (hit_fdr) en_exe = 1'b1;
+                if (hit_fdr) en_exe = 1'b1;  // since we have the opcode and pfa here
+                else begin
+                    en_a2i   = 1'b1;
+                    mb_if.ai = tib_fdr;      // enable inner or atoi module 1-cycle earlier
+                end
             end
         end
         EXE: if (bsy_exe) en_exe = 1'b1;
@@ -150,7 +154,10 @@ module outer #(
         end
         A2I: begin
             en_a2i   = 1'b1;
-            mb_if.ai = tib_fdr;
+            if (a2i_if.ai) begin
+                mb_if.we = 1'b0;
+                mb_if.ai = a2i_if.ai;
+            end
         end
         NUM: en_num = 1'b1;
         PSH: en_psh = 1'b1;
@@ -165,7 +172,12 @@ module outer #(
     ///
     task step;
         case (st)
-        FND: if (!bsy_fdr) tib <= tib_fdr;
+        FND: begin
+            if (!bsy_fdr) tib <= tib_fdr;    // collect tib from finder module
+        end
+        A2I: begin
+            if (!bsy_a2i) tib <= a2i_if.ai; // collect tib from atoi module
+        end
         endcase
     endtask: step
     ///
