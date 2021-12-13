@@ -11,7 +11,6 @@ module outer_tb;
     logic en;                     /// outer interpreter enable signal
     logic [16:0] ctx0, here0;     /// word context, dictionary top
     logic [7:0]  mem;             /// value fetch from memory
-    logic [2:0]  st;              /// DEBUG: outer interpreter state
     
     mb8_io      b8_if();
     spram8_128k m0(b8_if.slave, clk);
@@ -37,7 +36,7 @@ module outer_tb;
         dict.setup_tib();
 
         en  = 1'b1;
-        repeat(100) @(posedge clk);
+        repeat(150) @(posedge clk);
         
         #20 $finish;
     end

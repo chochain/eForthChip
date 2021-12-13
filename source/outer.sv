@@ -137,9 +137,12 @@ module outer #(
             mb_if.we = 1'b0;
             mb_if.ai = fdr_if.ai;
             aw_fdr   = tib;
-            if (!bsy_fdr) pfa = fdr_if.ai;
+            if (!bsy_fdr) begin
+                pfa = fdr_if.ai;
+                if (hit_fdr) en_exe = 1'b1;
+            end
         end
-        EXE: en_exe = 1'b1;
+        EXE: if (bsy_exe) en_exe = 1'b1;
         CMA: begin
             mb_if.we = 1'b1;
             mb_if.ai = here;
@@ -147,7 +150,7 @@ module outer #(
         end
         A2I: begin
             en_a2i   = 1'b1;
-            mb_if.ai = tib;
+            mb_if.ai = tib_fdr;
         end
         NUM: en_num = 1'b1;
         PSH: en_psh = 1'b1;
@@ -162,7 +165,7 @@ module outer #(
     ///
     task step;
         case (st)
-        FND: if (!bsy_fdr) tib <= tib_fdr + 1'b1;
+        FND: if (!bsy_fdr) tib <= tib_fdr;
         endcase
     endtask: step
     ///
