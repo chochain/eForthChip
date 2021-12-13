@@ -79,6 +79,7 @@ module atoi #(
             if ("0" <= ch && ch <= "9") inc = ch - "0";  
             else if (ch >= "a") inc = ch - "W";           /// "a" - 10 = "W"
             else if (ch >= "A") inc = ch - "7";           /// "A" - 10 = "7"
+            else af = 1'b0;
         end
         endcase
     end // always_comb
@@ -91,6 +92,7 @@ module atoi #(
         end
         ACC: begin
             if (ch && inc < NA) begin
+                bsy <= 1'b1;
                 vo <= vo * (hex ? 16 : 10) + inc;
             end
             else begin
@@ -131,7 +133,7 @@ module atoier #(
     atoi #(DSZ) a2i(.*);
 
     always_ff @(posedge clk) begin
-        if (en) mb_if.ai <= mb_if.ai + af;
+        mb_if.ai <= en ? mb_if.ai + af : 'h0;
     end // always_ff
 endmodule: atoier
 `endif // FORTHSUPER_ATOI
