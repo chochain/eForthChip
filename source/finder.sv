@@ -37,7 +37,7 @@ module finder #(
     always_comb begin
         case (st)
         FD0: _st = en  ? LF0 : FD0;
-        LF0: _st = bsy ? ((vw == " ") ? SPC : LF1) : FD0;  // fetch low-byte of lfa
+        LF0: _st = bsy && (vw != 0) ? ((vw == " ") ? SPC : LF1) : FD0;  // fetch low-byte of lfa
         LF1: _st = LEN;                                    // fetch high-byte of lfa
         LEN: _st = NFA;                                    // read word length
         NFA: _st = TIB;                                    // read one byte from nfa
@@ -76,9 +76,10 @@ module finder #(
             bsy <= en;              // turn on busy signal
         end
         LF0: begin
-            if (vw == " ") a1 <= a1 + 1'b1;  // space, skip
-            else           a0 <= a0 + 1'b1;  // high-byte of lfa
-            if (!bsy && hit) tib <= a1;      // keep next tib input address 
+            if (vw == 0)   bsy <= 1'b0;         // end of input string
+            if (vw == " ") a1 <= a1 + 1'b1;     // space, skip
+            else           a0 <= a0 + 1'b1;     // high-byte of lfa
+            if (!bsy && hit) tib <= a1 + 1'b1;  // keep next tib input address 
         end
         LF1: a0 <= a0 + 1'b1;       // nfa length byte
         LEN: begin                  // fetch nfa length
@@ -89,7 +90,10 @@ module finder #(
         TIB: a0 <= a0 + 1'b1;       // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
             if (_vw != vw || a0 == a0n) begin                 // done with current word?
-                if (_vw == vw || lfa == 'h0ffff) bsy <= 1'b0; // break on match or no more word
+                if (_vw == vw || lfa == 'h0ffff) begin
+                    bsy <= 1'b0;         // break on match or no more word
+                    tib <= a1 + 1'b1;    // prep next input char
+                end
                 else begin
                     a0 <= lfa;                                // link to next word
                     a1 <= tib;
