@@ -29,12 +29,13 @@ module inner #(
     end
     ///
     /// logic for next state (state diagram)
+    /// note: depends on opcode, more cycles might be needed
     ///
     always_comb begin
         case (st)
         EX0: _st = en ? EX1 : EX0;
         EX1: _st = EX2;
-        EX2: _st = EX0;
+        EX2: _st = EX0;        
         default: _st = EX0;
         endcase
     end
@@ -43,16 +44,24 @@ module inner #(
     ///
     always_comb begin
         // mock code, the meat of VM goes here
-        if (st==EX1) $display("executing op: %x", op);
+        case (st)
+        EX0: if (en) begin
+            bsy = 1'b1;
+            $display("executing op: %x", op);
+        end
+        EX1: begin
+            bsy = 1'b1;
+            $display("executing anther op: %x", op);
+        end
+        EX2: bsy = 1'b0;
+        default: bsy = 1'b0;
+        endcase // (st)
     end
     ///
     /// register values for state machine input
     ///
     task step;
-        case (st)
-        EX0: bsy <= en;
-        EX2: bsy <= 1'b0;
-        endcase 
+        /* nothing to do for now */
     endtask: step
     ///
     /// logic for current output
