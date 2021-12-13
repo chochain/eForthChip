@@ -73,13 +73,13 @@ module finder #(
         FD0: begin                  // memory read/write
             a0  <= lfa;             // low-byte of lfa
             a1  <= aw;              // setup tib address
+            tib <= aw;
             bsy <= en;              // turn on busy signal
         end
         LF0: begin
-            if (vw == 0)   bsy <= 1'b0;         // end of input string
-            if (vw == " ") a1 <= a1 + 1'b1;     // space, skip
-            else           a0 <= a0 + 1'b1;     // high-byte of lfa
-            if (!bsy && hit) tib <= a1 + 1'b1;  // keep next tib input address 
+            if (vw == 0) bsy <= 1'b0;            // end of input string
+            else if (vw == " ") a1 <= a1 + 1'b1; // space, skip
+            else a0 <= a0 + 1'b1;                // high-byte of lfa
         end
         LF1: a0 <= a0 + 1'b1;       // nfa length byte
         LEN: begin                  // fetch nfa length
@@ -89,13 +89,13 @@ module finder #(
         NFA: a0n<= a0 + vw;         // calc a0 + len (string stop)
         TIB: a0 <= a0 + 1'b1;       // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
-            if (_vw != vw || a0 == a0n) begin                 // done with current word?
+            if (_vw != vw || a0 == a0n) begin             // done with current word?
                 if (_vw == vw || lfa == 'h0ffff) begin
-                    bsy <= 1'b0;         // break on match or no more word
-                    tib <= a1 + 1'b1;    // prep next input char
+                    bsy <= 1'b0;                          // break on match or no more word
+                    if (_vw == vw) tib <= a1 + 1'b1;      // prep next input char
                 end
                 else begin
-                    a0 <= lfa;                                // link to next word
+                    a0 <= lfa;      // link to next word
                     a1 <= tib;
                 end
             end
