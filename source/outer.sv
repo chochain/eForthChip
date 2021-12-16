@@ -8,6 +8,7 @@
 `include "../source/atoi.sv"             /// string to number module
 `include "../source/inner.sv"            /// mock inner interpreter module
 `include "../source/comma.sv"            /// memory append module
+`include "../source/stack.sv"            /// data stack module
 typedef enum logic [2:0] { RDY, FND, EXE, CMA, A2I, NUM, PSH } outer_sts;
 module outer #(
     parameter TIB  = 'h0,                /// terminal input buffer address
@@ -16,10 +17,12 @@ module outer #(
     ) (
     mb8_io.master         mb_if,         /// generic master to drive memory block
     input                 clk,           /// clock
+    input                 rst,           /// reset
     input                 en,            /// enable
     input [DSZ-1:0]       mem,           /// return value from memory
     input [ASZ-1:0]       ctx0,          /// context address
-    input [ASZ-1:0]       here0          /// current dictionary top
+    input [ASZ-1:0]       here0,         /// current dictionary top
+    output logic          bsy            /// outer interpreter busy signal
     );
     // outer interpreter control
     outer_sts             _st, st;       /// outer interpreter states
@@ -41,7 +44,10 @@ module outer #(
     logic                 bsy_a2i;       /// atoi module busy signal
     logic                 af;            /// memory address advance flag
     logic [31:0]          vo_a2i;        /// value returned from atoi module
-    // mock inner interpreter
+    // data stack module
+    logic                 en_dss;
+    logic                 bsy_dss;
+    // inner interpreter
     logic                 en_exe;        
     logic [ASZ-1:0]       pfa;           /// take ai when finder module exits
     logic [7:0]           op;
@@ -51,15 +57,15 @@ module outer #(
     logic [ASZ-1:0]       ai_cma;
     logic [DSZ-1:0]       vi_cma;
     logic                 bsy_cma;
-    // mock stack module
-    // mock number, and data stack
-    logic                 en_num, en_psh;
-    logic                 bsy_num, bsy_psh;
+    // mock number
+    logic                 en_num;
+    logic                 bsy_num;
     // master buses
-    mb8_io fdr_if();
-    mb8_io exe_if();
-    mb8_io cma_if();
-    mb8_io a2i_if();
+    mb8_io  fdr_if();
+    mb8_io  a2i_if();
+    stk_io  dss_if();
+    mb8_io  exe_if();
+    mb8_io  cma_if();
     // finder and atoi modules
     finder fdr(
         .mb_if(fdr_if.master),
@@ -76,12 +82,20 @@ module outer #(
         .clk,
         .en(en_a2i),
         .hex(hex),
+        .tib(tib_fdr),
         .ch, 
         .bsy(bsy_a2i),
         .vo(vo_a2i)
         );
+    stack3 dss(
+        .ss_if(dss_if.slave),
+        .clk,
+        .rst,
+        .en(en_dss)
+        );
     inner exe(
         .mb_if(exe_if.master),
+        .ds_if(dss_if.master),
         .clk,
         .en(en_exe),
         .pfa,
@@ -115,7 +129,7 @@ module outer #(
         CMA: _st = RDY;
         A2I: _st = bsy_a2i ? A2I : (compile ? NUM : PSH);   // TODO: atoi error handler
         NUM: _st = bsy_num ? NUM : RDY;                      // TODO: expand comma module for 4 bytes
-        PSH: _st = bsy_psh ? PSH : RDY;
+        PSH: _st = RDY;
         default: _st  = RDY;
         endcase
     end
@@ -123,7 +137,7 @@ module outer #(
     /// next output logic - glue logic between modules
     ///
     always_comb begin
-        {en_fdr,en_exe,en_a2i,en_num,en_psh} = 0;  // everyone off, keep the bus quiet
+        {en_fdr,en_exe,en_a2i,en_num,en_dss} = 0;  // everyone off, keep the bus quiet
         aw_fdr = ctx0;
         case (st)
         RDY: if (en) begin
@@ -138,12 +152,17 @@ module outer #(
             mb_if.ai = fdr_if.ai;
             aw_fdr   = tib;
             if (!bsy_fdr) begin
+                en_fdr = 1'b0;
                 pfa = fdr_if.ai;
-                if (hit_fdr) en_exe = 1'b1;  // since we have the opcode and pfa here
-                else begin
-                    en_a2i   = 1'b1;
-                    mb_if.ai = tib_fdr;      // enable inner or atoi module 1-cycle earlier
+                if (hit_fdr) begin
+                    en_exe = 1'b1;        // since we have the opcode and pfa here
+                    $display("finder: hit. pfa=%x, op=%x", pfa, vw_fdr);
                 end
+                else begin                // we can enable inner or atoi module 1-cycle earlier
+                    en_a2i   = 1'b1;
+                    mb_if.ai = tib_fdr;
+                    $display("finder: word not found. tib_fdr=%x", tib_fdr); 
+                end          
             end
         end
         EXE: if (bsy_exe) en_exe = 1'b1;
@@ -154,13 +173,17 @@ module outer #(
         end
         A2I: begin
             en_a2i   = 1'b1;
-            if (a2i_if.ai) begin
-                mb_if.we = 1'b0;
-                mb_if.ai = a2i_if.ai;
-            end
+            mb_if.we = 1'b0;
+            mb_if.ai = a2i_if.ai;
+            $display("a2i_if[%x]='%c'", a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
         NUM: en_num = 1'b1;
-        PSH: en_psh = 1'b1;
+        PSH: begin
+            en_dss = 1'b1;
+            dss_if.op = PUSH;
+            dss_if.vi = vo_a2i;
+            $display("dss_if.push(%d)", vo_a2i);
+        end
         endcase
     end
     
@@ -173,7 +196,7 @@ module outer #(
     task step;
         case (st)
         FND: begin
-            if (!bsy_fdr) tib <= tib_fdr;    // collect tib from finder module
+            if (!bsy_fdr) tib <= tib_fdr;   // collect tib from finder module
         end
         A2I: begin
             if (!bsy_a2i) tib <= a2i_if.ai; // collect tib from atoi module
