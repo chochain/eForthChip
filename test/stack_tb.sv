@@ -14,7 +14,7 @@ module stack_tb;
 
     //stack u1(.*);
     //stack2 u1(.clk, .we, .delta(2'b11), .vi, .vo);
-    stack3 u1(.clk, .rst, .push, .pop, .vi, .idx, .vo);
+    stack3 u1(.*);
 
     always #10 clk  = ~clk;
         

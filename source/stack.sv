@@ -1,6 +1,9 @@
 ///
 /// ForthSuper stack (FILO)
 ///
+`ifndef FORTHSUPER_STACK
+`define FORTHSUPER_STACK
+`include "../source/forthsuper_if.sv"
 /*
 module stack #(
     parameter DSZ   = 32,         /// data bus size
@@ -64,42 +67,48 @@ module stack2 #(
     assign vo = tos;
 endmodule
 */
+typedef enum logic [1:0] { PUSH, POP, READ } stack_ops;
 module stack3 #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
-    parameter SSZ   = $clog2(DEPTH)
+    parameter SSZ   = $clog2(DEPTH),
+    parameter NEG1  = DEPTH - 1
     ) (
+    stk_io                 mb_if, /// 32-bit stack bus
     input  logic           clk,   /// clock
-    input  logic           rst,
-    input  logic           push,
-    input  logic           pop,
-    input  logic [DSZ-1:0] vi,    /// push value
-    output logic [SSZ-1:0] idx,   /// register
-    output logic [DSZ-1:0] vo     /// return value (top of stack)
+    input  logic           rst,   /// reset
+    input  logic           en     /// enable
     );
-    logic [SSZ-1:0] idx_1;        /// idx_1 = index - 1
+    logic [SSZ-1:0] idx = NEG1, idx_1;   /// idx_1 = index - 1
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") data(    /// noreg saves a cycle
-        .Data      (vi),
-        .Address   (pop ? idx_1 : idx),
+        .Data      (mb_if.vi),
+        .Address   (mb_if.op == POP ? idx_1 : idx),
         .Clock     (clk),
         .ClockEn   (1'b1),
-        .WE        (push),
+        .WE        (mb_if.op == PUSH),
         .Reset     (rst),
-        .Q         (vo)
+        .Q         (mb_if.vo)
     );
-    ///
-    /// blocking assignment, reg value created before the always block
-    ///
-    assign idx_1 = idx - 6'b1;
+    assign idx_1 = idx + NEG1;
     ///
     /// using FF implies a pipedline design
     ///
     always_ff @(posedge clk) begin
-        if (rst) idx <= 0;
-        if (push)      idx <= idx + 6'b1;
-        else if (pop)  idx <= idx_1;
+        if (en) begin
+            case (mb_if.op)
+            PUSH: begin
+                idx <= idx + NEG1;
+                $display("stk.push[%x]=%d", idx, mb_if.vi);
+            end                
+            POP: begin
+                idx <= idx_1;
+                $display("stk.pop[%x]=%d", idx_1, mb_if.vo);
+            end
+            endcase            
+        end
     end
 endmodule: stack3
+`endif // FORTHSUPER_STACK
