@@ -92,7 +92,8 @@ module finder #(
             if (_vw != vw || a0 == a0n) begin             // done with current word?
                 if (_vw == vw || lfa == 'h0ffff) begin
                     bsy <= 1'b0;                          // break on match or no more word
-                    if (_vw == vw) tib <= a1 + 1'b1;      // prep next input char
+                    tib <= (_vw == vw) ? a1 + 1'b1 : a1;  // skip a char if match 
+                    $display("finder.tib=%x", _vw==vw ? a1 + 1 : a1);
                 end
                 else begin
                     a0 <= lfa;      // link to next word

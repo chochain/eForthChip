@@ -56,7 +56,7 @@ module dict_setup #(
         '{ PLUS,  "+"    },
         '{ MINUS, "-"    }
     };
-    string tib = "123 dup swap +";
+    string tib = "123 456 +";
     
     task add_u8([16:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
@@ -83,12 +83,15 @@ module dict_setup #(
         ctx  = 'hffff;
         here = DICT;
         // write
+        $display("dictionary:");
         foreach(word_list[i]) begin
             add_word(string'(word_list[i].name), word_list[i].op);
+            $display("[%x]\t%s", word_list[i].op, word_list[i].name);
         end;
     endtask: setup_mem
 
     task setup_tib;
+        $display("tib: [%s]", tib);
         for (integer i = 0; i < tib.len(); i = i + 1) begin
             add_u8(TIB + i, tib[i]);
         end
