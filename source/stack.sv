@@ -74,7 +74,7 @@ module stack3 #(
     parameter SSZ   = $clog2(DEPTH),
     parameter NEG1  = DEPTH - 1
     ) (
-    stk_io                 mb_if, /// 32-bit stack bus
+    stk_io                 ss_if, /// 32-bit stack bus
     input  logic           clk,   /// clock
     input  logic           rst,   /// reset
     input  logic           en     /// enable
@@ -84,13 +84,13 @@ module stack3 #(
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") data(    /// noreg saves a cycle
-        .Data      (mb_if.vi),
-        .Address   (mb_if.op == POP ? idx_1 : idx),
+        .Data      (ss_if.vi),
+        .Address   (ss_if.op == POP ? idx_1 : idx),
         .Clock     (clk),
         .ClockEn   (1'b1),
-        .WE        (mb_if.op == PUSH),
+        .WE        (ss_if.op == PUSH),
         .Reset     (rst),
-        .Q         (mb_if.vo)
+        .Q         (ss_if.vo)
     );
     assign idx_1 = idx + NEG1;
     ///
@@ -98,14 +98,14 @@ module stack3 #(
     ///
     always_ff @(posedge clk) begin
         if (en) begin
-            case (mb_if.op)
+            case (ss_if.op)
             PUSH: begin
                 idx <= idx + NEG1;
-                $display("stk[%x] <- %d", idx, mb_if.vi);
+                $display("ss[%x] <- %d", idx, ss_if.vi);
             end                
             POP: begin
                 idx <= idx_1;
-                $display("%d <- stk[%x]", mb_if.vo, idx_1);
+                $display("%d <- ss[%x]", ss_if.vo, idx_1);
             end
             endcase            
         end
