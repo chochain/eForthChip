@@ -18,4 +18,9 @@
 |syn|<img src="./img/atoi_0_syn.png">|<img src="./img/atoi_1_syn.png">|
 |sim|<img src="./img/atoi_0_sim.png">|<img src="./img/atoi_1_sim.png">|
 
+### module transition
+|case|simulation|
+|---|---|
+|fnd->a2i->psh|<img src="./img/fnd_a2i_psh.png">|
+|fnd->exe->fnd|<img src="./img/fnd_exe.png">|
 
