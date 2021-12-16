@@ -94,10 +94,12 @@ module atoi #(
             if (ch && inc < NA) begin
                 bsy <= 1'b1;
                 vo <= vo * (hex ? 16 : 10) + inc;
+                $display("atoi[%c] vo+inc=%d*10+%d", ch, vo, inc);
             end
             else begin
                 bsy <= 1'b0;
                 if (neg) vo <= -vo;
+                $display("atoi done vo=%d", vo);
             end
         end
         endcase // case (st)
@@ -118,12 +120,14 @@ endmodule: atoi
 /// bus master wrapper for atoi module
 ///
 module atoier #(
+    parameter ASZ = 17,
     parameter DSZ = 32            /// return 32-bit integer
     ) (
     mb8_io                 mb_if, /// memory bus driver
     input                  clk,   /// clock
     input                  en,    /// enable
     input                  hex,   /// 0:decimal, 1:hex
+    input [ASZ-1:0]        tib,   /// input char starting address
     input [7:0]            ch,    /// character fetched from memory
     output logic           bsy,   /// 1:busy, 0:done
     output logic [DSZ-1:0] vo     /// resultant value
@@ -133,7 +137,11 @@ module atoier #(
     atoi #(DSZ) a2i(.*);
 
     always_ff @(posedge clk) begin
-        mb_if.ai <= en ? mb_if.ai + af : 'h0;
+        if (!en) mb_if.ai <= tib;
+        else begin
+            mb_if.ai <= mb_if.ai + af;
+            //$display("atoi.ai=%x + %x", mb_if.ai, af);
+        end
     end // always_ff
 endmodule: atoier
 `endif // FORTHSUPER_ATOI
