@@ -57,6 +57,7 @@ module atoi #(
     end // always_ff
     ///
     /// logic for next state (state diagram)
+    /// Note: two cycle per digit. TODO: one cycle per digit
     ///
     always_comb begin
         case (st)
@@ -93,13 +94,13 @@ module atoi #(
         ACC: begin
             if (ch && inc < NA) begin
                 bsy <= 1'b1;
-                vo <= vo * (hex ? 16 : 10) + inc;
-                $display("atoi[%c] vo+inc=%d*10+%d", ch, vo, inc);
+                vo  <= vo * (hex ? 16 : 10) + inc;
+                $display("atoi[%c] vo+inc=%d*%d+%d", ch, vo, hex ? 16 : 10, inc);
             end
             else begin
                 bsy <= 1'b0;
                 if (neg) vo <= -vo;
-                $display("atoi done vo=%d", vo);
+                $display("atoi done. result vo=%d", vo);
             end
         end
         endcase // case (st)
@@ -139,7 +140,7 @@ module atoier #(
     always_ff @(posedge clk) begin
         if (!en) mb_if.ai <= tib;
         else begin
-            mb_if.ai <= mb_if.ai + af;
+            mb_if.ai <= mb_if.ai + af;   // two cycles per digit. TODO: one cycle
             //$display("atoi.ai=%x + %x", mb_if.ai, af);
         end
     end // always_ff

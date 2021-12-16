@@ -101,11 +101,11 @@ module stack3 #(
             case (mb_if.op)
             PUSH: begin
                 idx <= idx + NEG1;
-                $display("stk.push[%x]=%d", idx, mb_if.vi);
+                $display("stk[%x] <- %d", idx, mb_if.vi);
             end                
             POP: begin
                 idx <= idx_1;
-                $display("stk.pop[%x]=%d", idx_1, mb_if.vo);
+                $display("%d <- stk[%x]", mb_if.vo, idx_1);
             end
             endcase            
         end
