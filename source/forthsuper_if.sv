@@ -40,5 +40,14 @@ interface mb8_io;
         // return vo
     endtask
 endinterface : mb8_io
+
+interface stk_io();
+    logic [1:0]  op;
+    logic [31:0] vi;
+    logic [31:0] vo;
+    
+    modport master(output op, vi);
+    modport slave(input op, vi, output vo);
+endinterface: stk_io
 `endif // FORTHSUPER_FORTHSUPER_IF
 
