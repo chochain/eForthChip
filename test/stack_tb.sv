@@ -8,13 +8,12 @@ module stack_tb;
     localparam DEPTH = 64;              // 64 cells
     localparam SSZ   = $clog2(DEPTH);
     localparam FF    = 'hffffffff;
-    logic clk, rst, we, e, f, push, pop;
-    logic [DSZ-1:0] vi, vo;
-    logic [SSZ-1:0] idx;
+    logic clk, rst, en;
 
     //stack u1(.*);
     //stack2 u1(.clk, .we, .delta(2'b11), .vi, .vo);
-    stack3 u1(.*);
+    ss_io  ss_if();
+    dstack u1(.ss_if(ss_if.slave), .*);
 
     always #10 clk  = ~clk;
         
@@ -23,27 +22,24 @@ module stack_tb;
     endfunction: calc_v
 
     initial begin
-        {clk, we, vi, vo, idx} = 0;
-
+        clk = 0;
         // init clock
-        rst  = 1;
-        repeat(2) @(posedge clk);
-        rst  = 0;
+        rst = 1'b1; repeat(2) @(posedge clk);
+        rst = 1'b0;
+        en  = 1'b1;
         // write
-        for (integer i = 0; i < DEPTH; i = i + 1) begin
+        for (integer i = 0; i < DEPTH - 1; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                push = 1;
-                pop  = 0;
-                vi   = calc_v(i);
-                $display("%d: %x[%x]", i, vi, idx);
+                ss_if.op = PUSH;
+                ss_if.vi = calc_v(i);
+                $display("push[%x] %x (%x, %x)", i, ss_if.vi, ss_if.t, ss_if.s);
             end
         end
         // read
-        for (integer i = DEPTH; i >=0; i = i - 1) begin
+        for (integer i = DEPTH - 1; i >= 0; i = i - 1) begin
             repeat(1) @(posedge clk) begin
-                push = 0;
-                pop  = 1;
-                $display("%d: %x => %x[%x]", i, calc_v(i), vo, idx);
+                ss_if.op = POP;
+                $display("pop[%x]: %x => (%x,%x)", i, calc_v(i), ss_if.t, ss_if.s);
             end
         end
 

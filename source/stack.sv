@@ -4,95 +4,50 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
-/*
-module stack #(
-    parameter DSZ   = 32,         /// data bus size
-    parameter DEPTH = 16,
-    parameter ISZ   = $clog2(DEPTH) - 1
-    ) (
-    input  logic           clk,   /// clock
-    input  logic           we,    /// 1:push, 0:pop
-    input  logic [DSZ-1:0] vi,    /// push value
-    output logic           e,     /// empty
-    output logic           f,     /// full
-    output logic [DSZ-1:0] vo     /// return value (top of stack)
-    );    
-    reg [ISZ:0]   idx;            /// stack index
-    reg [DSZ-1:0] ss[DEPTH-1:0];  /// memory block
-    
-    always_ff @(posedge clk) begin
-        if (we) begin
-            ss[idx] <= vi;
-            idx     <= idx==(DEPTH - 1) ? idx : idx + 1;
-            e       <= 0;
-            f       <= idx==(DEPTH - 1);
-        end
-        else begin
-            vo      <= ss[idx - 1];
-            idx     <= idx ? idx - 1 : 0;
-            e       <= (idx==0);
-            f       <= 0;
-        end
-    end
-endmodule // stack
-//
-// bit-slice
-//
-module stack2 #(
-    parameter DSZ   = 32,
-    parameter DEPTH = 16
-    ) (
-    input wire            clk,
-    input wire            we,
-    input wire [1:0]      delta,
-    input wire [DSZ-1:0]  vi,
-    output wire [DSZ-1:0] vo
-    );
-    localparam BITS = (DSZ * DEPTH) - 1;
-
-    reg [DSZ-1:0] tos, _tos;
-    reg [BITS:0]  ss,  _ss;
-    wire          mv = delta[0];
-
-    assign _tos = we ? vi : ss[DSZ-1:0];
-    assign _ss  = delta[1] ? {16'h55aa, ss[BITS:DSZ]} : {ss[BITS-DSZ:0], tos};
-
-    always @(posedge clk) begin
-        if (we | mv)
-            tos <= _tos;
-        if (mv)
-            ss <= _ss;
-    end
-
-    assign vo = tos;
-endmodule
-*/
 typedef enum logic [1:0] { PUSH, POP, READ } stack_ops;
-module stack3 #(
+module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
     parameter SSZ   = $clog2(DEPTH),
     parameter NEG1  = DEPTH - 1
     ) (
-    stk_io                 ss_if, /// 32-bit stack bus
-    input  logic           clk,   /// clock
-    input  logic           rst,   /// reset
-    input  logic           en     /// enable
+    ss_io           ss_if,         /// 32-bit stack bus
+    input  logic    clk,           /// clock
+    input  logic    rst,           /// reset
+    input  logic    en             /// enable
     );
-    logic [SSZ-1:0] idx = NEG1, idx_1;   /// idx_1 = index - 1
+    logic [SSZ-1:0] sp_1, sp = 0; /// sp_1 = sp - 1
+    logic [SSZ-1:0] ai;
+    logic [DSZ-1:0] vi, vo;
     ///
     /// instance of EBR Single Port Memory
     ///
-    pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") data(    /// noreg saves a cycle
-        .Data      (ss_if.vi),
-        .Address   (ss_if.op == POP ? idx_1 : idx),
+    pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
+        .Data      (vi),
+        .Address   (ai),
         .Clock     (clk),
         .ClockEn   (1'b1),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
-        .Q         (ss_if.vo)
+        .Q         (vo)
     );
-    assign idx_1 = idx + NEG1;
+    always_comb begin
+        sp_1 = sp + NEG1;
+        case (ss_if.op)
+        PUSH: begin
+            ai      = sp;
+            vi      = ss_if.t;         // push tos into stack
+            ss_if.t = ss_if.vi;
+        end
+        POP: begin
+            ai      = sp_1;
+            ss_if.t = ss_if.s;
+        end
+        READ: begin
+            ai = sp + vi;
+        end
+        endcase
+    end
     ///
     /// using FF implies a pipedline design
     ///
@@ -100,15 +55,136 @@ module stack3 #(
         if (en) begin
             case (ss_if.op)
             PUSH: begin
-                idx <= idx + NEG1;
-                $display("ss[%x] <- %d", idx, ss_if.vi);
+                sp      <= sp + 1'b1;
+                ss_if.s <= ss_if.t;
+                $display("ss[%x] <- %x <- tos=%x", sp, ss_if.t, ss_if.vi);
             end                
             POP: begin
-                idx <= idx_1;
-                $display("%d <- ss[%x]", ss_if.vo, idx_1);
+                sp      <= sp_1;
+                ss_if.s <= vo;
+                $display("ss[%x] -> %x -> tos=%x", sp_1, vo, ss_if.s);
             end
-            endcase            
+            READ: begin
+                $display("%d <- ss[%x + %x]", vo, sp, vi);
+            end
+            endcase
         end
     end
-endmodule: stack3
+endmodule: stack
+///
+/// Pseudo Dual-port stack (using EBR)
+///
+module dstack #(
+    parameter DEPTH = 64,
+    parameter DSZ   = 32,
+    parameter SSZ   = $clog2(DEPTH),
+    parameter NEG1  = DEPTH - 1
+    ) (
+    ss_io           ss_if,           /// 32-bit stack bus
+    input  logic    clk,             /// clock
+    input  logic    rst,             /// reset
+    input  logic    en               /// enable
+    );
+    logic [SSZ-1:0] sp_1, sp = 0;   /// sp_1 = sp - 1
+    logic [DSZ-1:0] vo;
+    pmi_ram_dp #(
+       .pmi_wr_addr_depth(DEPTH),
+       .pmi_wr_addr_width(SSZ),
+       .pmi_wr_data_width(DSZ),
+       .pmi_rd_addr_depth(DEPTH),
+       .pmi_rd_addr_width(SSZ),
+       .pmi_rd_data_width(DSZ),
+       .pmi_regmode("noreg")         // "reg"|"noreg"
+       //.pmi_resetmode        ( ),  // "async"|"sync"
+       //.pmi_init_file        ( ),  // string
+       //.pmi_init_file_format ( ),  // "binary"|"hex"
+       //.pmi_family           ( )   // "iCE40UP"|"common"
+    ) ss (
+       .Data      (ss_if.t),  // TOS (push ready)
+       .WrAddress (sp),       // stack top pointer
+       .RdAddress (sp_1),     // NOS pointer
+       .WrClock   (clk),
+       .RdClock   (clk),
+       .WrClockEn (1'b1),
+       .RdClockEn (1'b1),
+       .WE        (ss_if.op == PUSH),
+       .Reset     (rst),
+       .Q         (vo)        // sp_1
+    );
+    ///
+    /// TOS ready in current cycle
+    ///
+    always_comb begin
+        sp_1 = sp + NEG1;
+        case (ss_if.op)
+        PUSH: ss_if.t = ss_if.vi;   // retain TOS
+        POP:  ss_if.t = ss_if.s;    // pop NOS into TOS
+        endcase
+    end
+    ///
+    /// NOS ready in next cycle
+    ///
+    always_ff @(posedge clk) begin
+        if (en) begin
+            case (ss_if.op)
+            PUSH: begin
+                sp      <= sp + 1'b1;
+                ss_if.s <= ss_if.t;
+            end
+            POP:  begin
+                sp      <= sp_1;
+                ss_if.s <= (sp_1 == NEG1) ? 'h0 : vo;
+            end
+            READ: begin
+                $display("%d <- ss[%x + %x]", vo, sp, ss_if.vi);
+            end
+            endcase
+        end
+    end
+endmodule: dstack
+/*
+///
+/// Dual-port stack (using 3778 LUTs on iCE40UP5K, too expensive)
+///
+module dstack #(
+    parameter DEPTH = 64,
+    parameter DSZ   = 32,
+    parameter SSZ   = $clog2(DEPTH),
+    parameter NEG1  = DEPTH - 1
+    ) (    
+    ss_io           ss_if,           /// 32-bit stack bus
+    input  logic    clk,             /// clock
+    input  logic    rst,             /// reset
+    input  logic    en               /// enable
+    );
+    logic [SSZ-1:0] sp_1, sp = 0;   /// sp_1 = sp - 1
+    logic [DSZ-1:0] ram[DEPTH-1:0]; /// memory block 
+
+    always_comb begin
+        case (ss_if.op)
+        PUSH: begin
+            ss_if.s = ss_if.t;
+            ss_if.t = ss_if.vi;
+        end
+        POP: begin
+            ss_if.t = ss_if.s;
+            ss_if.s = ram[sp_1];
+        end
+        endcase
+        sp_1 = sp + NEG1;
+    end
+    // writing to the RAM
+    always_ff @(posedge clk) begin
+        case (ss_if.op)
+        PUSH: begin
+            ram[sp] <= ss_if.vi;
+            sp      <= sp + 1'b1;
+        end
+        POP: begin
+            sp      <= sp + NEG1;
+        end
+        endcase
+    end
+endmodule: dstack
+*/
 `endif // FORTHSUPER_STACK
