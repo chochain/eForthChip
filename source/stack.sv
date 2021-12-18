@@ -16,14 +16,13 @@ module stack #(
     input  logic    rst,           /// reset
     input  logic    en             /// enable
     );
-    logic [SSZ-1:0] sp_1, sp = 0; /// sp_1 = sp - 1
-    logic [SSZ-1:0] ai;
-    logic [DSZ-1:0] vi, vo;
+    logic [SSZ-1:0] ai, sp_1, sp = 0; /// sp_1 = sp - 1
+    logic [DSZ-1:0] vo;
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
-        .Data      (vi),
+        .Data      (ss_if.s),
         .Address   (ai),
         .Clock     (clk),
         .ClockEn   (1'b1),
@@ -34,18 +33,9 @@ module stack #(
     always_comb begin
         sp_1 = sp + NEG1;
         case (ss_if.op)
-        PUSH: begin
-            ai      = sp;
-            vi      = ss_if.t;         // push tos into stack
-            ss_if.t = ss_if.vi;
-        end
-        POP: begin
-            ai      = sp_1;
-            ss_if.t = ss_if.s;
-        end
-        READ: begin
-            ai = sp + vi;
-        end
+        PUSH: ai = sp;
+        POP:  ai = sp_1;
+        READ: ai = sp + ss_if.vi;
         endcase
     end
     ///
@@ -56,16 +46,16 @@ module stack #(
             case (ss_if.op)
             PUSH: begin
                 sp      <= sp + 1'b1;
-                ss_if.s <= ss_if.t;
-                $display("ss[%x] <- %x <- tos=%x", sp, ss_if.t, ss_if.vi);
+                ss_if.s <= ss_if.vi;
+                $display("ss[%x] <- %x <- tos=%x", sp, ss_if.s, ss_if.vi);
             end                
             POP: begin
-                sp      <= sp_1;
-                ss_if.s <= vo;
+                sp <= sp_1;
+                if (vo) ss_if.s <= vo;
                 $display("ss[%x] -> %x -> tos=%x", sp_1, vo, ss_if.s);
             end
             READ: begin
-                $display("%d <- ss[%x + %x]", vo, sp, vi);
+                $display("%d <- ss[%x + %x]", vo, sp, ss_if.vi);
             end
             endcase
         end
@@ -100,7 +90,7 @@ module dstack #(
        //.pmi_init_file_format ( ),  // "binary"|"hex"
        //.pmi_family           ( )   // "iCE40UP"|"common"
     ) ss (
-       .Data      (ss_if.t),  // TOS (push ready)
+       .Data      (ss_if.s),  // TOS (push ready)
        .WrAddress (sp),       // stack top pointer
        .RdAddress (sp_1),     // NOS pointer
        .WrClock   (clk),
@@ -111,16 +101,7 @@ module dstack #(
        .Reset     (rst),
        .Q         (vo)        // sp_1
     );
-    ///
-    /// TOS ready in current cycle
-    ///
-    always_comb begin
-        sp_1 = sp + NEG1;
-        case (ss_if.op)
-        PUSH: ss_if.t = ss_if.vi;   // retain TOS
-        POP:  ss_if.t = ss_if.s;    // pop NOS into TOS
-        endcase
-    end
+    assign sp_1 = sp + NEG1;
     ///
     /// NOS ready in next cycle
     ///
@@ -129,11 +110,11 @@ module dstack #(
             case (ss_if.op)
             PUSH: begin
                 sp      <= sp + 1'b1;
-                ss_if.s <= ss_if.t;
+                ss_if.s <= ss_if.vi;                   // retain TOS
             end
             POP:  begin
                 sp      <= sp_1;
-                ss_if.s <= (sp_1 == NEG1) ? 'h0 : vo;
+                ss_if.s <= (sp_1 == NEG1) ? 'h0 : vo;  // pop NOS into TOS
             end
             READ: begin
                 $display("%d <- ss[%x + %x]", vo, sp, ss_if.vi);
@@ -174,7 +155,7 @@ module dstack #(
         sp_1 = sp + NEG1;
     end
     // writing to the RAM
-    always_ff @(posedge clk) begin
+    Always_ff @(posedge clk) begin
         case (ss_if.op)
         PUSH: begin
             ram[sp] <= ss_if.vi;
