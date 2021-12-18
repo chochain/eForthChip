@@ -30,16 +30,15 @@ module stack_tb;
         // write
         for (integer i = 0; i < DEPTH - 1; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ss_if.op = PUSH;
-                ss_if.vi = calc_v(i);
+                ss_if.push(calc_v(i));
                 $display("push[%x] %x => %x", i, ss_if.vi, ss_if.s);
             end
         end
         // read
         for (integer i = DEPTH - 1; i >= 0; i = i - 1) begin
             repeat(1) @(posedge clk) begin
-                ss_if.op = POP;
-                $display("pop[%x]: %x => %x", i, calc_v(i), ss_if.s);
+                automatic logic [DSZ-1:0] v = ss_if.pop();
+                $display("pop[%x]: %x => %x", i, calc_v(i), v);
             end
         end
 
