@@ -10,8 +10,8 @@ import FS1::*;
 ///
 /// macros to reduce verbosity
 ///
-//`define PUSH(v) ds_if.push(v)
-//`define POP     ds_if.pop()
+`define PUSH(v) _tos = v; ds_if.push(v);
+`define POP     ds_if.pop()
 module exec #(
     parameter DSZ = 32,                   /// 32-bit data path
     parameter ASZ = 17                    /// 128K address path
@@ -32,15 +32,6 @@ module exec #(
     ///
     /// logic for execution engine
     ///
-    task PUSH(input [DSZ-1:0] v);
-        _tos = v;
-        ds_if.push(tos);
-    endtask: PUSH
-    
-    function [DSZ-1:0] POP;
-        POP = ds_if.pop();
-    endfunction: POP
-    
     task flow_op;
         /*        
         "nop",     {}
@@ -64,44 +55,44 @@ module exec #(
     task stack_op;
         automatic logic [DSZ-1:0] n;
         case(op)
-        _DUP:   PUSH(tos);
-        _DROP:  _tos = POP();
+        _DUP:   begin `PUSH(tos); end
+        _DROP:  _tos = `POP;
         _OVER:  begin
             n = ds_if.s;
-            PUSH(n);
+            `PUSH(n);
         end
         _SWAP:  begin
-            n = POP();
-            PUSH(n);
+            n = `POP;
+            `PUSH(n);
         end
         //_ROT:  "rot",  DU n = ss.pop(); DU m = ss.pop(); ss.push(n); PUSH(m)
         //_PICK: "pick", DU i = top; top = ss[-i]
-        default: ds_if.op = READ;
+        default: ds_if.op = NOP;
         endcase
     endtask: stack_op
     
     task alu_op;
         automatic logic [DSZ-1:0] n;
         case(op)
-        _PLUS:  _tos = POP() + tos;
-        _MINUS: _tos = POP() - tos;
-        _MUL:   _tos = POP() * tos;
-//      _DIV:   _tos = POP() / tos;     // 3K LUTs
-//      _MOD:   _tos = POP() % tos;    // 2.2K LUTs
-//        "* /",   top =  ss.pop() * ss.pop() / top
-//        "/mod", DU n = ss.pop(); DU t = top;  ss.push(n % t); top = (n / t)
-//        "* /mod", DU n = ss.pop() * ss.pop();  DU t = top; ss.push(n % t); top = (n / t)
-        _AND:   _tos = POP() & tos;
-        _OR:    _tos = POP() | tos;
-        _XOR:   _tos = POP() ^ tos;
-        //_ABS:   _tos = $abs(tos);
+        _PLUS:  _tos = `POP + tos;
+        _MINUS: _tos = `POP - tos;
+        _MUL:   _tos = `POP * tos;
+//      _DIV:   _tos = `POP / tos;     // 3K LUTs
+//      _MOD:   _tos = `POP % tos;     // 2.2K LUTs
+//      _MDIV:  "*/",   top =  ss.pop() * ss.pop() / top
+//      _SMOD:  "/mod", DU n = ss.pop(); DU t = top;  ss.push(n % t); top = (n / t)
+//      _MSMOD: "*/mod", DU n = ss.pop() * ss.pop();  DU t = top; ss.push(n % t); top = (n / t)
+        _AND:   _tos = `POP & tos;
+        _OR:    _tos = `POP | tos;
+        _XOR:   _tos = `POP ^ tos;
+        _ABS:   _tos = tos > 0 ? tos : -tos;
         _NEG:   _tos = ~tos;
         _MAX:   begin
-            n    = POP();
+            n    = `POP;
             _tos = tos > n ? tos : n;
         end
         _MIN: begin
-            n    = POP();
+            n    = `POP;
             _tos = tos < n ? tos : n;
         end
         endcase // case (op)
@@ -112,12 +103,12 @@ module exec #(
         _ZEQ: _tos = tos == 0;
         _ZLT: _tos = tos <  0;
         _ZGT: _tos = tos >  0;
-        _EQ:  _tos = POP() == tos;
-        _GT:  _tos = POP() >  tos;
-        _LT:  _tos = POP() <  tos;
-        _NE:  _tos = POP() != tos;
-        _GE:  _tos = POP() >= tos;
-        _LE:  _tos = POP() <= tos;
+        _EQ:  _tos = `POP == tos;
+        _GT:  _tos = `POP >  tos;
+        _LT:  _tos = `POP <  tos;
+        _NE:  _tos = `POP != tos;
+        _GE:  _tos = `POP >= tos;
+        _LE:  _tos = `POP <= tos;
         endcase
     endtask: logic_op
 
@@ -233,11 +224,12 @@ module exec #(
     // dispatcher
     //
     always_comb begin
-        /*
-        flow_op();
+        
+        // flow_op();
         stack_op();
         alu_op();
         logic_op();
+        /*
         io_op();
         lit_op();
         branch_op();
