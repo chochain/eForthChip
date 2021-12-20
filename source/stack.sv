@@ -4,7 +4,7 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
-typedef enum logic [1:0] { NOP, PUSH, POP, READ } stack_ops;
+typedef enum logic [1:0] { NOP = 2'b0, PUSH = 2'b01, POP = 2'b10, READ = 2'b11 } stack_ops;
 module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
