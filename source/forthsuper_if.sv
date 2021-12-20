@@ -50,12 +50,12 @@ interface ss_io();
     modport slave(input op, vi, output s);
 
     task push(input [31:0] v);
-        op  = 2'b0;   // PUSH, TODO: use enum
+        op  = 2'b01;   // PUSH, TODO: use enum
         vi  = v;
     endtask: push
 
     function logic [31:0] pop;
-        op   = 2'b1;  // POP, TODO: use enum
+        op   = 2'b10;  // POP, TODO: use enum
         pop  = s;
     endfunction: pop
 endinterface: ss_io

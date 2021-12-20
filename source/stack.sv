@@ -4,7 +4,7 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
-typedef enum logic [1:0] { PUSH, POP, READ } stack_ops;
+typedef enum logic [1:0] { NOP, PUSH, POP, READ } stack_ops;
 module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
@@ -25,7 +25,7 @@ module stack #(
         .Data      (ss_if.s),
         .Address   (ai),
         .Clock     (clk),
-        .ClockEn   (en),
+        .ClockEn   (en && ss_if.op != NOP),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
         .Q         (vo)
@@ -33,6 +33,7 @@ module stack #(
     always_comb begin
         sp_1 = sp + NEG1;
         case (ss_if.op)
+        NOP:  ai = sp;
         PUSH: ai = sp;
         POP:  ai = sp_1;
         READ: ai = sp + ss_if.vi;
@@ -64,6 +65,7 @@ endmodule: stack
 ///
 /// Pseudo Dual-port stack (using EBR)
 ///
+/*
 module dstack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
@@ -123,7 +125,6 @@ module dstack #(
         end
     end
 endmodule: dstack
-/*
 ///
 /// Dual-port stack (using 3778 LUTs on iCE40UP5K, too expensive)
 ///
