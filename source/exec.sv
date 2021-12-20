@@ -24,8 +24,8 @@ module exec #(
     input [ASZ-1:0]        ip0,           /// instruction pointer (pfa of the 1st opcode)
     input opcode_e         op             /// opcode to be executed
     );
-    logic [DSZ-1:0]        tos, _tos = 'h0;     /// Top of data stack, next of data stack
-    logic [ASZ-1:0]        ip,  _ip  = 'h100;   /// address pointers
+    logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
+    logic [ASZ-1:0]        ip,  _ip;      /// address pointers
 
     //ss_io  rs_if();
     //stack  rs(.ss_if(rs_if.slave), .clk, .rst, .en(1'b1));
@@ -74,8 +74,8 @@ module exec #(
     task alu_op;
         automatic logic [DSZ-1:0] n;
         case(op)
-        _PLUS:  _tos = `POP + tos;
-        _MINUS: _tos = `POP - tos;
+        _ADD:   _tos = `POP + tos;
+        _SUB:   _tos = `POP - tos;
         _MUL:   _tos = `POP * tos;
 //      _DIV:   _tos = `POP / tos;     // 3K LUTs
 //      _MOD:   _tos = `POP % tos;     // 2.2K LUTs
@@ -224,7 +224,8 @@ module exec #(
     // dispatcher
     //
     always_comb begin
-        
+        _tos = 'h0;
+        _ip  = 'h100;
         // flow_op();
         stack_op();
         alu_op();
