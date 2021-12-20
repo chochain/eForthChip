@@ -25,7 +25,7 @@ module stack #(
         .Data      (ss_if.s),
         .Address   (ai),
         .Clock     (clk),
-        .ClockEn   (1'b1),
+        .ClockEn   (en),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
         .Q         (vo)
