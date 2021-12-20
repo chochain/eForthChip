@@ -21,7 +21,7 @@ typedef enum logic [7:0] {
     //
     // alu ops
     //
-    _PLUS, _MINUS, _MUL, _DIV,
+    _ADD, _SUB, _MUL, _DIV,
     _MOD, _MDIV, _SMOD, _MSMOD,
     _AND, _OR, _XOR, _ABS, _NEG,
     _MAX, _MIN,
