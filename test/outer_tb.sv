@@ -8,7 +8,7 @@ module outer_tb;
     localparam TIB  = 'h0;
     localparam DICT = 'h100;      /// starting address of dictionary
     logic clk, rst;
-    logic en;                     /// outer interpreter enable signal
+    logic en, bsy;                /// outer interpreter enable signal
     logic [16:0] ctx0, here0;     /// word context, dictionary top
     logic [7:0]  mem;             /// value fetch from memory
     
@@ -17,7 +17,7 @@ module outer_tb;
 
     dict_setup #(TIB, DICT) dict(.b8_if(b8_if.master), .clk, .ctx(ctx0), .here(here0));
     outer      #(TIB) outi(
-        .mb_if(b8_if.master), .clk, .en, .mem, .ctx0, .here0);
+        .mb_if(b8_if.master), .clk, .rst, .en, .mem, .ctx0, .here0, .bsy);
 
     task reset;
         repeat(1) @(posedge clk) rst = 1;
