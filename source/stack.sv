@@ -4,7 +4,7 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
-typedef enum logic [1:0] { NOP = 2'b0, PUSH = 2'b01, POP = 2'b10, READ = 2'b11 } stack_ops;
+typedef enum logic [1:0] { NOP = 2'b0, PUSH = 2'b01, POP = 2'b10, PICK = 2'b11 } stack_ops;
 module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
@@ -16,50 +16,34 @@ module stack #(
     input  logic    rst,           /// reset
     input  logic    en             /// enable
     );
-    logic [SSZ-1:0] ai, sp_1, sp = 0; /// sp_1 = sp - 1
+    logic [SSZ-1:0] _sp, sp = 0;
     logic [DSZ-1:0] vo;
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
-        .Data      (ss_if.s),
-        .Address   (ai),
+        .Data      (ss_if.vi),
+        .Address   (_sp),
         .Clock     (clk),
-        .ClockEn   (en && ss_if.op != NOP),
+        .ClockEn   (en),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
         .Q         (vo)
     );
     always_comb begin
-        sp_1 = sp + NEG1;
+        ss_if.s = (ss_if.op == PUSH) ? ss_if.vi : vo;       /// result from previous cycle
         case (ss_if.op)
-        NOP:  ai = sp;
-        PUSH: ai = sp;
-        POP:  ai = sp_1;
-        READ: ai = sp + ss_if.vi;
+        NOP:  _sp = sp;
+        PUSH: _sp = sp + 1'b1;
+        POP:  _sp = sp + NEG1;
+        PICK: _sp = sp;
         endcase
     end
     ///
     /// using FF implies a pipedline design
     ///
     always_ff @(posedge clk) begin
-        if (en) begin
-            case (ss_if.op)
-            PUSH: begin
-                sp      <= sp + 1'b1;
-                ss_if.s <= ss_if.vi;
-                $display("ss[%x] <- %x <- tos=%x", sp, ss_if.s, ss_if.vi);
-            end                
-            POP: begin
-                sp <= sp_1;
-                if (vo) ss_if.s <= vo;
-                $display("ss[%x] -> %x -> tos=%x", sp_1, vo, ss_if.s);
-            end
-            READ: begin
-                $display("%d <- ss[%x + %x]", vo, sp, ss_if.vi);
-            end
-            endcase
-        end
+        if (en) sp <= _sp;
     end
 endmodule: stack
 ///
