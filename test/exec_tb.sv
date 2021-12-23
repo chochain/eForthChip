@@ -13,7 +13,8 @@ module exec_tb;
     logic clk, rst, en_xu, en_ds;
     logic [ASZ-1:0] ip0 = IP0;
     logic [DSZ-1:0] s0 = 'h0;
-    opcode_e        op = _DUP;
+    opcode_e        op  = _NOP;
+    logic           pop;
 
     mb8_io      b8_if();
     mb8_io      op_if();
@@ -23,7 +24,7 @@ module exec_tb;
     exec        xu(
         .mb_if(op_if.master),
         .ds_if(ds_if.master),
-        .clk, .rst, .en(en_xu), .ip0, .op);
+        .clk, .rst, .en(en_xu), .ip0, .op, .pop);
 
     always #10 clk  = ~clk;
         
@@ -41,9 +42,7 @@ module exec_tb;
     endtask: get_mem
     
     task push_ds([DSZ-1:0] vi);
-        en_ds = 1'b1;
         repeat(1) @(posedge clk) ds_if.push(vi);
-        en_ds = 1'b0;
     endtask: push_ds
 
     task setup;
@@ -52,14 +51,14 @@ module exec_tb;
         for (integer i = 0; i < DSZ; i = i + 1) begin
             put_mem(IP0 + i, (i % 2) == 0 ? _ADD : _SUB);
         end
-        for (integer i = 0; i < DSZ; i = i + 1) begin
+        en_ds = 1'b1;
+        for (integer i = DSZ + 10; i >= 10; i = i - 1) begin
             push_ds(i);
         end
     endtask: setup
     
     always_comb begin
-        { op } = { b8_if.vo };
-        if (en_xu) {b8_if.we, b8_if.ai, s0} = {op_if.we, op_if.ai, ds_if.s};
+        if (en_xu) {b8_if.we, b8_if.ai, op} = {op_if.we, op_if.ai, b8_if.vo};
     end
     
     initial begin
@@ -67,7 +66,6 @@ module exec_tb;
         setup();
         // start execution unit
         en_xu = 1'b1;
-        en_ds = 1'b1;
         repeat(30) @(posedge clk);
 
         #20 $finish;

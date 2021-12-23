@@ -22,10 +22,11 @@ module exec #(
     input                  rst,           /// reset signal
     input                  en,            /// enable signal
     input [ASZ-1:0]        ip0,           /// instruction pointer (pfa of the 1st opcode)
-    input opcode_e         op             /// opcode to be executed
+    input opcode_e         op,            /// opcode to be executed
+    output logic           pop            /// with this field, the unit wait one extra cycle for memory and stack
     );
     logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
-    logic [ASZ-1:0]        ip,  _ip;      /// address pointers
+    logic [ASZ-1:0]        ip, _ip;       /// address pointers
 
     //ss_io  rs_if();
     //stack  rs(.ss_if(rs_if.slave), .clk, .rst, .en(1'b1));
@@ -67,11 +68,16 @@ module exec #(
         end
         //_ROT:  "rot",  DU n = ss.pop(); DU m = ss.pop(); ss.push(n); PUSH(m)
         //_PICK: "pick", DU i = top; top = ss[-i]
-        default: ds_if.op = NOP;
         endcase
     endtask: stack_op
     
     task alu_op;
+        case (op)
+        _ADD: begin _tos = ds_if.s + tos; ds_if.op = POP; end
+        _SUB: begin _tos = ds_if.s - tos; ds_if.op = POP; end
+        default: begin _tos = tos; ds_if.op = NOP; end
+        endcase        
+/*        
         automatic logic [DSZ-1:0] n;
         case(op)
         _ADD:   _tos = `POP + tos;
@@ -79,9 +85,9 @@ module exec #(
         _MUL:   _tos = `POP * tos;
 //      _DIV:   _tos = `POP / tos;     // 3K LUTs
 //      _MOD:   _tos = `POP % tos;     // 2.2K LUTs
-//      _MDIV:  "*/",   top =  ss.pop() * ss.pop() / top
+//      _MDIV:  "* /",   top =  ss.pop() * ss.pop() / top
 //      _SMOD:  "/mod", DU n = ss.pop(); DU t = top;  ss.push(n % t); top = (n / t)
-//      _MSMOD: "*/mod", DU n = ss.pop() * ss.pop();  DU t = top; ss.push(n % t); top = (n / t)
+//      _MSMOD: "* /mod", DU n = ss.pop() * ss.pop();  DU t = top; ss.push(n % t); top = (n / t)
         _AND:   _tos = `POP & tos;
         _OR:    _tos = `POP | tos;
         _XOR:   _tos = `POP ^ tos;
@@ -96,6 +102,7 @@ module exec #(
             _tos = tos < n ? tos : n;
         end
         endcase // case (op)
+*/
     endtask: alu_op
 
     task logic_op;
@@ -224,12 +231,13 @@ module exec #(
     // dispatcher
     //
     always_comb begin
+        pop  = (op == _ADD);
         _tos = 'h0;
         _ip  = 'h100;
         // flow_op();
-        stack_op();
+//        stack_op();
         alu_op();
-        logic_op();
+//        logic_op();
         /*
         io_op();
         lit_op();
@@ -246,7 +254,8 @@ module exec #(
 
     always_ff @(posedge clk) begin
         if (rst) begin
-            ip  <= 'h100;
+            tos <= 'h0;
+            ip  <= ip0;
         end
         else begin
             tos <= _tos;
