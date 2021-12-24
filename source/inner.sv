@@ -10,7 +10,7 @@ module inner #(
     parameter ASZ = 17                    /// 128K address path
     ) (
     mb8_io                 mb_if,         /// generic master to drive memory block
-    stk_io                 ds_if,         /// data stack
+    ss_io                  ds_if,         /// data stack
     input                  clk,           /// clock
     input                  en,            /// enable
     input [ASZ-1:0]        pfa,           /// instruction pointer (pfa of the 1st opcode)

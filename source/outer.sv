@@ -63,7 +63,7 @@ module outer #(
     // master buses
     mb8_io  fdr_if();
     mb8_io  a2i_if();
-    stk_io  dss_if();
+    ss_io   dss_if();
     mb8_io  exe_if();
     mb8_io  cma_if();
     // finder and atoi modules
@@ -87,7 +87,7 @@ module outer #(
         .bsy(bsy_a2i),
         .vo(vo_a2i)
         );
-    stack3 dss(
+    stack dss(
         .ss_if(dss_if.slave),
         .clk,
         .rst,

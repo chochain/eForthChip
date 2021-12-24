@@ -49,12 +49,12 @@ module dict_setup #(
     };
 */        
     word_s word_list[6] = {
-        '{ NOP,   "nop"  },
-        '{ DUP,   "dup"  },
-        '{ DROP,  "drop" },
-        '{ SWAP,  "swap" },
-        '{ PLUS,  "+"    },
-        '{ MINUS, "-"    }
+        '{ _NOP,   "nop"  },
+        '{ _DUP,   "dup"  },
+        '{ _DROP,  "drop" },
+        '{ _SWAP,  "swap" },
+        '{ _ADD,   "+"    },
+        '{ _SUB,   "-"    }
     };
     string tib = "123 456 +";
     
