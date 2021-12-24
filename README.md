@@ -18,6 +18,9 @@
 |syn|<img src="./img/atoi_0_syn.png">|<img src="./img/atoi_1_syn.png">|
 |sim|<img src="./img/atoi_0_sim.png">|<img src="./img/atoi_1_sim.png">|
 
+### Outer Interpreter block diagram
+<img src="./img/forthsuper_outer_arch.png">
+
 ### module transition
 |case|simulation|
 |---|---|
