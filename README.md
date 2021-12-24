@@ -24,3 +24,8 @@
 |fnd->a2i->psh|<img src="./img/fnd_a2i_psh.png">|
 |fnd->exe->fnd|<img src="./img/fnd_exe.png">|
 
+### execution unit
+|case|simulation|
+|---|---|
+|stack op|<img src="./img/exec_ss_01.png">|
+
