@@ -13,6 +13,7 @@ import FS1::*;
 `define PUSH(v) _tos = v; ds_if.push(v);
 `define POP     ds_if.pop()
 module exec #(
+    parameter IP0 = 'h100,                /// starting IP
     parameter DSZ = 32,                   /// 32-bit data path
     parameter ASZ = 17                    /// 128K address path
     ) (
@@ -21,7 +22,6 @@ module exec #(
     input                  clk,           /// clock signal
     input                  rst,           /// reset signal
     input                  en,            /// enable signal
-    input [ASZ-1:0]        ip0,           /// instruction pointer (pfa of the 1st opcode)
     input opcode_e         op             /// opcode to be executed
     );
     logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
@@ -68,12 +68,12 @@ module exec #(
         automatic logic [DSZ-1:0] n;
         case (op)
         _ADD:  begin
+            $display("%d>%d + %d", $time, ds_if.s, tos);
             _tos = `POP + tos;
-            $display("%d + %d => %d", ds_if.s, tos, _tos);  
         end
         _SUB:  begin
+            $display("%d>%d - %d", $time, ds_if.s, tos);
             _tos = `POP - tos;
-            $display("%d - %d => %d", ds_if.s, tos, _tos);  
         end
         _MUL:   _tos = `POP * tos;
 //      _DIV:   _tos = `POP / tos;     // 3K LUTs
@@ -87,11 +87,12 @@ module exec #(
         _ABS:   _tos = tos > 0 ? tos : -tos;
         _NEG:   _tos = ~tos;
         _MAX:   begin
+            $display("%d>max(%d, %d)", $time, ds_if.s, tos);  
             n    = `POP;
             _tos = $signed(tos) > $signed(n) ? tos : n;
-            $display("max(%d, %d) => %d", n, tos, _tos);  
         end
         _MIN: begin
+            $display("%d>min(%d, %d)", $time, ds_if.s, tos);  
             n    = `POP;
             _tos = $signed(tos) < $signed(n) ? tos : n;
         end
@@ -224,9 +225,9 @@ module exec #(
     //
     // dispatcher
     //
-    always_comb begin // (sensitivity list: en, tos, ip, ?ss_if.vi, ?ss_if.op)
+    always_comb begin // (sensitivity list: tos, ip, ss_if.s)
         _tos = 'h0;
-        _ip  = 'h100;
+        _ip  = IP0;
         if (en) begin
             flow_op();
             stack_op();
@@ -246,7 +247,7 @@ module exec #(
     always_ff @(posedge clk) begin
         if (rst) begin
             tos <= 'h0;
-            ip  <= ip0;
+            ip  <= IP0;
         end
         else begin
             tos <= _tos;
