@@ -28,17 +28,17 @@ interface mb8_io;
     modport master(output we, ai, vi, import put_u8, get_u8);
     modport slave(input we, ai, vi, output vo);
 
-    task put_u8([16:0] ax, [7:0] vx);
+    function void put_u8([16:0] ax, [7:0] vx);
         we = 1'b1;
         ai = ax;
         vi = vx;
-    endtask
+    endfunction: put_u8
     
-    task get_u8([16:0] ax);
+    function void get_u8([16:0] ax);
         we = 1'b0;
         ai = ax;
         // return vo
-    endtask
+    endfunction: get_u8
 endinterface : mb8_io
 
 interface ss_io();
@@ -49,10 +49,10 @@ interface ss_io();
     modport master(input s, output op, vi, import push, pop);
     modport slave(input op, vi, output s);
 
-    task push(input [31:0] v);
+    function void push(input [31:0] v);
         op  = 2'b01;   // PUSH, TODO: use enum
         vi  = v;
-    endtask: push
+    endfunction: push
 
     function logic [31:0] pop;
         op   = 2'b10;  // POP, TODO: use enum
