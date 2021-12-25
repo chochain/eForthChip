@@ -39,7 +39,7 @@ module stack #(
             ss_if.s = vo;
         end
         endcase
-        $display("%d: _sp=%d, .s=%d, %d:%d", ss_if.op, _sp, ss_if.s, ss_if.vi, vo);
+        $display("%d>%d: _sp=%d, .s=%d, %d:%d", $time, ss_if.op, _sp, ss_if.s, ss_if.vi, vo);
     end
     ///
     /// using FF implies a pipedline design
