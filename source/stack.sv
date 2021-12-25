@@ -30,14 +30,16 @@ module stack #(
         .Reset     (rst),
         .Q         (vo)
     );
-    always_comb begin
-        ss_if.s = (ss_if.op == PUSH) ? ss_if.vi : vo;       /// result from previous cycle
+    always_comb begin // (sensitivity list: ss_if.op, ss_if.vi, vo)
         case (ss_if.op)
-        NOP:  _sp = sp;
-        PUSH: _sp = sp + 1'b1;
-        POP:  _sp = sp + NEG1;
-        PICK: _sp = sp;
+        PUSH: begin _sp = sp + 1'b1; ss_if.s = ss_if.vi; end
+        POP:  begin _sp = sp + NEG1; ss_if.s = vo;       end
+        default: begin 
+            _sp     = sp;
+            ss_if.s = vo;
+        end
         endcase
+        $display("%d: _sp=%d, .s=%d, %d:%d", ss_if.op, _sp, ss_if.s, ss_if.vi, vo);
     end
     ///
     /// using FF implies a pipedline design
