@@ -22,8 +22,7 @@ module exec #(
     input                  rst,           /// reset signal
     input                  en,            /// enable signal
     input [ASZ-1:0]        ip0,           /// instruction pointer (pfa of the 1st opcode)
-    input opcode_e         op,            /// opcode to be executed
-    output logic           pop            /// with this field, the unit wait one extra cycle for memory and stack
+    input opcode_e         op             /// opcode to be executed
     );
     logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
     logic [ASZ-1:0]        ip, _ip;       /// address pointers
@@ -33,7 +32,7 @@ module exec #(
     ///
     /// logic for execution engine
     ///
-    task flow_op;
+    function void flow_op;
         /*        
         "nop",     {}
         "dovar",   PUSH(IPOFF); IP += sizeof(DU)
@@ -51,43 +50,37 @@ module exec #(
         "r>",      PUSH(rs.pop())
         "r@",      PUSH(rs[-1])
         */
-    endtask: flow_op
+    endfunction: flow_op
     
-    task stack_op;
+    function void stack_op;
         automatic logic [DSZ-1:0] n;
         case(op)
         _DUP:   begin `PUSH(tos); end
         _DROP:  _tos = `POP;
-        _OVER:  begin
-            n = ds_if.s;
-            `PUSH(n);
-        end
-        _SWAP:  begin
-            n = `POP;
-            `PUSH(n);
-        end
+        _OVER:  begin `PUSH(ds_if.s); end
+        //_SWAP:  begin n = `POP; `PUSH(n); end
         //_ROT:  "rot",  DU n = ss.pop(); DU m = ss.pop(); ss.push(n); PUSH(m)
         //_PICK: "pick", DU i = top; top = ss[-i]
         endcase
-    endtask: stack_op
+    endfunction: stack_op
     
-    task alu_op;
-        case (op)
-        _ADD: begin _tos = ds_if.s + tos; ds_if.op = POP; end
-        _SUB: begin _tos = ds_if.s - tos; ds_if.op = POP; end
-        default: begin _tos = tos; ds_if.op = NOP; end
-        endcase        
-/*        
+    function void alu_op;
         automatic logic [DSZ-1:0] n;
-        case(op)
-        _ADD:   _tos = `POP + tos;
-        _SUB:   _tos = `POP - tos;
+        case (op)
+        _ADD:  begin
+            _tos = `POP + tos;
+            $display("%d + %d => %d", ds_if.s, tos, _tos);  
+        end
+        _SUB:  begin
+            _tos = `POP - tos;
+            $display("%d - %d => %d", ds_if.s, tos, _tos);  
+        end
         _MUL:   _tos = `POP * tos;
 //      _DIV:   _tos = `POP / tos;     // 3K LUTs
 //      _MOD:   _tos = `POP % tos;     // 2.2K LUTs
-//      _MDIV:  "* /",   top =  ss.pop() * ss.pop() / top
+//      _MDIV:  "*/",   top =  ss.pop() * ss.pop() / top
 //      _SMOD:  "/mod", DU n = ss.pop(); DU t = top;  ss.push(n % t); top = (n / t)
-//      _MSMOD: "* /mod", DU n = ss.pop() * ss.pop();  DU t = top; ss.push(n % t); top = (n / t)
+//      _MSMOD: "*/mod", DU n = ss.pop() * ss.pop();  DU t = top; ss.push(n % t); top = (n / t)
         _AND:   _tos = `POP & tos;
         _OR:    _tos = `POP | tos;
         _XOR:   _tos = `POP ^ tos;
@@ -95,17 +88,18 @@ module exec #(
         _NEG:   _tos = ~tos;
         _MAX:   begin
             n    = `POP;
-            _tos = tos > n ? tos : n;
+            _tos = $signed(tos) > $signed(n) ? tos : n;
+            $display("max(%d, %d) => %d", n, tos, _tos);  
         end
         _MIN: begin
             n    = `POP;
-            _tos = tos < n ? tos : n;
+            _tos = $signed(tos) < $signed(n) ? tos : n;
         end
-        endcase // case (op)
-*/
-    endtask: alu_op
+        default: begin _tos = tos; ds_if.op = NOP; end
+        endcase        
+    endfunction: alu_op
 
-    task logic_op;
+    function void logic_op;
         case(op)
         _ZEQ: _tos = tos == 0;
         _ZLT: _tos = tos <  0;
@@ -117,9 +111,9 @@ module exec #(
         _GE:  _tos = `POP >= tos;
         _LE:  _tos = `POP <= tos;
         endcase
-    endtask: logic_op
+    endfunction: logic_op
 
-    task io_op;
+    function void io_op;
         /*
     _QRX, _TXSTO,
     _QKEY, _KEY, _EMIT, 
@@ -142,9 +136,9 @@ module exec #(
         "space",   fout << " "
         "spaces",  for (DU n = POP(), i = 0; i < n; i++) fout << " "
          */
-    endtask: io_op
+    endfunction: io_op
 
-    task lit_op;
+    function void lit_op;
         /*
     _DOTSTR, _STRQP, _DOTQP, _BSLSH, _DOSTR,         
        i".\"",     const char *s = scan('"')+1; add_iu(DOTSTR); add_str(s))
@@ -153,9 +147,9 @@ module exec #(
         "\\",      scan('\n')
         "$\"",     const char *s = scan('"')+1; add_iu(DOSTR); add_str(s))
         */
-    endtask: lit_op
+    endfunction: lit_op
 
-    task branch_op;
+    function void branch_op;
     /*
        i"if",      add_iu(ZBRAN); PUSH(XIP); add_iu(0)),
        i"else",    add_iu(BRAN);  IU h=XIP;  add_iu(0); SETJMP(POP()) = XIP; PUSH(h)
@@ -169,9 +163,9 @@ module exec #(
        i"next",    add_iu(DONEXT); add_iu(POP())),
        i"aft",     POP(); add_iu(BRAN); IU h=XIP; add_iu(0); PUSH(XIP); PUSH(h)
     */                                                  
-    endtask: branch_op
+    endfunction: branch_op
 
-    task meta_op;
+    function void meta_op;
         /*
         case (op)
         "[",       compile = false
@@ -194,9 +188,9 @@ module exec #(
         "?",     IU w = POP(); fout << CELL(w) << " ")
         endcase
         */
-    endtask: meta_op
+    endfunction: meta_op
 
-    task debug_op;
+    function void debug_op;
         /*
         "here",  PUSH(HERE)
         "ucase", ucase = POP()
@@ -209,9 +203,9 @@ module exec #(
         "poke",  DU a = POP(); POKE(a, POP())
         "forget", IU w = find(next_word()); if (w<0) return; IU b = find("boot")+1; dict.clear(w > b ? w : b)
         */
-    endtask: debug_op
+    endfunction: debug_op
 
-    task pin_op;
+    function void pin_op;
         /*
         "pin",   DU p = POP(); pinMode(p, POP())
         "in",    PUSH(digitalRead(POP()))
@@ -226,27 +220,24 @@ module exec #(
         "bye",   exit(0)
         "boot",  dict.clear(find("boot") + 1); pmem.clear())
          */
-    endtask: pin_op
+    endfunction: pin_op
     //
     // dispatcher
     //
-    always_comb begin
-        pop  = (op == _ADD);
+    always_comb begin // (sensitivity list: en, tos, ip, ?ss_if.vi, ?ss_if.op)
         _tos = 'h0;
         _ip  = 'h100;
-        // flow_op();
-//        stack_op();
-        alu_op();
-//        logic_op();
-        /*
-        io_op();
-        lit_op();
-        branch_op();
-        meta_op();
-        debug_op();
-        pin_op();
-        */
         if (en) begin
+            flow_op();
+            stack_op();
+            alu_op();
+            logic_op();
+            io_op();
+            lit_op();
+            branch_op();
+            meta_op();
+            debug_op();
+            pin_op();
             _ip = ip + 1'b1;
             mb_if.get_u8(ip);      // prefetch next instruction
         end
