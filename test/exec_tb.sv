@@ -12,19 +12,17 @@ module exec_tb;
     localparam IP0   = 'h100;
     logic clk, rst, en_xu, en_ds;
     logic [ASZ-1:0] ip0 = IP0;
-    logic [DSZ-1:0] s0 = 'h0;
-    opcode_e        op  = _NOP;
-    logic           pop;
+    logic [DSZ-1:0] s0  = 'h0;
+    opcode_e        op, _op;
 
     mb8_io      b8_if();
-    mb8_io      op_if();
     ss_io       ds_if();
     spram8_128k m0(.b8_if(b8_if.slave), .clk);
     stack       ds(.ss_if(ds_if.slave), .en(en_ds), .*);
     exec        xu(
-        .mb_if(op_if.master),
+        .mb_if(b8_if.master),
         .ds_if(ds_if.master),
-        .clk, .rst, .en(en_xu), .ip0, .op, .pop);
+        .clk, .rst, .en(en_xu), .ip0, .op);
 
     always #10 clk  = ~clk;
         
@@ -49,7 +47,14 @@ module exec_tb;
         reset();
         // setup stack and opcode memory
         for (integer i = 0; i < DSZ; i = i + 1) begin
-            put_mem(IP0 + i, (i % 2) == 0 ? _ADD : _SUB);
+            automatic opcode_e x;
+            case (i%4) 
+            0: x = _ADD;
+            1: x = _SUB;
+            2: x = _MAX;
+            3: x = _MAX;
+            endcase
+            put_mem(IP0 + i, x);
         end
         en_ds = 1'b1;
         for (integer i = DSZ + 10; i >= 10; i = i - 1) begin
@@ -57,9 +62,7 @@ module exec_tb;
         end
     endtask: setup
     
-    always_comb begin
-        if (en_xu) {b8_if.we, b8_if.ai, op} = {op_if.we, op_if.ai, b8_if.vo};
-    end
+    assign {_op} = {b8_if.vo};
     
     initial begin
         {clk, en_xu, en_ds} = 0;
@@ -69,5 +72,9 @@ module exec_tb;
         repeat(30) @(posedge clk);
 
         #20 $finish;
-    end       
+    end
+    
+    always_ff @(posedge clk) begin
+        op <= en_xu ? _op : _NOP;
+    end
 endmodule: exec_tb
