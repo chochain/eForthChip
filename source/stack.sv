@@ -4,7 +4,6 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
-typedef enum logic [1:0] { NOP = 2'b0, PUSH = 2'b01, POP = 2'b10, PICK = 2'b11 } stack_ops;
 module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
@@ -44,8 +43,9 @@ module stack #(
     /// using FF implies a pipedline design
     ///
     always_ff @(posedge clk) begin
-        $display("%6d:[%2d] _sp=%0d s=(vi:vo) %0d=(%0d:%0d)", 
-            $time, ss_if.op, _sp, $signed(ss_if.s), $signed(ss_if.vi), $signed(vo));
+        //automatic string op = FS1::Enum2str#(stack_ops)::to_s(ss_if.op);
+        $display("%6d: %0s sp=%0d s=%0d ? (vi=%0d : vo=%0d)",
+            $time, ss_if.op.name(), sp, $signed(ss_if.s), $signed(ss_if.vi), $signed(vo));
         if (en) sp <= _sp;
     end
 endmodule: stack
