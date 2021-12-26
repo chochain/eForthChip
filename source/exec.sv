@@ -4,7 +4,6 @@
 `ifndef FORTHSUPER_EXEC
 `define FORTHSUPER_EXEC
 `include "../source/forthsuper.vh"
-`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
 `include "../source/stack.sv"
 import FS1::*;                            /// import opcode_e
 ///
@@ -26,7 +25,6 @@ module exec #(
     );
     logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
     logic [ASZ-1:0]        ip, _ip;       /// address pointers
-    stack_ops              dsop;
 
     //ss_io  rs_if();
     //stack  rs(.ss_if(rs_if.slave), .clk, .rst, .en(1'b1));
@@ -68,14 +66,8 @@ module exec #(
     function void alu_op;
         automatic logic [DSZ-1:0] n;
         case (op)
-        _ADD:  begin
-            _tos  = ds_if.s + tos;
-            dsop  = POP;
-        end
-        _SUB:  begin
-            _tos = ds_if.s - tos;
-            dsop = POP;
-        end
+        _ADD:   _tos = `POP + tos;
+        _SUB:   _tos = `POP - tos;
         _MUL:   _tos = `POP * tos;
 //      _DIV:   _tos = `POP / tos;     // 3K LUTs
 //      _MOD:   _tos = `POP % tos;     // 2.2K LUTs
@@ -87,15 +79,9 @@ module exec #(
         _XOR:   _tos = `POP ^ tos;
         _ABS:   _tos = tos > 0 ? tos : -tos;
         _NEG:   _tos = ~tos;
-        _MAX:   begin
-            _tos = $signed(tos) > $signed(ds_if.s) ? tos : ds_if.s;
-            dsop = POP;
-        end
-        _MIN: begin
-            _tos = $signed(tos) < $signed(ds_if.s) ? tos : ds_if.s;
-            dsop = POP;
-        end
-        default: begin _tos = tos; dsop = NOP; end
+        _MAX:   begin n = `POP; _tos = $signed(tos) > $signed(n) ? tos : n; end
+        _MIN:   begin n = `POP; _tos = $signed(tos) < $signed(n) ? tos : n; end
+        default: begin _tos = tos; ds_if.op = NOP; end
         endcase        
     endfunction: alu_op
 
@@ -239,7 +225,6 @@ module exec #(
             debug_op();
             pin_op();
             _ip = ip + 1'b1;
-            ds_if.op = dsop;
             mb_if.get_u8(ip);      // prefetch next instruction
         end
     end
@@ -256,7 +241,8 @@ module exec #(
     end
     
     initial begin
-        $monitor("%6d:[%2d](%4d,%4d)", $time, op, $signed(ds_if.s), $signed(tos));
+        $monitor("%6d: %0s(%0d,%0d)=>%0d", 
+            $time, op.name(), $signed(ds_if.s), $signed(tos), $signed(_tos));
     end
 endmodule: exec
 `endif // FORTHSUPER_EXEC
