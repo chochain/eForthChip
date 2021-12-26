@@ -6,7 +6,7 @@
 `include "../source/forthsuper.vh"
 `include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
 `include "../source/stack.sv"
-import FS1::*;
+import FS1::*;                            /// import opcode_e
 ///
 /// macros to reduce verbosity
 ///
@@ -26,6 +26,7 @@ module exec #(
     );
     logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
     logic [ASZ-1:0]        ip, _ip;       /// address pointers
+    stack_ops              dsop;
 
     //ss_io  rs_if();
     //stack  rs(.ss_if(rs_if.slave), .clk, .rst, .en(1'b1));
@@ -68,12 +69,12 @@ module exec #(
         automatic logic [DSZ-1:0] n;
         case (op)
         _ADD:  begin
-            $display("%d>%d + %d", $time, ds_if.s, tos);
-            _tos = `POP + tos;
+            _tos  = ds_if.s + tos;
+            dsop  = POP;
         end
         _SUB:  begin
-            $display("%d>%d - %d", $time, ds_if.s, tos);
-            _tos = `POP - tos;
+            _tos = ds_if.s - tos;
+            dsop = POP;
         end
         _MUL:   _tos = `POP * tos;
 //      _DIV:   _tos = `POP / tos;     // 3K LUTs
@@ -87,16 +88,14 @@ module exec #(
         _ABS:   _tos = tos > 0 ? tos : -tos;
         _NEG:   _tos = ~tos;
         _MAX:   begin
-            $display("%d>max(%d, %d)", $time, ds_if.s, tos);  
-            n    = `POP;
-            _tos = $signed(tos) > $signed(n) ? tos : n;
+            _tos = $signed(tos) > $signed(ds_if.s) ? tos : ds_if.s;
+            dsop = POP;
         end
         _MIN: begin
-            $display("%d>min(%d, %d)", $time, ds_if.s, tos);  
-            n    = `POP;
-            _tos = $signed(tos) < $signed(n) ? tos : n;
+            _tos = $signed(tos) < $signed(ds_if.s) ? tos : ds_if.s;
+            dsop = POP;
         end
-        default: begin _tos = tos; ds_if.op = NOP; end
+        default: begin _tos = tos; dsop = NOP; end
         endcase        
     endfunction: alu_op
 
@@ -240,6 +239,7 @@ module exec #(
             debug_op();
             pin_op();
             _ip = ip + 1'b1;
+            ds_if.op = dsop;
             mb_if.get_u8(ip);      // prefetch next instruction
         end
     end
@@ -253,6 +253,10 @@ module exec #(
             tos <= _tos;
             ip  <= _ip;
         end
+    end
+    
+    initial begin
+        $monitor("%6d:[%2d](%4d,%4d)", $time, op, $signed(ds_if.s), $signed(tos));
     end
 endmodule: exec
 `endif // FORTHSUPER_EXEC

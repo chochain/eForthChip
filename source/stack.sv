@@ -39,12 +39,13 @@ module stack #(
             ss_if.s = vo;
         end
         endcase
-        $display("%d>%d: _sp=%d, .s=%d, %d:%d", $time, ss_if.op, _sp, ss_if.s, ss_if.vi, vo);
     end
     ///
     /// using FF implies a pipedline design
     ///
     always_ff @(posedge clk) begin
+        $display("%6d:[%2d] _sp=%0d s=(vi:vo) %0d=(%0d:%0d)", 
+            $time, ss_if.op, _sp, $signed(ss_if.s), $signed(ss_if.vi), $signed(vo));
         if (en) sp <= _sp;
     end
 endmodule: stack
