@@ -4,6 +4,8 @@
 `ifndef FORTHSUPER_FORTHSUPER_IF
 `define FORTHSUPER_FORTHSUPER_IF
 
+typedef enum logic [1:0] { NOP = 2'b0, PUSH = 2'b01, POP = 2'b10, PICK = 2'b11 } stack_ops;
+
 interface mb32_io(input logic clk);
     logic        we;
     logic [3:0]  bmsk;
@@ -42,7 +44,7 @@ interface mb8_io;
 endinterface : mb8_io
 
 interface ss_io();
-    logic [1:0]  op;
+    stack_ops    op;
     logic [31:0] vi;
     logic [31:0] s;
     
@@ -50,14 +52,15 @@ interface ss_io();
     modport slave(input op, vi, output s);
 
     function void push(input [31:0] v);
-        op  = 2'b01;   // PUSH, TODO: use enum
+        op  = PUSH;   // PUSH, TODO: use enum
         vi  = v;
     endfunction: push
 
     function logic [31:0] pop;
-        op   = 2'b10;  // POP, TODO: use enum
+        op   = POP;  // POP, TODO: use enum
         pop  = s;
     endfunction: pop
+    
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
 
