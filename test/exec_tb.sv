@@ -47,11 +47,15 @@ module exec_tb;
         // setup stack and opcode memory
         for (integer i = 0; i < DSZ; i = i + 1) begin
             automatic opcode_e x;
-            case (i%4) 
+            case (i%8) 
             0: x = _ADD;
             1: x = _SUB;
             2: x = _MIN;
             3: x = _MAX;
+            4: x = _TOR;
+            5: x = _ADD;
+            6: x = _DROP;
+            7: x = _RFROM;
             endcase
             put_mem(IP0 + i, x);
         end

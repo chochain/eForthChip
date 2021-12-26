@@ -9,8 +9,10 @@ import FS1::*;                            /// import opcode_e
 ///
 /// macros to reduce verbosity
 ///
-`define PUSH(v) _tos = v; ds_if.push(v);
-`define POP     ds_if.pop()
+`define PUSH(v)  ds_if.push(v)
+`define POP      ds_if.pop()
+`define RPUSH(v) rs_if.push(v)
+`define RPOP     rs_if.pop()
 module exec #(
     parameter IP0 = 'h100,                /// starting IP
     parameter DSZ = 32,                   /// 32-bit data path
@@ -25,11 +27,8 @@ module exec #(
     );
     logic [DSZ-1:0]        tos, _tos;     /// Top of data stack, next of data stack
     logic [ASZ-1:0]        ip, _ip;       /// address pointers
-
-    //ss_io  rs_if();
-    //stack  rs(.ss_if(rs_if.slave), .clk, .rst, .en(1'b1));
-    ///
-    /// logic for execution engine
+    ss_io  rs_if();                        /// return stack interface
+    stack  rs(.ss_if(rs_if.slave), .clk, .rst, .en(1'b1));    /// logic for execution engine
     ///
     function void flow_op;
         /*        
@@ -49,14 +48,21 @@ module exec #(
         "r>",      PUSH(rs.pop())
         "r@",      PUSH(rs[-1])
         */
+        automatic logic [DSZ-1:0] n;
+        case (op)
+        _TOR:   begin _tos = ds_if.s; n = `POP; `RPUSH(tos); end
+        _RFROM: begin _tos = `RPOP; `PUSH(tos); end
+        _RAT:   begin _tos = rs_if.s; `PUSH(tos); end
+        default: rs_if.op = NOP;
+        endcase
     endfunction: flow_op
     
     function void stack_op;
         automatic logic [DSZ-1:0] n;
         case(op)
-        _DUP:   begin `PUSH(tos); end
-        _DROP:  _tos = `POP;
-        _OVER:  begin `PUSH(ds_if.s); end
+        _DUP:   begin _tos = tos; `PUSH(tos); end
+        _DROP:  begin _tos = ds_if.s; n = `POP; end
+        _OVER:  begin _tos = ds_if.s; `PUSH(tos); end
         //_SWAP:  begin n = `POP; `PUSH(n); end
         //_ROT:  "rot",  DU n = ss.pop(); DU m = ss.pop(); ss.push(n); PUSH(m)
         //_PICK: "pick", DU i = top; top = ss[-i]
