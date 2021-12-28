@@ -7,17 +7,17 @@
 module exec_tb;
     localparam DSZ   = 32;              // 32-bit stack
     localparam ASZ   = 17;              // address width
-    localparam DEPTH = 64;              // 64 cells
+    localparam DEPTH = 16;              // 64 cells
     localparam SSZ   = $clog2(DEPTH);   // stack width
     localparam IP0   = 'h100;           // starting IP
     logic clk, rst, en_xu, en_ds;
     logic [DSZ-1:0] s0  = 'h0;
-    opcode_e        op, _op;
+    opcode_e        op;
 
     mb8_io      b8_if();
     ss_io       ds_if();
     spram8_128k m0(.b8_if(b8_if.slave), .clk);
-    stack       ds(.ss_if(ds_if.slave), .en(en_ds), .*);
+    dstack      ds(.ss_if(ds_if.slave), .en(en_ds), .*);
     exec        #(IP0) xu(
         .mb_if(b8_if.master),
         .ds_if(ds_if.master),
@@ -60,12 +60,12 @@ module exec_tb;
             put_mem(IP0 + i, x);
         end
         en_ds = 1'b1;
-        for (integer i = DSZ + 10; i >= 10; i = i - 1) begin
+        for (integer i = DEPTH + 100; i >= 100; i = i - 1) begin
             push_ds(i);
         end
     endtask: setup
     
-    assign {_op} = {b8_if.vo};
+    assign {op} = {b8_if.vo};
     
     initial begin
         {clk, en_xu, en_ds} = 0;
@@ -75,9 +75,5 @@ module exec_tb;
         repeat(30) @(posedge clk);
 
         #20 $finish;
-    end
-    
-    always_ff @(posedge clk) begin
-        op <= en_xu ? _op : _NOP;
     end
 endmodule: exec_tb
