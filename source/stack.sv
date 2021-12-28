@@ -4,6 +4,7 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
+/*
 module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
@@ -49,11 +50,12 @@ module stack #(
         if (en) sp <= _sp;
     end
 endmodule: stack
+*/
 ///
 /// Pseudo Dual-port stack (using EBR)
 ///
 /*
-module dstack #(
+module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
     parameter SSZ   = $clog2(DEPTH),
@@ -64,7 +66,7 @@ module dstack #(
     input  logic    rst,             /// reset
     input  logic    en               /// enable
     );
-    logic [SSZ-1:0] sp_1, sp = 0;   /// sp_1 = sp - 1
+    logic [SSZ-1:0] sp = 'h0;
     logic [DSZ-1:0] vo;
     pmi_ram_dp #(
        .pmi_wr_addr_depth(DEPTH),
@@ -79,44 +81,37 @@ module dstack #(
        //.pmi_init_file_format ( ),  // "binary"|"hex"
        //.pmi_family           ( )   // "iCE40UP"|"common"
     ) ss (
-       .Data      (ss_if.s),  // TOS (push ready)
-       .WrAddress (sp),       // stack top pointer
-       .RdAddress (sp_1),     // NOS pointer
+       .Data      (ss_if.vi),  // value to push
+       .WrAddress (sp + 1'b1), // TOS if push
+       .RdAddress (sp),        // NOS pointer
        .WrClock   (clk),
        .RdClock   (clk),
        .WrClockEn (1'b1),
        .RdClockEn (1'b1),
        .WE        (ss_if.op == PUSH),
        .Reset     (rst),
-       .Q         (vo)        // sp_1
+       .Q         (vo)
     );
-    assign sp_1 = sp + NEG1;
-    ///
-    /// NOS ready in next cycle
-    ///
+    assign ss_if.s = vo;        // return, 2 cycles later
+    
     always_ff @(posedge clk) begin
+        //automatic string op = FS1::Enum2str#(stack_ops)::to_s(ss_if.op);
+        $display("%6d: %0s sp=%0d s=%0d ? (vi=%0d : vo=%0d)",
+            $time, ss_if.op.name(), sp, $signed(ss_if.s), $signed(ss_if.vi), $signed(vo));
         if (en) begin
             case (ss_if.op)
-            PUSH: begin
-                sp      <= sp + 1'b1;
-                ss_if.s <= ss_if.vi;                   // retain TOS
-            end
-            POP:  begin
-                sp      <= sp_1;
-                ss_if.s <= (sp_1 == NEG1) ? 'h0 : vo;  // pop NOS into TOS
-            end
-            READ: begin
-                $display("%d <- ss[%x + %x]", vo, sp, ss_if.vi);
-            end
+            PUSH: sp <= sp + 1'b1;
+            POP:  sp <= sp + NEG1;
             endcase
         end
     end
-endmodule: dstack
+endmodule: stack
+*/
 ///
-/// Dual-port stack (using 3778 LUTs on iCE40UP5K, too expensive)
+/// Dual-port stack (iCE40UP5K does not have True RAM_DP, so we use LUT-based, expensive)
 ///
 module dstack #(
-    parameter DEPTH = 64,
+    parameter DEPTH = 16,
     parameter DSZ   = 32,
     parameter SSZ   = $clog2(DEPTH),
     parameter NEG1  = DEPTH - 1
@@ -126,34 +121,24 @@ module dstack #(
     input  logic    rst,             /// reset
     input  logic    en               /// enable
     );
-    logic [SSZ-1:0] sp_1, sp = 0;   /// sp_1 = sp - 1
-    logic [DSZ-1:0] ram[DEPTH-1:0]; /// memory block 
+    logic [SSZ-1:0] sp1, sp = 'h0;   /// sp1 = sp + 1
+    logic [DSZ-1:0] ram[DEPTH-1:0];  /// memory block 
 
     always_comb begin
-        case (ss_if.op)
-        PUSH: begin
-            ss_if.s = ss_if.t;
-            ss_if.t = ss_if.vi;
-        end
-        POP: begin
-            ss_if.t = ss_if.s;
-            ss_if.s = ram[sp_1];
-        end
-        endcase
-        sp_1 = sp + NEG1;
+        ss_if.s = ram[sp];           /// fetch first
+        sp1     = sp + 1'b1;
     end
-    // writing to the RAM
-    Always_ff @(posedge clk) begin
-        case (ss_if.op)
-        PUSH: begin
-            ram[sp] <= ss_if.vi;
-            sp      <= sp + 1'b1;
+
+    always_ff @(posedge clk) begin
+        if (en) begin
+            case (ss_if.op)
+            PUSH: begin
+                ram[sp1] <= ss_if.vi;
+                sp       <= sp1;
+            end
+            POP: sp <= sp + NEG1;
+            endcase
         end
-        POP: begin
-            sp      <= sp + NEG1;
-        end
-        endcase
     end
 endmodule: dstack
-*/
 `endif // FORTHSUPER_STACK
