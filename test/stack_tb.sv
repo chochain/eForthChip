@@ -9,18 +9,19 @@ module stack_tb;
     localparam SSZ   = $clog2(DEPTH);
     localparam FF    = 'hffffffff;
     logic clk, rst, en;
+    logic [DSZ-1:0] tos;
 
     ss_io  ss_if();
-    dstack u1(.ss_if(ss_if.slave), .*);
-
-    always #10 clk  = ~clk;
+    dstack #(DEPTH) u1(.ss_if(ss_if.slave), .*);
+    
+    always #5 clk  = ~clk;
         
     function integer calc_v(input integer i);
         calc_v = (i < DSZ) ? FF >> i : FF << (i - DSZ);
     endfunction: calc_v
 
     initial begin
-        $monitor("%0s %0x => %0x", ss_if.op, ss_if.vi, ss_if.s);
+        $monitor("%0s %0x => [%0x, %0x, ..]", ss_if.op, ss_if.vi, tos, ss_if.s);
         clk = 0;
         // init clock
         rst = 1'b1; repeat(2) @(posedge clk);
@@ -29,16 +30,17 @@ module stack_tb;
         // write
         for (integer i = 0; i < DEPTH - 1; i = i + 1) begin
             repeat(1) @(posedge clk) begin
-                ss_if.push(calc_v(i));
+                tos = calc_v(i);
+                ss_if.push(tos);
             end
         end
         // read
         for (integer i = DEPTH - 1; i >= 0; i = i - 1) begin
             repeat(1) @(posedge clk) begin
-                automatic logic [DSZ-1:0] v = ss_if.pop();
+                tos = ss_if.pop();
             end
         end
 
         #20 $finish;
-    end       
+    end
 endmodule: stack_tb
