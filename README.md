@@ -31,4 +31,5 @@
 |case|simulation|
 |---|---|
 |stack op|<img src="./img/exec_ss_01.png">|
+|alu op|<img src="./img/exec_02.png">|
 
