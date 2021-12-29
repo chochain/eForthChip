@@ -95,12 +95,12 @@ module atoi #(
             if (ch && inc < NA) begin
                 bsy <= 1'b1;
                 vo  <= vo * (hex ? 16 : 10) + inc;
-                $display("atoi[%c] vo+inc=%d*%d+%d", ch, vo, hex ? 16 : 10, inc);
+                $display("t%0d: atoi(%c) vo = %0d * %0d + %0d", $time, ch, vo, hex ? 16 : 10, inc);
             end
             else begin
                 bsy <= 1'b0;
                 if (neg) vo <= -vo;
-                $display("atoi done. result vo=%d", vo);
+                $display("t%0d: atoi done. result vo = %0d", $time, vo);
             end
         end
         endcase // case (st)

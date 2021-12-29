@@ -48,13 +48,16 @@ module inner #(
         case (st)
         EX0: if (en) begin
             bsy = 1'b1;
-            $display("executing op: %x", op);
+            $display("t%0d: inner execuating opcode: x%0x", $time, op);
         end
         EX1: begin
             bsy = 1'b1;
-            $display("executing anther op: %x", op);
+            $display("t%0d: inner executing other opcodes - mock", $time);
         end
-        EX2: bsy = 1'b0;
+        EX2: begin
+            bsy = 1'b0;
+            $display("t%0d: inner done", $time);
+        end
         default: bsy = 1'b0;
         endcase // (st)
     end

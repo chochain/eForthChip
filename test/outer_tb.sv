@@ -2,8 +2,8 @@
 /// ForthSuper Outer Interpreter Testbench
 ///
 `timescale 1ps / 1ps
-`include "../test/dict_setup.sv"
 `include "../source/outer.sv"
+`include "../test/dict_setup.sv"
 module outer_tb;
     localparam TIB  = 'h0;
     localparam DICT = 'h100;      /// starting address of dictionary
@@ -24,7 +24,7 @@ module outer_tb;
         repeat(1) @(posedge clk) rst = 0;
     endtask: reset
 
-    always #10 clk  = ~clk;
+    always #5 clk  = ~clk;
 
     assign mem = b8_if.vo;
         

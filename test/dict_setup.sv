@@ -83,15 +83,15 @@ module dict_setup #(
         ctx  = 'hffff;
         here = DICT;
         // write
-        $display("dictionary:");
+        $display("dictionary at x%04x:", DICT);
         foreach(word_list[i]) begin
+            $display("x%04x: op=x%02x %s", here, word_list[i].op, word_list[i].name);
             add_word(string'(word_list[i].name), word_list[i].op);
-            $display("[%x]\t%s", word_list[i].op, word_list[i].name);
         end;
     endtask: setup_mem
 
     task setup_tib;
-        $display("tib: [%s]", tib);
+        $display("tib at x%04x: [%s]", TIB, tib);
         for (integer i = 0; i < tib.len(); i = i + 1) begin
             add_u8(TIB + i, tib[i]);
         end

@@ -75,6 +75,7 @@ module finder #(
             a1  <= aw;              // setup tib address
             tib <= aw;
             bsy <= en;              // turn on busy signal
+            if (en) $display("t%0d: finder start tib at x%0x", $time, aw);
         end
         LF0: begin
             if (vw == 0) bsy <= 1'b0;            // end of input string
@@ -86,18 +87,21 @@ module finder #(
             lfa <= {1'b0, vw, _vw}; // collect lfa
             a0  <= a0 + 1'b1;       // first byte of nfa
         end       
-        NFA: a0n<= a0 + vw;         // calc a0 + len (string stop)
+        NFA: begin
+            a0n<= a0 + vw;         // calc a0 + len (string stop)
+            $display("t%0d: finder nfa = x%x, lfa = x%x", $time, a0, lfa);
+        end
         TIB: a0 <= a0 + 1'b1;       // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
             if (_vw != vw || a0 == a0n) begin             // done with current word?
                 if (_vw == vw || lfa == 'h0ffff) begin
                     bsy <= 1'b0;                          // break on match or no more word
                     tib <= (_vw == vw) ? a1 + 1'b1 : a1;  // skip a char if match 
-                    $display("finder.tib=%x", _vw==vw ? a1 + 1 : a1);
                 end
                 else begin
                     a0 <= lfa;      // link to next word
                     a1 <= tib;
+                    $display("t%0d: next word lfa = x%0x, tib = x%0x", $time, lfa, tib);
                 end
             end
             else a1 <= a1 + 1'b1;   // ready for next tib char

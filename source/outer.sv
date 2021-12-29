@@ -3,12 +3,14 @@
 ///
 `ifndef FORTHSUPER_OUTER
 `define FORTHSUPER_OUTER
+`include "../source/forthsuper.vh"
 `include "../source/forthsuper_if.sv"    /// iBus32 or iBus8 interfaces
 `include "../source/finder.sv"           /// dictionary word search module
 `include "../source/atoi.sv"             /// string to number module
 `include "../source/inner.sv"            /// mock inner interpreter module
 `include "../source/comma.sv"            /// memory append module
 `include "../source/stack.sv"            /// data stack module
+import FS1::*;
 typedef enum logic [2:0] { RDY, FND, EXE, CMA, A2I, NUM, PSH } outer_sts;
 module outer #(
     parameter TIB  = 'h0,                /// terminal input buffer address
@@ -50,7 +52,7 @@ module outer #(
     // inner interpreter
     logic                 en_exe;        
     logic [ASZ-1:0]       pfa;           /// take ai when finder module exits
-    logic [7:0]           op;
+    opcode_e              op;
     logic                 bsy_exe;
     // mock comma module
     logic                 en_cma;
@@ -87,7 +89,7 @@ module outer #(
         .bsy(bsy_a2i),
         .vo(vo_a2i)
         );
-    stack dss(
+    dstack #(64) dss(
         .ss_if(dss_if.slave),
         .clk,
         .rst,
@@ -156,12 +158,12 @@ module outer #(
                 pfa = fdr_if.ai;
                 if (hit_fdr) begin
                     en_exe = 1'b1;        // since we have the opcode and pfa here
-                    $display("finder: hit. pfa=%x, op=%x", pfa, vw_fdr);
+                    $display("t%0d: finder word found. pfa = x%04x, opcode = x%02x", $time, pfa, vw_fdr);
                 end
                 else begin                // we can enable inner or atoi module 1-cycle earlier
                     en_a2i   = 1'b1;
                     mb_if.ai = tib_fdr;
-                    $display("finder: word not found. tib_fdr=%x", tib_fdr); 
+                    $display("t%0d: finder word not found, reset tib at x%04x", $time, tib_fdr); 
                 end          
             end
         end
@@ -175,21 +177,20 @@ module outer #(
             en_a2i   = 1'b1;
             mb_if.we = 1'b0;
             mb_if.ai = a2i_if.ai;
-            $display("a2i_if[%x]='%c'", a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
+            $display("t%0d: a2i_if looks at x%04x => '%c'", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
         NUM: en_num = 1'b1;
-        PSH: begin
+        PSH: begin 
             en_dss = 1'b1;
-            dss_if.op = PUSH;
-            dss_if.vi = vo_a2i;
-            $display("dss_if.push(%d)", vo_a2i);
+            dss_if.push(vo_a2i);
+            $display("t%0d: data stack dss_if.push(%0d)", $time, vo_a2i);
         end
         endcase
     end
     
     assign vw_fdr = mem;
     assign ch     = mem;
-    assign op     = mem;
+    assign {op}   = {mem};
     ///
     /// register values for state machine input
     ///
