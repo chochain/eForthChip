@@ -2,8 +2,8 @@
 /// ForthSuper Dictionary Setup Testbench
 ///
 `timescale 1ps / 1ps
+`include "../source/forthsuper_if.sv"
 `include "../source/forthsuper.vh"
-`include "../source/spram.sv"
 import FS1::*;
 module dict_setup #(
     parameter TIB  = 'h0,
