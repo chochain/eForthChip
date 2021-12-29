@@ -1,0 +1,208 @@
+# A bookmarks file was found in the current directory with 1 bookmark
+# do /u01/devel/fpga/forthsuper/vsim/vsim.mdo
+# Loading project vsim
+# Model Technology ModelSim - Lattice FPGA Edition vlog 2020.3 Compiler 2021.02 Feb 11 2021
+# Start time: 13:19:50 on Dec 29,2021
+# vlog -reportprogress 300 -sv -mfcu "+incdir+/u01/devel/fpga/forthsuper/test" "+incdir+/u01/devel/fpga/forthsuper/source" -work work /u01/devel/fpga/forthsuper/test/outer_tb.sv /u01/devel/fpga/forthsuper/source/atoi.sv /u01/devel/fpga/forthsuper/source/comma.sv /u01/devel/fpga/forthsuper/source/finder.sv /u01/devel/fpga/forthsuper/source/forthsuper_if.sv /u01/devel/fpga/forthsuper/source/inner.sv /u01/devel/fpga/forthsuper/source/spram.sv /u01/devel/fpga/forthsuper/source/stack.sv /u01/devel/fpga/forthsuper/source/outer.sv /u01/devel/fpga/forthsuper/test/dict_setup.sv 
+# -- Compiling package FS1
+# ** Warning: ** while parsing file included at /u01/devel/fpga/forthsuper/test/outer_tb.sv(6)
+# ** while parsing file included at ../source/outer.sv(6)
+# ** at ../source/forthsuper.vh(4): (vlog-2275) Existing package 'FS1' will be overwritten.
+# -- Compiling package FS1
+# ** Warning: ** while parsing file included at /u01/devel/fpga/forthsuper/test/dict_setup.sv(6)
+# ** at ../source/forthsuper.vh(4): (vlog-2275) Existing package 'FS1' will be overwritten.
+# -- Compiling module dict_setup
+# ** Warning: /u01/devel/fpga/forthsuper/test/dict_setup.sv(8): (vlog-2275) Existing module 'dict_setup' will be overwritten.
+# -- Compiling package outer_tb_sv_unit
+# -- Importing package FS1
+# -- Compiling interface mb32_io
+# -- Compiling interface mb8_io
+# -- Compiling interface ss_io
+# -- Compiling module finder
+# -- Compiling module atoi
+# -- Compiling module atoier
+# -- Compiling module inner
+# -- Compiling module comma
+# -- Compiling module dstack
+# -- Compiling module outer
+# -- Compiling module outer_tb
+# -- Compiling module spram32_32k
+# -- Compiling module spram8_128k
+# -- Compiling package FS1
+# -- Compiling module dict_setup
+# ** Note: /u01/devel/fpga/forthsuper/test/dict_setup.sv(58): (vlog-13177) Promoting concatenation '{'{_NOP,"nop"},'{_DUP,"dup"},...}' to an assignment pattern:  Unpacked concat or assignment pattern found within.
+# 
+# Top level modules:
+# 	outer_tb
+# End time: 13:19:51 on Dec 29,2021, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 3
+# vsim -L work -L pmi_work -L ovi_ice40up outer_tb 
+# Start time: 13:19:51 on Dec 29,2021
+# //  ModelSim - Lattice FPGA Edition 2020.3 Feb 11 2021 Linux 5.4.0-89-generic
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim - Lattice FPGA Edition and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.FS1
+# Loading work.outer_tb_sv_unit
+# Loading work.outer_tb
+# Loading work.mb8_io
+# Loading work.spram8_128k
+# Loading work.mb32_io
+# Loading work.spram32_32k
+# Loading ovi_ice40up.SP256K
+# Loading ovi_ice40up.VLO
+# Loading ovi_ice40up.VFB_B
+# Loading ovi_ice40up.SPRAM256KA
+# Loading ovi_ice40up.sadslspk4s1p16384x16m16b4w1c0p1d0t0
+# Loading ovi_ice40up.generic_behav_sadslspk4s1p16384x16m16b4w1c0p1d0t0
+# Loading work.dict_setup
+# Loading work.outer
+# Loading work.ss_io
+# Loading work.finder
+# Loading work.atoier
+# Loading work.atoi
+# Loading work.dstack
+# Loading work.inner
+# Loading work.comma
+# A bookmarks file was found in the current directory with 1 bookmark
+# .main_pane.wave.interior.cs.body.pw.wf
+# dictionary at x0100:
+# x0100: op=x00 nop
+# x0107: op=x12 dup
+# x010e: op=x13 drop
+# x0116: op=x15 swap
+# x011e: op=x18 +
+# x0123: op=x19 -
+# tib at x0000: [123 456 +]
+# t535: finder start tib at x0
+# t575: finder nfa = x00126, lfa = x0011e
+# t595: next word lfa = x11e, tib = x0
+# t635: finder nfa = x00121, lfa = x00116
+# t655: next word lfa = x116, tib = x0
+# t695: finder nfa = x00119, lfa = x0010e
+# t715: next word lfa = x10e, tib = x0
+# t755: finder nfa = x00111, lfa = x00107
+# t775: next word lfa = x107, tib = x0
+# t815: finder nfa = x0010a, lfa = x00100
+# t835: next word lfa = x100, tib = x0
+# t875: finder nfa = x00103, lfa = x0ffff
+# t895: finder word not found, reset tib at x0000
+# t905: a2i_if looks at x0000 => '1'
+# t905: a2i_if looks at x0000 => '1'
+# t915: atoi(1) vo = 0 * 10 + 1
+# t915: a2i_if looks at x0001 => '1'
+# t925: a2i_if looks at x0001 => '2'
+# t935: atoi(2) vo = 1 * 10 + 2
+# t935: a2i_if looks at x0002 => '2'
+# t945: a2i_if looks at x0002 => '3'
+# t955: atoi(3) vo = 12 * 10 + 3
+# t955: a2i_if looks at x0003 => '3'
+# t965: a2i_if looks at x0003 => ' '
+# t975: atoi done. result vo = 123
+# t985: data stack dss_if.push(123)
+# t1005: finder start tib at x3
+# t1065: finder nfa = x00126, lfa = x0011e
+# t1085: next word lfa = x11e, tib = x4
+# t1125: finder nfa = x00121, lfa = x00116
+# t1145: next word lfa = x116, tib = x4
+# t1185: finder nfa = x00119, lfa = x0010e
+# t1205: next word lfa = x10e, tib = x4
+# t1245: finder nfa = x00111, lfa = x00107
+# t1265: next word lfa = x107, tib = x4
+# t1305: finder nfa = x0010a, lfa = x00100
+# t1325: next word lfa = x100, tib = x4
+# t1365: finder nfa = x00103, lfa = x0ffff
+# t1385: finder word not found, reset tib at x0004
+# t1395: a2i_if looks at x0004 => '4'
+# t1395: a2i_if looks at x0004 => '4'
+# t1405: atoi(4) vo = 0 * 10 + 4
+# t1405: a2i_if looks at x0005 => '4'
+# t1415: a2i_if looks at x0005 => '5'
+# t1425: atoi(5) vo = 4 * 10 + 5
+# t1425: a2i_if looks at x0006 => '5'
+# t1435: a2i_if looks at x0006 => '6'
+# t1445: atoi(6) vo = 45 * 10 + 6
+# t1445: a2i_if looks at x0007 => '6'
+# t1455: a2i_if looks at x0007 => ' '
+# t1465: atoi done. result vo = 456
+# t1475: data stack dss_if.push(456)
+# t1495: finder start tib at x7
+# t1555: finder nfa = x00126, lfa = x0011e
+# t1575: next word lfa = x11e, tib = x8
+# t1615: finder nfa = x00121, lfa = x00116
+# t1635: finder word found. pfa = x0122, opcode = x18
+# t1635: inner execuating opcode: x18
+# t1635: finder word found. pfa = x0122, opcode = x18
+# t1645: inner executing other opcodes - mock
+# t1655: inner done
+# t1655: inner done
+# t1675: finder start tib at x9
+# t1685: finder word not found, reset tib at x0009
+# t1685: finder word not found, reset tib at x0009
+# t1695: a2i_if looks at x0009 => ''
+# t1695: a2i_if looks at x0009 => ''
+# t1705: atoi done. result vo = 0
+# t1715: data stack dss_if.push(0)
+# t1735: finder start tib at x9
+# t1745: finder word found. pfa = x0123, opcode = x1e
+# t1745: inner execuating opcode: x1e
+# t1745: finder word found. pfa = x0009, opcode = x1e
+# t1745: finder word found. pfa = x0009, opcode = x1e
+# t1755: inner executing other opcodes - mock
+# t1765: inner done
+# t1765: inner done
+# t1785: finder start tib at x9
+# t1795: finder word found. pfa = x0123, opcode = x1e
+# t1795: inner execuating opcode: x1e
+# t1795: finder word found. pfa = x0009, opcode = x1e
+# t1795: finder word found. pfa = x0009, opcode = x1e
+# t1805: inner executing other opcodes - mock
+# t1815: inner done
+# t1815: inner done
+# t1835: finder start tib at x9
+# t1845: finder word found. pfa = x0123, opcode = x1e
+# t1845: inner execuating opcode: x1e
+# t1845: finder word found. pfa = x0009, opcode = x1e
+# t1845: finder word found. pfa = x0009, opcode = x1e
+# t1855: inner executing other opcodes - mock
+# t1865: inner done
+# t1865: inner done
+# t1885: finder start tib at x9
+# t1895: finder word found. pfa = x0123, opcode = x1e
+# t1895: inner execuating opcode: x1e
+# t1895: finder word found. pfa = x0009, opcode = x1e
+# t1895: finder word found. pfa = x0009, opcode = x1e
+# t1905: inner executing other opcodes - mock
+# t1915: inner done
+# t1915: inner done
+# t1935: finder start tib at x9
+# t1945: finder word found. pfa = x0123, opcode = x1e
+# t1945: inner execuating opcode: x1e
+# t1945: finder word found. pfa = x0009, opcode = x1e
+# t1945: finder word found. pfa = x0009, opcode = x1e
+# t1955: inner executing other opcodes - mock
+# t1965: inner done
+# t1965: inner done
+# t1985: finder start tib at x9
+# t1995: finder word found. pfa = x0123, opcode = x1e
+# t1995: inner execuating opcode: x1e
+# t1995: finder word found. pfa = x0009, opcode = x1e
+# t1995: finder word found. pfa = x0009, opcode = x1e
+# t2005: inner executing other opcodes - mock
+# t2015: inner done
+# t2015: inner done
+# t2035: finder start tib at x9
+# ** Note: $finish    : /u01/devel/fpga/forthsuper/test/outer_tb.sv(41)
+#    Time: 2045 ps  Iteration: 0  Instance: /outer_tb
+# 1
+# Break in Module outer_tb at /u01/devel/fpga/forthsuper/test/outer_tb.sv line 41
