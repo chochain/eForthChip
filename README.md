@@ -1,5 +1,5 @@
 ## Forth on FPGA for AI &amp; Robotics
-* temp storage before the team project is created
+* temp storage before transition to the team project
 * work in progress (inner, comma, pusher)
 
 ### Outer Interpreter block diagram
