@@ -14,7 +14,6 @@ module finder_tb;
     logic bsy, hit;            // output signals
     logic [ASZ-1:0] aw;        // word address
     logic [DSZ-1:0] vw;        // memory value of word
-    logic [2:0] st;            // DEBUG: finder state
     logic [ASZ-1:0] tib;       // result tib addresses (for next input)
 
     integer lfa, here;
@@ -27,7 +26,7 @@ module finder_tb;
     };
 
     mb8_io      b8_if();                         // memory bus
-    spram8_128k m0(b8_if.slave, clk);            // memory module
+    spram8_128k m0(b8_if.slave, ~clk);            // memory module
     finder      f0(.*, .mb_if(b8_if.master));    // word finder module
     
     always #10 clk  = ~clk;
