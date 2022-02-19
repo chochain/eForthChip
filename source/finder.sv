@@ -23,10 +23,10 @@ module finder #(
     output logic [ASZ-1:0] tib            /// next byte of tib address
     );
     logic [ASZ-1:0]        lfa;           /// link field address (initial=context address)
-    logic [ASZ-1:0]        a0n;           /// a0 address + len
     logic [DSZ-1:0]        v0;            /// previous memory value
-    finder_sts             _st, st;       /// next state
     logic [ASZ-1:0]        a0, a1;        /// dic, tib pointers
+    logic [ASZ-1:0]        ax;            /// a0 address + len
+    finder_sts             _st, st;       /// next state
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -34,20 +34,20 @@ module finder #(
     always_ff @(posedge clk) begin
         if (!en) st <= FD0;
         else     st <= _st;
-    end    
+    end
     ///
     /// logic for next state (state diagram)
     ///
     always_comb begin
         case (st)
-        FD0: _st = en ? LF0 : FD0;                         
+        FD0: _st = en ? LF0 : FD0;
         SPC: _st = LF0;                                    // skip TIB space
-        LF0: _st = bsy && (v0 != 0) 
+        LF0: _st = bsy && (v0 != 0)
                     ? (v0 == " " ? SPC : LF1) : FD0;       // fetch low-byte of lfa
         LF1: _st = LEN;                                    // fetch high-byte of lfa
         LEN: _st = NFA;                                    // read word length
         NFA: _st = CMP;                                    // read one byte from nfa
-        CMP: _st = (v0 != vw || a0 > a0n) ? LF0 : NFA;     // fetch next chars if match
+        CMP: _st = (v0 != vw || a0 > ax) ? LF0 : NFA;      // fetch next chars if match
         default: _st = FD0;
         endcase
     end
@@ -80,42 +80,37 @@ module finder #(
             a0  <= lfa;             // low-byte of lfa
             a1  <= aw;              // setup tib address
             tib <= aw;
-            bsy <= en;              // turn on busy signal
+            bsy <= en && (vw != 0); // turn on busy signal
         end
         SPC: tib <= a1;             // blank char, advance TIB
         LF0: begin
-            if (v0 == 0) bsy <= 1'b0;      // empty TIB
-            else if (v0 == " ") `TIB_NEXT; // space, skip
-            else `DIC_NEXT;                // high-byte of lfa
+            if (v0 == " ") `TIB_NEXT; // space, skip
+            else `DIC_NEXT;           // high-byte of lfa
         end
         LF1: begin
             `DIC_NEXT;              // nfa length byte
-            lfa <= {1'b0, vw, v0};  // collect lfa
+            lfa <= {1'b0, vw, v0};  // construct new lfa
         end
         LEN: begin                  // fetch nfa length
             `DIC_NEXT;              // first byte of nfa
-            a0n <= a0 + vw;         // calc a0 + len (string stop)
-        end       
-        NFA: `DIC_NEXT;             // next byte of nfa
+            ax <= a0 + vw;          // calc a0 + len (string stop)
+        end
+        NFA: `DIC_NEXT;              // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
             if (vw == 0) bsy <= 1'b0;                  // input buffer empty
-            else if (v0 == vw && a0 <= a0n) `TIB_NEXT; // match next tib char
+            else if (v0 == vw && a0 <= ax) `TIB_NEXT;  // next char TIB input
             else if (v0 == vw || lfa == 'h0ffff) begin // all chars matched or dictionary exhaused
                 bsy <= 1'b0;                           // break on match or no more word
-                if (v0 == vw) begin                    // word matched
-                    hit <= 1'b1;
-                    tib <= a1 + 1'b1;                  // move tib cursor
-                    $display("\t=> HIT, next tib=%04x", a1 + 1'b1);
-                end
-                else begin
-                    tib <= a1;                         // end of dictionary, advance tib
-                    $display("\t=> MISS, next tib=%04x", a1);
-                end
+                tib <= a1 + 1'b1;                      // output tib cursor to next input
+                hit <= (v0 == vw);                     // word found in dictionary
+                $display(
+                    "\t=>%s, next tib[%02x],a0[%04x]",
+                    v0==vw ? "HIT" : "MISS", a1 + 1'b1, a0);
             end
             else begin
                 a0 <= lfa;          // link to next dictionary word
                 a1 <= tib;          // reset TIB input pointer
-                $display("\t=> next word tib,lfa = %04x, %04x", tib, lfa);
+                $display("\t=> next word tib[%2x],lfa[%04x]", tib, lfa);
             end
         end
         endcase
@@ -125,12 +120,12 @@ module finder #(
     /// Note: synchronoous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
+        v0 <= vw;                  // keep last memory value
         if (!en) begin
             lfa <=  aw;            // reset context address (dictionary word address)
             hit <= 1'b0;
         end
         else step();               // prepare state machie input
-        v0 <= vw;                  // keep last memory value
     end
 endmodule: finder
 `endif // FORTHSUPER_FINDER
