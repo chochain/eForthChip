@@ -31,7 +31,10 @@ int atoi(const char *s, size_t base)
 `ifndef FORTHSUPER_ATOI
 `define FORTHSUPER_ATOI
 `include "../source/forthsuper_if.sv"
-typedef enum logic [1:0] { AI0, GET, ACC } atoi_sts;
+
+`define SUM vo <= vo * (hex ? 16 : 10) + inc;
+
+typedef enum logic { AI0, ACC } atoi_sts;
 module atoi #(
     parameter DSZ = 32              /// return 32-bit integer
     ) (
@@ -40,12 +43,11 @@ module atoi #(
     input                  hex,     /// 0:decimal, 1:hex
     input [7:0]            ch,      /// input charcter
     output logic           bsy,     /// 1:busy, 0:done
-    output logic           af,      /// address advance flag (a = a + 1)
     output logic [DSZ-1:0] vo       /// resultant value
     );
-    localparam NA = 5'b10000;       /// not avilable
+    localparam MAX = 'h10;          /// out of range
     logic [4:0]            inc;     /// incremental value
-    logic                  neg;     /// negative flag
+    logic                  neg, ok; /// negative and range check flag
     atoi_sts               _st, st; /// next and current states
     ///
     /// find - 4-block state machine (Cummings & Chambers)
@@ -60,10 +62,10 @@ module atoi #(
     /// Note: two cycle per digit. TODO: one cycle per digit
     ///
     always_comb begin
+        ok = (ch && inc < MAX);
         case (st)
-        AI0: _st = en ? (ch == "-" ? GET : ACC) : AI0;    /// look for negative number
-        GET: _st = bsy ? ACC : AI0;                       /// one extra memory cycle wait
-        ACC: _st = GET;                                   /// accumulator
+        AI0: _st = en ? ACC : AI0;
+        ACC: _st = ok ? ACC : AI0;   /// accumulator
         default: _st = AI0;
         endcase
     end // always_comb
@@ -71,38 +73,38 @@ module atoi #(
     /// next output logic - character range check
     ///
     always_comb begin
-        af  = 1'b0;
-        inc = NA;
-        case (st)
-        AI0: if (en && (ch == "-")) af = 1'b1;            /// handle negative number
-        ACC: begin
-            af = 1'b1;                                    /// prefetch next byte
-            if ("0" <= ch && ch <= "9") inc = ch - "0";
-            else if (ch >= "a") inc = ch - "W";           /// "a" - 10 = "W"
-            else if (ch >= "A") inc = ch - "7";           /// "A" - 10 = "7"
-            else af = 1'b0;
-        end
-        endcase
+        if ("0" <= ch && ch <= "9") inc = ch - "0";  /// "0" ~ "9"
+        else if (ch >= "a")         inc = ch - "W";  /// "a" ~ "f", "a" - 10 = "W"
+        else if (ch >= "A")         inc = ch - "7";  /// "A" ~ "F", "A" - 10 = "7"
+        else                        inc = MAX;
     end // always_comb
 
     task step;
+        if (hex) $display(
+            "%6t> atoi.%s[%c] %cvo = (%0x)+%0x",
+            $time, st.name, ch, neg ? "-" : " ", vo, inc);
+        else     $display(
+            "%6t> atoi.%s[%c] %cvo = (%0d)+%0d",
+            $time, st.name, ch, neg ? "-" : " ", vo, inc);
         case (st)
         AI0: begin
-            bsy <= en;
-            neg <= (ch == "-");
+            if (en) begin
+                bsy <= 1'b1;
+                if (ch == "-") neg <= 1'b1;
+                else if (ok) `SUM
+            end
         end
         ACC: begin
-            if (ch && inc < NA) begin
-                bsy <= 1'b1;
-                vo  <= vo * (hex ? 16 : 10) + inc;
-                if (hex) $display("%6t> atoi(%c) vo = %0x * 10 + %0x", $time, ch, vo, inc);
-                else     $display("%6t> atoi(%c) vo = %0d * 10 + %0d", $time, ch, vo, inc);
+            if (ok) begin
+                `SUM;
             end
             else begin
                 bsy <= 1'b0;
-                if (neg) vo <= -vo;
-                if (hex) $display("%6t> atoi done. result vo = %0x", $time, vo);
-                else     $display("%6t> atoi done. result vo = %0d", $time, int'(vo));
+                if (neg) begin
+                    vo  <= -vo;
+                    neg <= 1'b0;
+                end
+                $display("\t=> atoi done.");
             end
         end
         endcase // case (st)
@@ -135,14 +137,10 @@ module atoier #(
     output logic           bsy,   /// 1:busy, 0:done
     output logic [DSZ-1:0] vo     /// resultant value
     );
-    logic af;                     /// address advance flag (a = a + 1)
-
     atoi #(DSZ) a2i(.*);
 
     always_ff @(posedge clk) begin
-        if (en) begin
-            mb_if.ai <= mb_if.ai + af;   // two cycles per digit. TODO: one cycle
-        end
+        if (en) mb_if.ai <= mb_if.ai + 1'b1;
     end // always_ff
 endmodule: atoier
 `endif // FORTHSUPER_ATOI
