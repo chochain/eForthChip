@@ -3,14 +3,14 @@
 ///
 /*
  * reference C code
- * 
+ *
 int atoi(const char *s, size_t base)
 {
     int ret = 0, neg = 0;
  REDO:
     switch(*s) {
-    case '-': neg = 1;		// fall through.
-    case '+': s++;	        break;
+    case '-': neg = 1;      // fall through.
+    case '+': s++;          break;
     case ' ': s++;          goto REDO;
     }
     char ch;
@@ -77,14 +77,14 @@ module atoi #(
         AI0: if (en && (ch == "-")) af = 1'b1;            /// handle negative number
         ACC: begin
             af = 1'b1;                                    /// prefetch next byte
-            if ("0" <= ch && ch <= "9") inc = ch - "0";  
+            if ("0" <= ch && ch <= "9") inc = ch - "0";
             else if (ch >= "a") inc = ch - "W";           /// "a" - 10 = "W"
             else if (ch >= "A") inc = ch - "7";           /// "A" - 10 = "7"
             else af = 1'b0;
         end
         endcase
     end // always_comb
-    
+
     task step;
         case (st)
         AI0: begin
@@ -95,12 +95,14 @@ module atoi #(
             if (ch && inc < NA) begin
                 bsy <= 1'b1;
                 vo  <= vo * (hex ? 16 : 10) + inc;
-                $display("t%0d: atoi(%c) vo = %0d * %0d + %0d", $time, ch, vo, hex ? 16 : 10, inc);
+                if (hex) $display("%6t> atoi(%c) vo = %0x * 10 + %0x", $time, ch, vo, inc);
+                else     $display("%6t> atoi(%c) vo = %0d * 10 + %0d", $time, ch, vo, inc);
             end
             else begin
                 bsy <= 1'b0;
                 if (neg) vo <= -vo;
-                $display("t%0d: atoi done. result vo = %0d", $time, vo);
+                if (hex) $display("%6t> atoi done. result vo = %0x", $time, vo);
+                else     $display("%6t> atoi done. result vo = %0d", $time, int'(vo));
             end
         end
         endcase // case (st)
@@ -134,14 +136,12 @@ module atoier #(
     output logic [DSZ-1:0] vo     /// resultant value
     );
     logic af;                     /// address advance flag (a = a + 1)
-    
+
     atoi #(DSZ) a2i(.*);
 
     always_ff @(posedge clk) begin
-        if (!en) mb_if.ai <= tib;
-        else begin
+        if (en) begin
             mb_if.ai <= mb_if.ai + af;   // two cycles per digit. TODO: one cycle
-            //$display("atoi.ai=%x + %x", mb_if.ai, af);
         end
     end // always_ff
 endmodule: atoier
