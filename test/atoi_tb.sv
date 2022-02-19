@@ -14,16 +14,15 @@ module atoi_tb;
     logic           bsy;       /// 0:busy, 1:done
     logic [7:0]     ch;        /// charater fetched from memory
     logic [DSZ-1:0] vo;        /// resultant value
-    logic [1:0]     st;        /// DEBUG: state
     logic [ASZ-1:0] tib;
 
     string ibuf = "-7f8";
 
     mb8_io        b8_if();
-    spram8_128k   m0(b8_if.slave, clk);
+    spram8_128k   m0(b8_if.slave, ~clk);
     atoier #(ASZ, DSZ) u0(.hex(HEX), .mb_if(b8_if.master), .*);
 
-    always #10 clk  = ~clk;
+    always #5 clk  = ~clk;
 
     task reset;
         repeat(1) @(posedge clk) rst = 1;
@@ -47,7 +46,7 @@ module atoi_tb;
         for (integer i=0, n=ibuf.len(); i < n + 4; i  = i + 1) begin
             repeat(1) @(posedge clk) begin
                 b8_if.get_u8(TIB + i);
-                $display("%02x[%2x]", TIB + i, b8_if.vo);
+                $display("%02x[%02x]=%c", TIB + i, b8_if.vo, b8_if.vo);
             end
         end
     endtask: setup_mem
