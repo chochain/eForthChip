@@ -4,7 +4,11 @@
 `ifndef FORTHSUPER_FINDER
 `define FORTHSUPER_FINDER
 `include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
-typedef enum logic [2:0] { FD0, LF0, LF1, LEN, NFA, CMP, SPC } finder_sts;
+
+`define DIC_NEXT  a0 <= a0 + 1'b1
+`define TIB_NEXT  a1 <= a1 + 1'b1
+
+typedef enum logic [2:0] { FD0, SPC, LF0, LF1, LEN, NFA, CMP } finder_sts;
 module finder #(
     parameter DSZ = 8,                    /// 8-bit data path
     parameter ASZ = 17                    /// 128K address path
@@ -22,7 +26,7 @@ module finder #(
     logic [ASZ-1:0]        a0n;           /// a0 address + len
     logic [DSZ-1:0]        v0;            /// previous memory value
     finder_sts             _st, st;       /// next state
-    logic [ASZ-1:0]        a0, a1;        /// string addresses
+    logic [ASZ-1:0]        a0, a1;        /// dic, tib pointers
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -36,13 +40,14 @@ module finder #(
     ///
     always_comb begin
         case (st)
-        FD0: _st = en ? LF0 : FD0;
-        LF0: _st = bsy && (v0 != 0) ? (v0 == " " ? SPC : LF1) : FD0;  // fetch low-byte of lfa
+        FD0: _st = en ? LF0 : FD0;                         
+        SPC: _st = LF0;                                    // skip TIB space
+        LF0: _st = bsy && (v0 != 0) 
+                    ? (v0 == " " ? SPC : LF1) : FD0;       // fetch low-byte of lfa
         LF1: _st = LEN;                                    // fetch high-byte of lfa
         LEN: _st = NFA;                                    // read word length
         NFA: _st = CMP;                                    // read one byte from nfa
-        CMP: _st = (v0 != vw || a0 > a0n) ? LF0 : NFA;     // compare and check word len
-        SPC: _st = LF0;                                    // skip space, advance tib
+        CMP: _st = (v0 != vw || a0 > a0n) ? LF0 : NFA;     // fetch next chars if match
         default: _st = FD0;
         endcase
     end
@@ -54,12 +59,12 @@ module finder #(
         mb_if.we = 1'b0;
         case (st)
         FD0: mb_if.ai = aw;        // memory read/write
+        SPC: mb_if.ai = a1;        // skip TIB space
         LF0: mb_if.ai = a0;        // fetch low-byte of lfa
         LF1: mb_if.ai = a0;        // fetch high-byte of lfa
         LEN: mb_if.ai = a0;        // fetch nfa length
         NFA: mb_if.ai = a0;        // read from nfa
         CMP: mb_if.ai = a1;        // read next nfa, loop back to TIB
-        SPC: mb_if.ai = a1;        // skip space
         default: mb_if.ai = aw;
         endcase
     end
@@ -67,47 +72,52 @@ module finder #(
     /// register values for state machine input
     ///
     task step;
+        $display(
+            "t%0d: finder.%s[%02x] tib[%2x],dic[%04x]",
+            $time, st.name, vw, a1, a0);
         case (st)
         FD0: begin                  // memory read/write
             a0  <= lfa;             // low-byte of lfa
             a1  <= aw;              // setup tib address
             tib <= aw;
             bsy <= en;              // turn on busy signal
-            if (en) $display("t%0d: finder start tib at x%0x", $time, aw);
         end
+        SPC: tib <= a1;             // blank char, advance TIB
         LF0: begin
-            if (v0 == 0) bsy <= 1'b0;            // end of input string
-            else if (v0 == " ") a1 <= a1 + 1'b1; // space, skip
-            else a0 <= a0 + 1'b1;                 // high-byte of lfa
+            if (v0 == 0) bsy <= 1'b0;      // empty TIB
+            else if (v0 == " ") `TIB_NEXT; // space, skip
+            else `DIC_NEXT;                // high-byte of lfa
         end
         LF1: begin
-            a0  <= a0 + 1'b1;       // nfa length byte
+            `DIC_NEXT;              // nfa length byte
             lfa <= {1'b0, vw, v0};  // collect lfa
-            $display("t%0d: finder nfa = x%x, lfa = x%x", $time, a0, lfa);
         end
         LEN: begin                  // fetch nfa length
-            a0  <= a0 + 1'b1;       // first byte of nfa
+            `DIC_NEXT;              // first byte of nfa
             a0n <= a0 + vw;         // calc a0 + len (string stop)
         end       
-        NFA: begin
-            a0  <= a0 + 1'b1;       // next byte of nfa
-        end
+        NFA: `DIC_NEXT;             // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
-            if (v0 != vw || a0 > a0n) begin               // done with current word?
-                if (v0 == vw || lfa == 'h0ffff) begin     // all chars matched or dictionary exhaused
-                    bsy <= 1'b0;                          // break on match or no more word
-                    hit <= (v0 == vw);
-                    tib <= (v0 == vw) ? a1 + 1'b1 : a1;   // skip a char if match 
+            if (vw == 0) bsy <= 1'b0;                  // input buffer empty
+            else if (v0 == vw && a0 <= a0n) `TIB_NEXT; // match next tib char
+            else if (v0 == vw || lfa == 'h0ffff) begin // all chars matched or dictionary exhaused
+                bsy <= 1'b0;                           // break on match or no more word
+                if (v0 == vw) begin                    // word matched
+                    hit <= 1'b1;
+                    tib <= a1 + 1'b1;                  // move tib cursor
+                    $display("\t=> HIT, next tib=%04x", a1 + 1'b1);
                 end
                 else begin
-                    a0 <= lfa;      // link to next word
-                    a1 <= tib;
-                    $display("t%0d: next word lfa = x%0x, tib = x%0x", $time, lfa, tib);
+                    tib <= a1;                         // end of dictionary, advance tib
+                    $display("\t=> MISS, next tib=%04x", a1);
                 end
             end
-            else a1 <= a1 + 1'b1;   // ready for next tib char
+            else begin
+                a0 <= lfa;          // link to next dictionary word
+                a1 <= tib;          // reset TIB input pointer
+                $display("\t=> next word tib,lfa = %04x, %04x", tib, lfa);
+            end
         end
-        SPC: tib <= a1;
         endcase
     endtask: step
     ///
@@ -115,14 +125,12 @@ module finder #(
     /// Note: synchronoous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        v0 <= vw;                  // keep last memory value
         if (!en) begin
             lfa <=  aw;            // reset context address (dictionary word address)
             hit <= 1'b0;
         end
-        else begin
-            step();                // prepare state machie input
-        end
+        else step();               // prepare state machie input
+        v0 <= vw;                  // keep last memory value
     end
 endmodule: finder
 `endif // FORTHSUPER_FINDER
