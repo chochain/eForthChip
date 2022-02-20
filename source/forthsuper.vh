@@ -3,73 +3,87 @@
 ///
 package FS1;
 typedef enum logic [7:0] {
-    //
-    // flow ops
-    //
-    _NOP = 0, _DOVAR, _DOCON, _DOLIT,
-    _DOLIST, _EXIT, _EXEC,
+    ///
+    /// @defgroup Execution flow ops
+    /// @brief - DO NOT change the sequence here (see forth_opcode enum)
+    /// @{
+    ///
+    _NOP = 0, _DOVAR, _DOLIT,
     _BRAN, _0BRAN, _DONEXT, _DOES,
-    //
-    // load/store op
-    //
-    _STOR, _AT, _CSTOR, _CAT,
     _TOR, _RFROM, _RAT,
-    //
-    // stack ops
-    //
+    /// @}
+    /// @defgroup Stack ops
+    /// @brief - opcode sequence can be changed below this line
+    /// @{
     _DUP, _DROP, _OVER, _SWAP, _ROT, _PICK,
-    //
-    // alu ops
-    //
+    /// @}
+    /// @defgroup ALU ops
+    /// @{
     _ADD, _SUB, _MUL, _DIV,
     _MOD, _MDIV, _SMOD, _MSMOD,
     _AND, _OR, _XOR, _ABS, _NEG,
     _MAX, _MIN,
-    //
-    // logic ops
-    //
-    _ZEQ, _ZLT, _ZGT, 
+    /// @}
+    /// @defgroup Logic ops
+    /// @{
+    _ZEQ, _ZLT, _ZGT,
     _EQ, _LT, _GT, _NE, _GE, _LE,
-    //
-    // io ops
-    //
-    _QRX, _TXSTO,
-    _QKEY, _KEY, _EMIT, 
-    _WITHIN, _TCHAR, 
-    _CHARS, _TYPE, _SPC, _SPCS,
-    _HEX, _DEC,
-    _CR, _DOT, _DOTR, _UDOTR, _UDOT, _QUEST,
-    //
-    // literal ops
-    //
-    _DOTSTR, _STRQP, _DOTQP, _BSLSH, _DOSTR,         
-    //
-    // branching ops
-    //
-    _IF, _ELSE, _THEN,
-    _BEGIN, _AGAIN, _UNTIL,
-    _WHILE, _REPEAT, _FOR, _NEXT, _AFT,
-    //
-    // meta ops
-    //
+    /// @}
+    /// @defgroup IO ops
+    /// @{
+    _BAT, _BSTOR, _HEX, _DEC,
+    _CR, _DOT, _DOTR, _UDOTR,
+    _KEY, _EMIT, _SPC, _SPCS,
+    /// @}
+    /// @defgroup Literal ops
+    /// @{
     _LBRAC, _RBRAC,
+    _BSLSH, _STRQP, _DOTQP, _DOSTR, _DOTSTR,
+    /// @}
+    /// @defgroup Branching ops
+    /// @brief - if...then, if...else...then
+    /// @{
+    _IF, _ELSE, _THEN,
+    /// @}
+    /// @defgroup Loops
+    /// @brief  - begin...again, begin...f until, begin...f while...repeat
+    /// @{
+    _BEGIN, _AGAIN, _UNTIL,
+    _WHILE, _REPEAT,
+    /// @}
+    /// @defgrouop For loops
+    /// @brief  - for...next, for...aft...then...next
+    /// @{
+    _FOR, _NEXT, _AFT,
+    /// @}
+    /// @defgrouop Compiler ops
+    /// @{
     _COLON, _SEMIS, _VAR, _CON,
-    _CREATE, _TO, _IS,
-    _COMMA, _ALLOT, _PSTOR, 
-    //
-    // debug ops
-    //
+    _EXIT, _EXEC, 
+    _CREATE, _TO, _IS, _QTO, 
+    _AT, _STOR, _COMMA, _ALLOT, _PSTOR, 
+    /// @}
+    /// @defgroup Debug ops
+    /// @{
     _HERE, _UCASE, _WORDS, _TICK, _SDUMP,
     _SEE, _DUMP, _FORGET,
+    /// @}
+    /// @defgroup Hardware specific ops
+    /// @{
     _PEEK, _POKE,
-    //
-    // pin & system ops
-    //
+    _CLOCK, _DELAY,
     _PIN, _IN, _OUT,
     _ADC, _DUTY, _ATTC,
     _SETUP, _TONE,
-    _CLOCK, _DELAY,
-    _BYE, _BOOT
+    _BYE, _BOOT,
+    //
+    // extra from ceForth
+    //
+    _UDOT, _QUEST,
+    _QRX, _TXSTO,
+    _QKEY,
+    _WITHIN, _TCHAR,
+    _CHARS, _TYPE
 } opcode_e;
 
 typedef struct {
@@ -77,4 +91,3 @@ typedef struct {
     string     name;
 } word_s;
 endpackage: FS1
-
