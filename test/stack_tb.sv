@@ -12,7 +12,7 @@ module stack_tb;
     logic [DSZ-1:0] tos;
 
     ss_io  ss_if();
-    dstack #(DEPTH) u1(.ss_if(ss_if.slave), .*);
+    stack #(DEPTH) u1(.ss_if(ss_if.slave), .*);
     
     always #5 clk  = ~clk;
         
@@ -21,7 +21,7 @@ module stack_tb;
     endfunction: calc_v
 
     initial begin
-        $monitor("%0s %0x => [%0x, %0x, ..]", ss_if.op, ss_if.vi, tos, ss_if.s);
+        $monitor("%0s %0x => [%0x, %0x, %0x..]", ss_if.op, ss_if.vi, tos, ss_if.s0, ss_if.s1);
         clk = 0;
         // init clock
         rst = 1'b1; repeat(2) @(posedge clk);
