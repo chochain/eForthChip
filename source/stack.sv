@@ -4,7 +4,7 @@
 `ifndef FORTHSUPER_STACK
 `define FORTHSUPER_STACK
 `include "../source/forthsuper_if.sv"
-/*
+
 module stack #(
     parameter DEPTH = 64,
     parameter DSZ   = 32,
@@ -16,41 +16,40 @@ module stack #(
     input  logic    rst,           /// reset
     input  logic    en             /// enable
     );
-    logic [SSZ-1:0] _sp, sp = 0;
-    logic [DSZ-1:0] vo;
+    logic [SSZ-1:0] _sp, sp = 0, sp1 = 1;
+    logic [DSZ-1:0] v0, v1;
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
         .Data      (ss_if.vi),
         .Address   (_sp),
-        .Clock     (clk),
+        .Clock     (~clk),
         .ClockEn   (en),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
-        .Q         (vo)
+        .Q         (v1)
     );
     always_comb begin // (sensitivity list: ss_if.op, ss_if.vi, vo)
         case (ss_if.op)
-        PUSH: begin _sp = sp + 1'b1; ss_if.s = ss_if.vi; end
-        POP:  begin _sp = sp + NEG1; ss_if.s = vo;       end
-        default: begin 
-            _sp     = sp;
-            ss_if.s = vo;
-        end
+        PUSH: begin _sp = sp + 'h1;  ss_if.vi = v1; end
+        POP:  begin _sp = sp + NEG1; end
+        default: _sp = sp;
         endcase
+        sp1 = sp + 'h1;
     end
     ///
     /// using FF implies a pipedline design
     ///
     always_ff @(posedge clk) begin
         //automatic string op = FS1::Enum2str#(stack_ops)::to_s(ss_if.op);
-        $display("%6d: %0s sp=%0d s=%0d ? (vi=%0d : vo=%0d)",
-            $time, ss_if.op.name(), sp, $signed(ss_if.s), $signed(ss_if.vi), $signed(vo));
+        $display("%6t: %0s vi=%0x, v0,v1=%0x,%0x, %0x: %0x",
+            $time, ss_if.op.name(), $signed(ss_if.vi), v0, v1, sp, $signed(ss_if.s));
+        v0 <= v1;
         if (en) sp <= _sp;
     end
 endmodule: stack
-*/
+
 ///
 /// Pseudo Dual-port stack (using EBR)
 ///
@@ -110,6 +109,7 @@ endmodule: stack
 ///
 /// Dual-port stack (iCE40UP5K does not have True RAM_DP, so we use LUT-based, expensive)
 ///
+/*
 module dstack #(
     parameter DEPTH = 16,
     parameter DSZ   = 32,
@@ -141,4 +141,5 @@ module dstack #(
         end
     end
 endmodule: dstack
+*/
 `endif // FORTHSUPER_STACK
