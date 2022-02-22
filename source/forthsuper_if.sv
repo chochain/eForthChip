@@ -46,19 +46,21 @@ endinterface : mb8_io
 interface ss_io();
     stack_ops    op;
     logic [31:0] vi;
-    logic [31:0] s;
+    logic [31:0] s0, s1;
     
-    modport master(input s, output op, vi, import push, pop);
-    modport slave(input op, vi, output s);
+    modport master(input s0, output op, vi, import push, pop);
+    modport slave(input op, vi, output s0, s1);
 
     function void push(input [31:0] v);
         op  = PUSH;
         vi  = v;
+        s1  = s0;
     endfunction: push
 
     function logic [31:0] pop;
         op   = POP;
-        pop  = s;
+        pop  = s0;
+        s0   = s1;
     endfunction: pop
     
 endinterface: ss_io
