@@ -15,7 +15,7 @@ interface mb32_io #(
     logic [ASZ-1:0] ai;
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
-    
+
     clocking ioDrv @(posedge clk);
         default input #1 output #1;
     endclocking // ioMaster
@@ -31,7 +31,7 @@ interface mb8_io #(
     logic [ASZ-1:0] ai;
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
-    
+
     modport master(output we, ai, vi, import put_u8, get_u8);
     modport slave(input we, ai, vi, output vo);
 
@@ -40,7 +40,7 @@ interface mb8_io #(
         ai = ax;
         vi = vx;
     endfunction: put_u8
-    
+
     function void get_u8([ASZ-1:0] ax);
         we = 1'b0;
         ai = ax;
@@ -54,8 +54,8 @@ interface ss_io #(
     stack_ops    op;
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] s0, s1;
-    logic [SSZ-1:0] sp;
-    
+    logic [SSZ-1:0] sp = 0;
+
     modport master(input s0, output op, vi, import push, pop);
     modport slave(input op, vi, output sp, s0, s1);
 
@@ -73,7 +73,7 @@ interface ss_io #(
         pop  = s0;
         s0   = s1;
     endfunction: pop
-    
+
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
 
