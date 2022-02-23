@@ -16,36 +16,31 @@ module stack #(
     input  logic    rst,           /// reset
     input  logic    en             /// enable
     );
-    logic [SSZ-1:0] _sp, sp = 0, sp1 = 1;
+    logic [SSZ-1:0] _sp, sp;
     logic [DSZ-1:0] v0, v1;
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
         .Data      (ss_if.vi),
-        .Address   (_sp),
+        .Address   (ss_if.sp),
         .Clock     (~clk),
         .ClockEn   (en),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
         .Q         (v1)
     );
-    always_comb begin // (sensitivity list: ss_if.op, ss_if.vi, vo)
+    always_comb begin // (sensitivity list: ss_if.sp)
         case (ss_if.op)
-        PUSH: begin _sp = sp + 'h1;  ss_if.vi = v1; end
-        POP:  begin _sp = sp + NEG1; end
-        default: _sp = sp;
+        PUSH: v0 = ss_if.vi;
+        POP:  begin ss_if.s1 = v0; v0 = v1; end
         endcase
-        sp1 = sp + 'h1;
+        _sp = ss_if.sp;
     end
     ///
     /// using FF implies a pipedline design
     ///
     always_ff @(posedge clk) begin
-        //automatic string op = FS1::Enum2str#(stack_ops)::to_s(ss_if.op);
-        $display("%6t: %0s vi=%0x, v0,v1=%0x,%0x, %0x: %0x",
-            $time, ss_if.op.name(), $signed(ss_if.vi), v0, v1, sp, $signed(ss_if.s));
-        v0 <= v1;
         if (en) sp <= _sp;
     end
 endmodule: stack
@@ -92,7 +87,7 @@ module stack #(
        .Q         (vo)
     );
     assign ss_if.s = vo;        // return, 2 cycles later
-    
+
     always_ff @(posedge clk) begin
         //automatic string op = FS1::Enum2str#(stack_ops)::to_s(ss_if.op);
         $display("%6d: %0s sp=%0d s=%0d ? (vi=%0d : vo=%0d)",
@@ -115,14 +110,14 @@ module dstack #(
     parameter DSZ   = 32,
     parameter SSZ   = $clog2(DEPTH),
     parameter NEG1  = DEPTH - 1
-    ) (    
+    ) (
     ss_io           ss_if,           /// 32-bit stack bus
     input  logic    clk,             /// clock
     input  logic    rst,             /// reset
     input  logic    en               /// enable
     );
     logic [SSZ-1:0] sp1, sp = 'h0;   /// sp1 = sp + 1
-    logic [DSZ-1:0] ram[DEPTH-1:0];  /// memory block 
+    logic [DSZ-1:0] ram[DEPTH-1:0];  /// memory block
 
     always_comb begin
         ss_if.s = ram[sp];           /// fetch first

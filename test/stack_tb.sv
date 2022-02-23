@@ -11,14 +11,14 @@ module stack_tb;
     logic clk, rst, en;
     logic [DSZ-1:0] tos;
 
-    ss_io #(DSZ,SSZ) ss_if;
+    ss_io #(DSZ, SSZ) ss_if();
     stack #(DEPTH) u1(.ss_if(ss_if.slave), .*);
-    
+
     always #5 clk  = ~clk;
-        
+
     function integer calc_v(input integer i);
         //calc_v = (i < DSZ) ? FF >> i : FF << (i - DSZ);
-        calc_v = i;
+        calc_v = 1000+i;
     endfunction: calc_v
 
     initial begin
