@@ -53,17 +53,16 @@ interface ss_io #(
     parameter SSZ=6);
     stack_ops    op;
     logic [DSZ-1:0] vi;
-    logic [DSZ-1:0] s0, s1;
+    logic [DSZ-1:0] s0;
     logic [SSZ-1:0] sp = 0;
 
     modport master(input s0, output op, vi, import push, pop);
-    modport slave(input op, vi, output sp, s0, s1);
+    modport slave(input op, vi, output sp, s0);
 
     function void push(input [DSZ-1:0] v);
         op  = PUSH;
         vi  = v;
         sp  = sp + 1;
-        s1  = s0;
         s0  = v;
     endfunction: push
 
@@ -71,9 +70,7 @@ interface ss_io #(
         op   = POP;
         sp   = sp - 1;
         pop  = s0;
-        s0   = s1;
     endfunction: pop
 
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
-
