@@ -16,8 +16,7 @@ module stack #(
     input  logic    rst,           /// reset
     input  logic    en             /// enable
     );
-    logic [SSZ-1:0] _sp, sp;
-    logic [DSZ-1:0] v0, v1;
+    logic [DSZ-1:0] v0;
     ///
     /// instance of EBR Single Port Memory
     ///
@@ -28,20 +27,10 @@ module stack #(
         .ClockEn   (en),
         .WE        (ss_if.op == PUSH),
         .Reset     (rst),
-        .Q         (v1)
+        .Q         (v0)
     );
     always_comb begin // (sensitivity list: ss_if.sp)
-        case (ss_if.op)
-        PUSH: v0 = ss_if.vi;
-        POP:  begin ss_if.s1 = v0; v0 = v1; end
-        endcase
-        _sp = ss_if.sp;
-    end
-    ///
-    /// using FF implies a pipedline design
-    ///
-    always_ff @(posedge clk) begin
-        if (en) sp <= _sp;
+        if (ss_if.op == POP) ss_if.s0 = v0;
     end
 endmodule: stack
 
