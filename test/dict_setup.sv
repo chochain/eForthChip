@@ -16,7 +16,7 @@ module dict_setup #(
     output logic [ASZ-1:0] ctx,
     output logic [ASZ-1:0] here
     );
-/*  use the shorter version below for debugging  
+/*  use the shorter version below for debugging
     opcode_e op;                /// opcode, for num()
     word_s word_list[op.num()] = {
         '{ NOP,   "nop"  },
@@ -47,7 +47,7 @@ module dict_setup #(
         '{ MAX,   "max"  },
         '{ MIN,   "min"  }
     };
-*/        
+*/
     word_s word_list[6] = {
         '{ _NOP,   "nop"  },
         '{ _DUP,   "dup"  },
@@ -56,17 +56,17 @@ module dict_setup #(
         '{ _ADD,   "+"    },
         '{ _SUB,   "-"    }
     };
-    string tib = "123 456 +";
-    
+    string tib = "123 DUP + 456 -";
+
     task add_u8([16:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
             b8_if.put_u8(ax, vx);
         end
     endtask: add_u8
-    
+
     task add_word(string w, logic [7:0] o);
         automatic integer n   = w.len();
-        automatic integer pfa = here + 3 + n; 
+        automatic integer pfa = here + 3 + n;
         add_u8(here,     ctx & 'hff);
         add_u8(here + 1, ctx >> 8);
         add_u8(here + 2, n);
@@ -74,7 +74,7 @@ module dict_setup #(
             add_u8(here + 3 + i, w[i]);
         end
         add_u8(pfa, o);
-        
+
         ctx  = here;
         here = pfa + 1;
     endtask: add_word
@@ -110,18 +110,18 @@ module dict_setup_tb;
     localparam DICT = 'h100;      /// starting address of dictionary
     logic clk, rst, en;
     logic [16:0] ctx, here;
-    
+
     mb8_io      b8_if();
     spram8_128k m0(b8_if.slave, clk);
 
     dict_setup #(DICT) dict(.*, .b8_if(b8_if.master));
-    
+
     task reset;
         repeat(1) @(posedge clk) rst = 1;
         repeat(1) @(posedge clk) rst = 0;
     endtask: reset
-    
-    task verify; 
+
+    task verify;
         $display("lfa=%x, here=%x", ctx, here);
         // verify - read back
         for (integer i=DICT; i < here + 4; i = i + 1) begin
@@ -131,16 +131,16 @@ module dict_setup_tb;
             end
         end
     endtask: verify
-    
+
     always #10 clk = ~clk;
-        
+
     initial begin
         clk = 0;
         reset();
         dict.setup_mem();
-        
+
         verify();
-        
+
         #20 $finish;
     end
 endmodule: dict_setup_tb
