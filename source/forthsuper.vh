@@ -1,6 +1,8 @@
 ///
 /// ForthSuper common types, and enums
 ///
+`ifndef FORTHSUPER_FS1
+`define FORTHSUPER_FS1
 package FS1;
 typedef enum logic [7:0] {
     ///
@@ -91,3 +93,6 @@ typedef struct {
     string     name;
 } word_s;
 endpackage: FS1
+
+import FS1::*;
+`endif  // FORTHSUPER_FS1
