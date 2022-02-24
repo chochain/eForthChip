@@ -7,15 +7,13 @@
 
 module stack #(
     parameter DEPTH = 64,
-    parameter DSZ   = 32,
-    parameter SSZ   = $clog2(DEPTH),
-    parameter NEG1  = DEPTH - 1
+    parameter DSZ   = 32
     ) (
     ss_io           ss_if,         /// 32-bit stack bus
     input  logic    clk,           /// clock
-    input  logic    rst,           /// reset
     input  logic    en             /// enable
     );
+    localparam SSZ = $clog2(DEPTH);
     logic [DSZ-1:0] v0;
     ///
     /// instance of EBR Single Port Memory
@@ -26,7 +24,7 @@ module stack #(
         .Clock     (~clk),
         .ClockEn   (en),
         .WE        (ss_if.op == PUSH),
-        .Reset     (rst),
+        .Reset     (~en),
         .Q         (v0)
     );
     always_comb begin // (sensitivity list: ss_if.sp)
