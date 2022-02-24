@@ -9,7 +9,7 @@
 `include "../source/atoi.sv"             /// string to number module
 `include "../source/comma.sv"            /// memory append module
 `include "../source/eforth.sv"           /// eForth inner interpreter
-import FS1::*;
+
 typedef enum logic [2:0] { RDY, FND, EXE, CMA, A2I, NUM, PSH } outer_sts;
 module outer #(
     parameter TIB  = 'h0,                /// terminal input buffer address

@@ -5,7 +5,6 @@
 `define FORTHSUPER_EFORTH
 `include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
 `include "../source/forthsuper.vh"
-import FS1::*;
 
 module eforth #(
     parameter DSZ      = 32,              /// 32-bit data path
