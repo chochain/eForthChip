@@ -4,11 +4,10 @@
 `timescale 1ps / 1ps
 `include "../source/forthsuper_if.sv"
 `include "../source/forthsuper.vh"
-import FS1::*;
+
 module dict_setup #(
-    parameter TIB  = 'h0,
-    parameter DICT = 'h100,     /// starting address of dictionary
-    parameter DSZ  = 8,         /// 8-bit data path
+    parameter TIB  = 'h0,       /// terminal input buffer
+    parameter DICT = 'h100,     /// dictionary starting address
     parameter ASZ  = 17         /// 128K address space
     ) (
     mb8_io b8_if,               /// 8-bit memory bus master
@@ -58,13 +57,13 @@ module dict_setup #(
     };
     string tib = "123 DUP + 456 -";
 
-    task add_u8([16:0] ax, [7:0] vx);
+    task add_u8(input logic [ASZ-1:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
             b8_if.put_u8(ax, vx);
         end
     endtask: add_u8
 
-    task add_word(string w, logic [7:0] o);
+    task add_word(string w, input logic [7:0] o);
         automatic integer n   = w.len();
         automatic integer pfa = here + 3 + n;
         add_u8(here,     ctx & 'hff);
@@ -107,14 +106,16 @@ module dict_setup #(
 endmodule: dict_setup
 /*
 module dict_setup_tb;
+    localparam TIB  = 'h0;        /// starting address of TIB
     localparam DICT = 'h100;      /// starting address of dictionary
+    localparam ASZ  = 17;
     logic clk, rst, en;
     logic [16:0] ctx, here;
 
     mb8_io      b8_if();
-    spram8_128k m0(b8_if.slave, clk);
+    spram8_128k m0(b8_if.slave, ~clk);
 
-    dict_setup #(DICT) dict(.*, .b8_if(b8_if.master));
+    dict_setup  dict(.b8_if(b8_if.master), .*);
 
     task reset;
         repeat(1) @(posedge clk) rst = 1;
@@ -124,7 +125,7 @@ module dict_setup_tb;
     task verify;
         $display("lfa=%x, here=%x", ctx, here);
         // verify - read back
-        for (integer i=DICT; i < here + 4; i = i + 1) begin
+        for (integer i=TIB; i < here + 4; i = i + 1) begin
             repeat(1) @(posedge clk) begin
                 b8_if.get_u8(i);
                 $display("%x:%x", i, b8_if.vo);
@@ -137,6 +138,7 @@ module dict_setup_tb;
     initial begin
         clk = 0;
         reset();
+        dict.setup_tib();
         dict.setup_mem();
 
         verify();
@@ -145,3 +147,4 @@ module dict_setup_tb;
     end
 endmodule: dict_setup_tb
 */
+
