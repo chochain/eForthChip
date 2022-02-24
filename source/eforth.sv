@@ -10,7 +10,9 @@ module eforth #(
     parameter DSZ      = 32,              /// 32-bit data path
     parameter ASZ      = 17,              /// 128K address path
     parameter SS_DEPTH = 64,              /// data stack depth
-    parameter RS_DEPTH = 64               /// return stack depth
+    parameter RS_DEPTH = 64,              /// return stack depth
+    parameter TIB      = 'h0,             /// address of input buffer
+    parameter PAD      = 'h80             /// address of output buffer
     ) (
     mb8_io                 mb_if,         /// generic master to drive memory block
     ss_io                  ss_if,         /// data stack interface
@@ -60,7 +62,8 @@ module eforth #(
     ///
     always_comb begin
         mb_if.get_u8(ip);
-        _ip = ip + 1;
+        _ip = ip + 'h1;
+        bsy = 1'b0;
         case (op)
         ///
         /// @defgroup Execution flow ops
@@ -101,8 +104,8 @@ module eforth #(
         _AND: ALU(tos & ss_if.pop());
         _OR:  ALU(tos | ss_if.pop());
         _XOR: ALU(tos ^ ss_if.pop());
-        _ABS: ALU($abs(tos));
-        _NEG: ALU(0 - tos);
+        _ABS: _tos = tos[31] ? -tos : tos;
+        _NEG: _tos = -tos;
         _MAX: begin end
         _MIN: begin end
         /// @}
@@ -241,8 +244,8 @@ module eforth #(
             ip <= {ASZ{1'b0}};
             as <= 1'b0;
             ds <= 3;
-            ib <= 'h1000;
-            ob <= 'h1400;
+            ib <= TIB;
+            ob <= PAD;
         end
         else step();
     end
