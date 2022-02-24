@@ -6,22 +6,24 @@
 `include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
 `include "../source/forthsuper.vh"
 import FS1::*;
+
 module eforth #(
-    parameter DSZ = 32,                   /// 32-bit data path
-    parameter ASZ = 17                    /// 128K address path
+    parameter DSZ      = 32,              /// 32-bit data path
+    parameter ASZ      = 17,              /// 128K address path
+    parameter SS_DEPTH = 64,              /// data stack depth
+    parameter RS_DEPTH = 64               /// return stack depth
     ) (
-    mb32_io                mb_if,         /// generic master to drive memory block
-    ss_io                  ds_if,         /// data stack interface
-    ss_io                  rs_if,         /// return stack interface
+    mb8_io                 mb_if,         /// generic master to drive memory block
+    ss_io                  ss_if,         /// data stack interface
     input                  clk,           /// clock
     input                  en,            /// enable
     input [ASZ-1:0]        pfa,           /// instruction pointer (pfa of the 1st opcode)
-    opcode_e               op,            /// opcode to be executed
+    opcode_e               op1,           /// opcode to be executed
     output logic           bsy            /// 0:busy, 1:done
     );
     logic                  _st, st;       /// FSM  states
     /// registers
-    opcode_e               op0;
+    opcode_e               op;
     logic [ASZ-1:0]        _ip,  ip;      /// instruction pointer
     logic [ASZ-1:0]        _ma,  ma;      /// memory address
     logic [DSZ-1:0]        _tos, tos;     /// top of stack
@@ -31,6 +33,10 @@ module eforth #(
     logic [1:0]            _ds, ds;       /// data select
     logic [ASZ-1:0]        ib, ob;        /// IO buffer pointers
     logic                  xds, xib, xob; /// IO latches
+    
+    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.s0); _tos = v; xt = 1'b1; endtask;
+    task POP; _tos = ss_if.pop(); xt = 1'b1; endtask;
+    task ALU(input logic [DSZ-1:0] v); _tos = v; xt = 1'b1; endtask;  
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -54,6 +60,8 @@ module eforth #(
     /// note: depends on opcode, multiple-cycle controlled by st
     ///
     always_comb begin
+        mb_if.get_u8(ip);
+        _ip = ip + 1;
         case (op)
         ///
         /// @defgroup Execution flow ops
@@ -74,28 +82,28 @@ module eforth #(
         /// @defgroup Stack ops
         /// @brief - opcode sequence can be changed below this line
         /// @{
-        _DUP: begin end
-        _DROP: begin end
-        _OVER: begin end
+        _DUP:  PUSH(tos);
+        _DROP: POP();
+        _OVER: PUSH(ss_if.s0);
         _SWAP: begin end
         _ROT: begin end
         _PICK: begin end
         /// @}
         /// @defgroup ALU ops
         /// @{
-        _ADD: begin end
-        _SUB: begin end
-        _MUL: begin end
-        _DIV: begin end
-        _MOD: begin end
+        _ADD: ALU(tos + ss_if.pop());
+        _SUB: ALU(tos - ss_if.pop());
+        _MUL: ALU(tos * ss_if.pop());
+        _DIV: ALU(tos / ss_if.pop());
+        _MOD: ALU(tos % ss_if.pop());
         _MDIV: begin end
         _SMOD: begin end
         _MSMOD: begin end
-        _AND: begin end
-        _OR: begin end
-        _XOR: begin end
-        _ABS: begin end
-        _NEG: begin end
+        _AND: ALU(tos & ss_if.pop());
+        _OR:  ALU(tos | ss_if.pop());
+        _XOR: ALU(tos ^ ss_if.pop());
+        _ABS: ALU($abs(tos));
+        _NEG: ALU(0 - tos);
         _MAX: begin end
         _MIN: begin end
         /// @}
@@ -215,22 +223,14 @@ module eforth #(
 //        $display(
 //            "%6t> ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
 //            $time, ip, ma, mb_if.vo, ds_if.sp, ds_if.s, tos, op.name, st);
-            as <= _as;
-            if (xop) op0 <= op;
+            as  <= _as;
+            if (xop) op  <= op1;
             if (xip) ip  <= _ip;
             if (xma) ma  <= _ma;
             if (xt)  tos <= _tos;
             if (xds) ds  <= _ds;
             if (xib) ib  <= ib + 1;
             if (xob) ob  <= ob + 1;
-/*
-            if      (sload) ss[sp] <= t;
-            else if (spop)  begin sp <= sp - 1; sp1 <= sp1 - 1; end
-            else if (spush) begin ss[sp1] <= t; sp <= sp + 1; sp1 <= sp1 + 1; end
-            if (rload)      rs[rp] <= r_in;
-            else if (rpop)  begin rp <= rp - 1; rp1 <= rp1 - 1; end
-            else if (rpush) begin rs[rp1] <= r_in; rp <= rp + 1; rp1 <= rp1 + 1; end
- */
     endtask: step
     ///
     /// logic for current output
