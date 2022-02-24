@@ -6,13 +6,12 @@
 module stack_tb;
     localparam DEPTH = 16;              // 64 cells
     localparam DSZ   = 32;              // 32-bit stack
-    localparam SSZ   = $clog2(DEPTH);
     localparam FF    = 'hffffffff;
-    logic clk, rst, en;
+    logic clk, en;
     logic [DSZ-1:0] tos;
 
-    ss_io #(DSZ, SSZ) ss_if();
-    stack #(DEPTH) u1(.ss_if(ss_if.slave), .*);
+    ss_io #(DEPTH, DSZ) ss_if();
+    stack #(DEPTH, DSZ) u1(.ss_if(ss_if.slave), .*);
 
     always #5 clk  = ~clk;
 
@@ -25,9 +24,8 @@ module stack_tb;
         $monitor("%0s %0x => [%0x, %0x..]", ss_if.op, ss_if.vi, tos, ss_if.s0);
         clk = 0;
         // init clock
-        rst = 1'b1; repeat(2) @(posedge clk);
-        rst = 1'b0;
-        en  = 1'b1;
+        en = 1'b0; repeat(2) @(posedge clk);
+        en = 1'b1;
         // write
         for (integer i = 0; i < DEPTH - 1; i = i + 1) begin
             repeat(1) @(posedge clk) begin
