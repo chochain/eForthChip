@@ -13,11 +13,10 @@ module outer_tb;
     logic [7:0]  mem;             /// value fetch from memory
     
     mb8_io      b8_if();
-    spram8_128k m0(b8_if.slave, clk);
+    spram8_128k m0(b8_if.slave, ~clk);
 
     dict_setup #(TIB, DICT) dict(.b8_if(b8_if.master), .clk, .ctx(ctx0), .here(here0));
-    outer      #(TIB) outi(
-        .mb_if(b8_if.master), .clk, .rst, .en, .mem, .ctx0, .here0, .bsy);
+    outer      #(TIB) outi(.mb_if(b8_if.master), .*);
 
     task reset;
         repeat(1) @(posedge clk) rst = 1;
@@ -32,8 +31,8 @@ module outer_tb;
         clk = 0;
         en  = 1'b0;
         reset();
-        dict.setup_mem();
         dict.setup_tib();
+        dict.setup_mem();
 
         en  = 1'b1;
         repeat(150) @(posedge clk);
