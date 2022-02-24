@@ -7,21 +7,22 @@
 `include "../source/forthsuper_if.sv"    /// iBus32 or iBus8 interfaces
 `include "../source/finder.sv"           /// dictionary word search module
 `include "../source/atoi.sv"             /// string to number module
-`include "../source/inner.sv"            /// mock inner interpreter module
 `include "../source/comma.sv"            /// memory append module
-`include "../source/stack.sv"            /// data stack module
+`include "../source/eforth.sv"           /// eForth inner interpreter
 import FS1::*;
 typedef enum logic [2:0] { RDY, FND, EXE, CMA, A2I, NUM, PSH } outer_sts;
 module outer #(
     parameter TIB  = 'h0,                /// terminal input buffer address
-    parameter DSZ  = 8,                  /// 8-bit data path
-    parameter ASZ  = 17                  /// 128K address path
+    parameter MSZ  = 8,                  /// 8-bit memory data path
+    parameter DSZ  = 32,                 /// data path width
+    parameter ASZ  = 17,                 /// 128K address path
+    parameter SS_DEPTH = 64              /// data stack depth
     ) (
     mb8_io.master         mb_if,         /// generic master to drive memory block
     input                 clk,           /// clock
     input                 rst,           /// reset
     input                 en,            /// enable
-    input [DSZ-1:0]       mem,           /// return value from memory
+    input [MSZ-1:0]       mem,           /// return value from memory
     input [ASZ-1:0]       ctx0,          /// context address
     input [ASZ-1:0]       here0,         /// current dictionary top
     output logic          bsy            /// outer interpreter busy signal
@@ -35,29 +36,29 @@ module outer #(
     // finder control
     logic                 en_fdr;        /// finder module enable signal
     logic [ASZ-1:0]       aw_fdr;        /// search address of word
-    logic [DSZ-1:0]       vw_fdr;        /// result return from memory block
+    logic [MSZ-1:0]       vw_fdr;        /// result return from memory block
     logic                 bsy_fdr;       /// finder module busy signal
     logic                 hit_fdr;       /// finder hit flag, 1: found
     logic [ASZ-1:0]       tib_fdr;       /// current tib pointer
     // atoi control
     logic                 en_a2i;        /// atoi module enable signal
     logic                 hex = 1'b0;    /// TODO: hex parser flag
-    logic [7:0]           ch;            /// character fetched from memory
+    logic [MSZ-1:0]       ch;            /// character fetched from memory
     logic                 bsy_a2i;       /// atoi module busy signal
     logic                 af;            /// memory address advance flag
-    logic [31:0]          vo_a2i;        /// value returned from atoi module
+    logic [DSZ-1:0]       vo_a2i;        /// value returned from atoi module
     // data stack module
-    logic                 en_dss;
-    logic                 bsy_dss;
+    logic                 en_ss;
+    logic                 bsy_ss;
     // inner interpreter
     logic                 en_exe;        
     logic [ASZ-1:0]       pfa;           /// take ai when finder module exits
-    opcode_e              op;
+    opcode_e              op1;
     logic                 bsy_exe;
     // mock comma module
     logic                 en_cma;
     logic [ASZ-1:0]       ai_cma;
-    logic [DSZ-1:0]       vi_cma;
+    logic [MSZ-1:0]       vi_cma;
     logic                 bsy_cma;
     // mock number
     logic                 en_num;
@@ -65,9 +66,12 @@ module outer #(
     // master buses
     mb8_io  fdr_if();
     mb8_io  a2i_if();
-    ss_io   dss_if();
     mb8_io  exe_if();
     mb8_io  cma_if();
+    // data stack
+    ss_io #(SS_DEPTH, DSZ) ss_if();
+    stack #(SS_DEPTH, DSZ) ss(.ss_if(ss_if.slave), .en(en_ss), .*);
+
     // finder and atoi modules
     finder fdr(
         .mb_if(fdr_if.master),
@@ -89,19 +93,13 @@ module outer #(
         .bsy(bsy_a2i),
         .vo(vo_a2i)
         );
-    dstack #(64) dss(
-        .ss_if(dss_if.slave),
-        .clk,
-        .rst,
-        .en(en_dss)
-        );
-    inner exe(
+    eforth exe(
         .mb_if(exe_if.master),
-        .ds_if(dss_if.master),
+        .ss_if,
         .clk,
         .en(en_exe),
         .pfa,
-        .op,
+        .op1,
         .bsy(bsy_exe)
         );
     comma cma(
@@ -109,7 +107,7 @@ module outer #(
         .clk,
         .en(cma_en),
         .ai(here0),
-        .vi(op),
+        .vi(op1),
         .bsy(cma_bsy)
         );
     ///
@@ -130,7 +128,7 @@ module outer #(
         EXE: _st = bsy_exe ? EXE : RDY;
         CMA: _st = RDY;
         A2I: _st = bsy_a2i ? A2I : (compile ? NUM : PSH);   // TODO: atoi error handler
-        NUM: _st = bsy_num ? NUM : RDY;                      // TODO: expand comma module for 4 bytes
+        NUM: _st = bsy_num ? NUM : RDY;                     // TODO: expand comma module for 4 bytes
         PSH: _st = RDY;
         default: _st  = RDY;
         endcase
@@ -139,7 +137,7 @@ module outer #(
     /// next output logic - glue logic between modules
     ///
     always_comb begin
-        {en_fdr,en_exe,en_a2i,en_num,en_dss} = 0;  // everyone off, keep the bus quiet
+        {en_fdr,en_exe,en_a2i,en_num,en_ss} = 0;  // everyone off, keep the bus quiet
         aw_fdr = ctx0;
         case (st)
         RDY: if (en) begin
@@ -180,9 +178,9 @@ module outer #(
             $display("t%0d: a2i_if looks at x%04x => '%c'", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
         NUM: en_num = 1'b1;
-        PSH: begin 
-            en_dss = 1'b1;
-            dss_if.push(vo_a2i);
+        PSH: begin
+            en_ss = 1'b1;
+            ss_if.push(vo_a2i);
             $display("t%0d: data stack dss_if.push(%0d)", $time, vo_a2i);
         end
         endcase
