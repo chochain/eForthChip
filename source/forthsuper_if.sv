@@ -49,8 +49,10 @@ interface mb8_io #(
 endinterface : mb8_io
 
 interface ss_io #(
-    parameter DSZ=32,
-    parameter SSZ=6);
+    parameter DEPTH = 64,
+    parameter DSZ   = 32);
+    localparam SSZ  = $clog2(DEPTH);
+    localparam NEG1 = DEPTH - 1;
     stack_ops    op;
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] s0;
@@ -68,7 +70,7 @@ interface ss_io #(
 
     function logic [DSZ-1:0] pop;
         op   = POP;
-        sp   = sp - 1;
+        sp   = sp + NEG1;
         pop  = s0;
     endfunction: pop
 
