@@ -5,9 +5,11 @@
 `define FORTHSUPER_OUTER
 `include "../source/forthsuper.vh"
 `include "../source/forthsuper_if.sv"    /// iBus32 or iBus8 interfaces
+`include "../source/spram.sv"            /// memory management module
 `include "../source/finder.sv"           /// dictionary word search module
 `include "../source/atoi.sv"             /// string to number module
 `include "../source/comma.sv"            /// memory append module
+`include "../source/stack.sv"            /// data/return stack module
 `include "../source/eforth.sv"           /// eForth inner interpreter
 
 typedef enum logic [2:0] { RDY, FND, EXE, CMA, A2I, NUM, PSH } outer_sts;
