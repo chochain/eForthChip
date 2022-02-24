@@ -26,7 +26,7 @@ module finder #(
     logic [DSZ-1:0]        v0;            /// previous memory value
     logic [ASZ-1:0]        a0, a1;        /// dic, tib pointers
     logic [ASZ-1:0]        ax;            /// a0 address + len
-    logic                  ck;            /// char pointer within word length
+    logic                  eq;            /// char pointer within word length
     finder_sts             _st, st;       /// next state
     ///
     /// find - 4-block state machine (Cummings & Chambers)
@@ -40,7 +40,7 @@ module finder #(
     /// logic for next state (state diagram)
     ///
     always_comb begin
-        ck = (v0 == vw && a0 <= ax);                 // chars match input vs word
+        eq = (v0 == vw);                             // chars match input vs word
         case (st)
         FD0: _st = en ? LF0 : FD0;
         SPC: _st = LF0;                              // skip TIB space
@@ -49,7 +49,7 @@ module finder #(
         LF1: _st = LEN;                              // fetch high-byte of lfa
         LEN: _st = NFA;                              // read word length
         NFA: _st = CMP;                              // read one byte from nfa
-        CMP: _st = ck ? NFA : LF0;                   // fetch next chars if match
+        CMP: _st = (eq && a0 <= ax) ? NFA : LF0;     // fetch next chars if match
         default: _st = FD0;
         endcase
     end
@@ -100,14 +100,14 @@ module finder #(
         NFA: `DIC_NEXT;             // next byte of nfa
         CMP: begin                  // compare bytes from nfa and tib
             if (vw == 0) bsy <= 1'b0;                  // input buffer empty
-            else if (ck) `TIB_NEXT;                    // next char TIB input
-            else if (v0 == vw || lfa == 'h0ffff) begin // all chars matched or dictionary exhaused
+            else if (eq && a0 <= ax) `TIB_NEXT;        // next char TIB input
+            else if (eq || lfa == 'h0ffff) begin       // all chars matched or dictionary exhaused
                 bsy <= 1'b0;                           // break on match or no more word
-                tib <= a1 + 1'b1;                      // output tib cursor to next input
-                hit <= (v0 == vw);                     // word found in dictionary
+                tib <= a1 + (eq ? 1'b1 : 1'b0);        // output tib cursor to next input
+                hit <= eq;                             // word found in dictionary
                 $display(
                     "\t=>%s, next tib[%02x],a0[%04x]",
-                    v0 == vw ? "HIT" : "MISS", a1 + 1'b1, a0);
+                    eq ? "HIT" : "MISS", a1 + 1'b1, a0);
             end
             else begin
                 a0 <= lfa;          // link to next dictionary word
