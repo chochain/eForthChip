@@ -155,15 +155,16 @@ module outer #(
             aw_fdr   = tib;
             if (!bsy_fdr) begin
                 en_fdr = 1'b0;
-                pfa = fdr_if.ai;
+                pfa    = fdr_if.ai;
                 if (hit_fdr) begin
-                    en_exe = 1'b1;        // since we have the opcode and pfa here
-                    $display("t%0d: finder word found. pfa = x%04x, opcode = x%02x", $time, pfa, vw_fdr);
+                    en_exe   = 1'b1;      // we have the opcode and pfa here
+                    mb_if.ai = pfa;       // 
+                    $display("%6t> finder HIT, pfa = %04x, opcode = %02x", $time, pfa, vw_fdr);
                 end
                 else begin                // we can enable inner or atoi module 1-cycle earlier
                     en_a2i   = 1'b1;
                     mb_if.ai = tib_fdr;
-                    $display("t%0d: finder word not found, reset tib at x%04x", $time, tib_fdr); 
+                    $display("%6t> finder MISS, reset tib at %04x", $time, tib_fdr); 
                 end          
             end
         end
@@ -177,30 +178,30 @@ module outer #(
             en_a2i   = 1'b1;
             mb_if.we = 1'b0;
             mb_if.ai = a2i_if.ai;
-            $display("t%0d: a2i_if looks at x%04x => '%c'", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
+            $display("%6t> a2i_if reading %04x[%c]", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
         NUM: en_num = 1'b1;
         PSH: begin
             en_ss = 1'b1;
             ss_if.push(vo_a2i);
-            $display("t%0d: data stack dss_if.push(%0d)", $time, vo_a2i);
+            $display("%6t> data stack dss_if.push(%0d)", $time, vo_a2i);
         end
         endcase
     end
     
     assign vw_fdr = mem;
     assign ch     = mem;
-    assign {op}   = {mem};
+    assign {op1}  = {mem};
     ///
     /// register values for state machine input
     ///
     task step;
         case (st)
         FND: begin
-            if (!bsy_fdr) tib <= tib_fdr;   // collect tib from finder module
+            if (!bsy_fdr) tib <= tib_fdr;   // keep tib from finder result
         end
         A2I: begin
-            if (!bsy_a2i) tib <= a2i_if.ai; // collect tib from atoi module
+            if (!bsy_a2i) tib <= a2i_if.ai; // feed tib from atoi result
         end
         endcase
     endtask: step
