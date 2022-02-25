@@ -75,7 +75,7 @@ module finder #(
     ///
     task step;
         $display(
-            "t%0d: finder.%s[%02x] tib[%2x],dic[%04x]",
+            "%06t> finder.%s[%02x] tib[%2x],dic[%04x]",
             $time, st.name, vw, a1, a0);
         case (st)
         FD0: begin                  // memory read/write
@@ -103,11 +103,11 @@ module finder #(
             else if (eq && a0 <= ax) `TIB_NEXT;        // next char TIB input
             else if (eq || lfa == 'h0ffff) begin       // all chars matched or dictionary exhaused
                 bsy <= 1'b0;                           // break on match or no more word
-                tib <= a1 + (eq ? 1'b1 : 1'b0);        // output tib cursor to next input
+                tib <= a1 + eq;                        // move tib cursor to next input (or not)
                 hit <= eq;                             // word found in dictionary
                 $display(
                     "\t=>%s, next tib[%02x],a0[%04x]",
-                    eq ? "HIT" : "MISS", a1 + 1'b1, a0);
+                    eq ? "HIT" : "MISS", a1 + eq, a0);
             end
             else begin
                 a0 <= lfa;          // link to next dictionary word
