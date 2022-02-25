@@ -55,7 +55,7 @@ module dict_setup #(
         '{ _ADD,   "+"    },
         '{ _SUB,   "-"    }
     };
-    string tib = "123 DUP + 456 -";
+    string tib = "123 dup + 456 -";
 
     task add_u8(input logic [ASZ-1:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
@@ -82,16 +82,17 @@ module dict_setup #(
         ctx  = 'hffff;
         here = DICT;
         // write
-        $display("dictionary at x%04x:", DICT);
+        $display("dictionary at %04x:", DICT);
         foreach(word_list[i]) begin
-            $display("x%04x: op=x%02x %s", here, word_list[i].op, word_list[i].name);
-            add_word(string'(word_list[i].name), word_list[i].op);
+            automatic word_s w = word_list[i];
+            add_word(string'(w.name), w.op);
+            $display("[%04x,%04x] op=%02x %s", ctx, here, w.op, w.name);
         end;
     endtask: setup_mem
 
     task setup_tib;
-        $display("tib at x%04x: [%s]", TIB, tib);
-        for (integer i = 0; i < tib.len(); i = i + 1) begin
+        $display("tib at %04x: [%s]", TIB, tib);
+        foreach(tib[i]) begin
             add_u8(TIB + i, tib[i]);
         end
         add_u8(TIB + tib.len(), 'h0);
