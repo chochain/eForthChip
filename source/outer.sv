@@ -99,6 +99,7 @@ module outer #(
         .mb_if(exe_if.master),
         .ss_if,
         .clk,
+        .rst,
         .en(en_exe),
         .pfa,
         .op1,
@@ -153,22 +154,26 @@ module outer #(
             mb_if.we = 1'b0;
             mb_if.ai = fdr_if.ai;
             aw_fdr   = tib;
-            if (!bsy_fdr) begin
+            if (!bsy_fdr) begin           /// finder completed
                 en_fdr = 1'b0;
-                pfa    = fdr_if.ai;
-                if (hit_fdr) begin
-                    en_exe   = 1'b1;      // we have the opcode and pfa here
-                    mb_if.ai = pfa;       // 
-                    $display("%6t> finder HIT, pfa = %04x, opcode = %02x", $time, pfa, vw_fdr);
+                if (hit_fdr) begin        /// a word is found in the dictionary
+                    en_exe   = 1'b1;      // enable inner interpreter
+                    pfa      = fdr_if.ai; // starting opcode address
+                    $cast(op1, vw_fdr);   // first opcode from pfa
+                    $display("%6t> finder HIT, pfa = %04x[%02x] %s", $time, pfa, vw_fdr, op1.name);
                 end
-                else begin                // we can enable inner or atoi module 1-cycle earlier
+                else if (vw_fdr) begin    /// or, might be a number (run in parallel?)
                     en_a2i   = 1'b1;
-                    mb_if.ai = tib_fdr;
+                    mb_if.ai = tib_fdr;   // starting address for atoi module
                     $display("%6t> finder MISS, reset tib at %04x", $time, tib_fdr); 
-                end          
+                end
+                else begin
+                    mb_if.ai = TIB;
+                    $display("%6t> finder EMPTY, reset tib at %04x", $time, TIB); 
+                end
             end
         end
-        EXE: if (bsy_exe) en_exe = 1'b1;
+        EXE: en_exe = bsy_exe;
         CMA: begin
             mb_if.we = 1'b1;
             mb_if.ai = here;
@@ -180,7 +185,10 @@ module outer #(
             mb_if.ai = a2i_if.ai;
             $display("%6t> a2i_if reading %04x[%c]", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
-        NUM: en_num = 1'b1;
+        NUM: begin
+            en_num = 1'b1;
+            /* TODO */
+        end
         PSH: begin
             en_ss = 1'b1;
             ss_if.push(vo_a2i);
