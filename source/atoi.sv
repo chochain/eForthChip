@@ -32,8 +32,6 @@ int atoi(const char *s, size_t base)
 `define FORTHSUPER_ATOI
 `include "../source/forthsuper_if.sv"
 
-`define SUM vo <= vo * (hex ? 16 : 10) + inc;
-
 typedef enum logic { AI0, ACC } atoi_sts;
 module atoi #(
     parameter DSZ = 32              /// return 32-bit integer
@@ -46,7 +44,7 @@ module atoi #(
     output logic [DSZ-1:0] vo       /// resultant value
     );
     localparam MAX = 'h10;          /// out of range
-    logic [4:0]            inc;     /// incremental value
+    logic [7:0]            inc;     /// incremental value
     logic                  neg, ok; /// negative and range check flag
     atoi_sts               _st, st; /// next and current states
     ///
@@ -61,8 +59,9 @@ module atoi #(
     /// logic for next state (state diagram)
     /// Note: two cycle per digit. TODO: one cycle per digit
     ///
+    assign ok = (ch && inc < MAX);
+    
     always_comb begin
-        ok = (ch && inc < MAX);
         case (st)
         AI0: _st = en ? ACC : AI0;
         ACC: _st = ok ? ACC : AI0;   /// accumulator
@@ -74,10 +73,15 @@ module atoi #(
     ///
     always_comb begin
         if ("0" <= ch && ch <= "9") inc = ch - "0";  /// "0" ~ "9"
-        else if (ch >= "a")         inc = ch - "W";  /// "a" ~ "f", "a" - 10 = "W"
-        else if (ch >= "A")         inc = ch - "7";  /// "A" ~ "F", "A" - 10 = "7"
+        else if (hex && ch >= "a")  inc = ch - "W";  /// "a" ~ "f", "a" - 10 = "W"
+        else if (hex && ch >= "A")  inc = ch - "7";  /// "A" ~ "F", "A" - 10 = "7"
         else                        inc = MAX;
     end // always_comb
+    
+    task ADDUP;
+        if (hex) vo <= vo << 4 + inc;
+        else     vo <= (vo << 3) + (vo << 1) + inc;
+    endtask: ADDUP
 
     task step;
         if (hex) $display(
@@ -91,13 +95,11 @@ module atoi #(
             if (en) begin
                 bsy <= 1'b1;
                 if (ch == "-") neg <= 1'b1;
-                else if (ok) `SUM
+                else if (ok) ADDUP();
             end
         end
         ACC: begin
-            if (ok) begin
-                `SUM;
-            end
+            if (ok && bsy) ADDUP();
             else begin
                 bsy <= 1'b0;
                 if (neg) begin
@@ -140,7 +142,7 @@ module atoier #(
     atoi #(DSZ) a2i(.*);
 
     always_ff @(posedge clk) begin
-        if (en) mb_if.ai <= mb_if.ai + 1'b1;
+        mb_if.ai <= en ? mb_if.ai + 1'b1 : tib;
     end // always_ff
 endmodule: atoier
 `endif // FORTHSUPER_ATOI
