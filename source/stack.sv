@@ -28,7 +28,7 @@ module stack #(
         .Q         (v0)
     );
     always_comb begin // (sensitivity list: ss_if.sp)
-        if (ss_if.op == POP) ss_if.s0 = v0;
+        ss_if.s0 = v0;
     end
 endmodule: stack
 
