@@ -43,10 +43,9 @@ module atoi #(
     output logic           bsy,     /// 1:busy, 0:done
     output logic [DSZ-1:0] vo       /// resultant value
     );
-    localparam MAX = 'h10;          /// out of range
-    logic [4:0]            inc;     /// incremental value
-    logic                  neg, ok; /// negative and range check flag
-    atoi_sts               _st, st; /// next and current states
+    logic [3:0]            inc;           /// incremental value
+    logic                  neg, max, ok;  /// negative and range check flag
+    atoi_sts               _st, st;       /// next and current states
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -59,7 +58,7 @@ module atoi #(
     /// logic for next state (state diagram)
     /// Note: two cycle per digit. TODO: one cycle per digit
     ///
-    assign ok = ch && ~inc[4:4];
+    assign ok = ch && ~max;
     
     always_comb begin
         case (st)
@@ -72,10 +71,11 @@ module atoi #(
     /// next output logic - character range check
     ///
     always_comb begin
-        if ("0" <= ch && ch <= "9") inc = {ch - "0"}[4:0];  /// "0" ~ "9"
-        else if (hex && ch >= "a")  inc = {ch - "W"}[4:0];  /// "a" ~ "f", "a" - 10 = "W"
-        else if (hex && ch >= "A")  inc = {ch - "7"}[4:0];  /// "A" ~ "F", "A" - 10 = "7"
-        else                        inc = MAX;
+        max = 1'b0;
+        if ("0" <= ch && ch <= "9") inc = {ch - "0"}[3:0];  /// "0" ~ "9"
+        else if (hex && ch >= "a")  inc = {ch - "W"}[3:0];  /// "a" ~ "f", "a" - 10 = "W"
+        else if (hex && ch >= "A")  inc = {ch - "7"}[3:0];  /// "A" ~ "F", "A" - 10 = "7"
+        else                        max = 1'b1;
     end // always_comb
     
     task ADDUP;
