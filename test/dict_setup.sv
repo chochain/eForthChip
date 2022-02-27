@@ -55,7 +55,7 @@ module dict_setup #(
         '{ _ADD,   "+"    },
         '{ _SUB,   "-"    }
     };
-    string tib = "123 dup + 456 -";
+    string tib = "123 dup + 234 -";
 
     task add_u8(input logic [ASZ-1:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin
@@ -86,7 +86,7 @@ module dict_setup #(
         foreach(word_list[i]) begin
             automatic word_s w = word_list[i];
             add_word(string'(w.name), w.op);
-            $display("[%04x,%04x] op=%02x %s", ctx, here, w.op, w.name);
+            $display("\t[%04x,%04x) op=%02x %s", ctx, here, w.op, w.name);
         end;
     endtask: setup_mem
 
