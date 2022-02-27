@@ -106,7 +106,7 @@ module finder #(
                 tib <= a1 + eq;                        // move tib cursor to next input (or not)
                 hit <= eq;                             // word found in dictionary
                 $display(
-                    "\t=>%s, next tib[%02x],a0[%04x]",
+                    "\t=> %s, next tib[%02x],a0[%04x]",
                     eq ? "HIT" : "MISS", a1 + eq, a0);
             end
             else begin

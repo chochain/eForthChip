@@ -50,12 +50,13 @@ module outer #(
     logic                 af;            /// memory address advance flag
     logic [DSZ-1:0]       vo_a2i;        /// value returned from atoi module
     // data stack module
+    logic [DSZ-1:0]       tos, _tos;
     logic                 en_ss;
     logic                 bsy_ss;
     // inner interpreter
     logic                 en_exe;        
-    logic [ASZ-1:0]       pfa;           /// take ai when finder module exits
-    opcode_e              op1;
+    logic [ASZ-1:0]       pfa = 'h0;     /// take ai when finder module exits
+    opcode_e              _op;
     logic                 bsy_exe;
     // mock comma module
     logic                 en_cma;
@@ -102,7 +103,7 @@ module outer #(
         .rst,
         .en(en_exe),
         .pfa,
-        .op1,
+        ._op,
         .bsy(bsy_exe)
         );
     comma cma(
@@ -110,7 +111,7 @@ module outer #(
         .clk,
         .en(cma_en),
         .ai(here0),
-        .vi(op1),
+        .vi(_op),
         .bsy(cma_bsy)
         );
     ///
@@ -144,23 +145,21 @@ module outer #(
         aw_fdr = ctx0;
         case (st)
         RDY: if (en) begin
-            en_fdr   = 1'b1;
-            mb_if.we = 1'b0;
-            mb_if.ai = fdr_if.ai;
-            aw_fdr   = tib;
+            en_fdr = 1'b1;
+            {mb_if.we, mb_if.ai, mb_if.vi} = {1'b0, fdr_if.ai, 8'b0};
+            aw_fdr = tib;
         end
         FND: begin
-            en_fdr   = 1'b1;
-            mb_if.we = 1'b0;
-            mb_if.ai = fdr_if.ai;
-            aw_fdr   = tib;
+            en_fdr = 1'b1;
+            {mb_if.we, mb_if.ai, mb_if.vi} = {1'b0, fdr_if.ai, 8'b0};
+            aw_fdr = tib;
             if (!bsy_fdr) begin           /// finder completed
                 en_fdr = 1'b0;
                 if (hit_fdr) begin        /// a word is found in the dictionary
                     en_exe   = 1'b1;      // enable inner interpreter
                     pfa      = fdr_if.ai; // starting opcode address
-                    $cast(op1, vw_fdr);   // first opcode from pfa
-                    $display("%6t> finder HIT, pfa = %04x[%02x] %s", $time, pfa, vw_fdr, op1.name);
+                    $cast(_op, vw_fdr);   // opcode at pfa
+                    $display("%6t> finder HIT, pfa = %04x[%02x] %s", $time, pfa, vw_fdr, _op.name);
                 end
                 else if (vw_fdr) begin    /// or, might be a number (run in parallel?)
                     en_a2i   = 1'b1;
@@ -173,16 +172,16 @@ module outer #(
                 end
             end
         end
-        EXE: en_exe = bsy_exe;
+        EXE: begin
+            en_exe = bsy_exe;
+            {mb_if.we, mb_if.ai, mb_if.vi} = {exe_if.we, exe_if.ai, exe_if.vi};
+        end
         CMA: begin
-            mb_if.we = 1'b1;
-            mb_if.ai = here;
-            mb_if.vi = vw_fdr;
+            {mb_if.we, mb_if.ai, mb_if.vi} = {1'b1, here, vw_fdr};
         end
         A2I: begin
             en_a2i   = 1'b1;
-            mb_if.we = 1'b0;
-            mb_if.ai = a2i_if.ai;
+            {mb_if.we, mb_if.ai, mb_if.vi} = {1'b0, a2i_if.ai, 8'b0};
             $display("%6t> a2i_if reading %04x[%c]", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
         NUM: begin
