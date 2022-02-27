@@ -11,18 +11,18 @@ module eforth #(
     parameter ASZ      = 17,              /// 128K address path
     parameter SS_DEPTH = 64,              /// data stack depth
     parameter RS_DEPTH = 64,              /// return stack depth
-    parameter TIB      = 'h0,             /// address of input buffer
     parameter PAD      = 'h80             /// address of output buffer
     ) (
     mb8_io                 mb_if,         /// generic master to drive memory block
     ss_io                  ss_if,         /// data stack interface
     input                  clk,           /// clock
+    input                  rst,           /// reset
     input                  en,            /// enable
     input [ASZ-1:0]        pfa,           /// instruction pointer (pfa of the 1st opcode)
-    opcode_e               op1,           /// opcode to be executed
+    opcode_e               _op,           /// opcode to be executed
     output logic           bsy            /// 0:busy, 1:done
     );
-    logic                  _st, st;       /// FSM  states
+    logic [2:0]            _st, st;       /// FSM  states
     /// registers
     opcode_e               op;
     logic [ASZ-1:0]        _ip,  ip;      /// instruction pointer
@@ -32,8 +32,8 @@ module eforth #(
     /// IO controls
     logic                  _as, as;       /// address select
     logic [1:0]            _ds, ds;       /// data select
-    logic [ASZ-1:0]        ib, ob;        /// IO buffer pointers
-    logic                  xds, xib, xob; /// IO latches
+    logic [ASZ-1:0]        ob;            /// output buffer pointers
+    logic                  xds, xob;      /// IO latches
     
     task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.s0); _tos = v; xt = 1'b1; endtask;
     task POP; _tos = ss_if.pop(); xt = 1'b1; endtask;
@@ -52,7 +52,7 @@ module eforth #(
     always_comb begin
         case (st)
         1'b0: _st = en;
-        1'b1: _st = bsy;
+        1'b1: _st = st + 1;
         default: _st = 1'b0;
         endcase
     end
@@ -61,9 +61,10 @@ module eforth #(
     /// note: depends on opcode, multiple-cycle controlled by st
     ///
     always_comb begin
-        mb_if.get_u8(ip);
-        _ip = ip + 'h1;
-        bsy = 1'b0;
+        _ip = (en ? ip : pfa) + 'h1;       // establish next opcode
+        mb_if.get_u8(_ip);                 // prefetch next opcode
+        xip = 1'b1;
+        xop = 1'b1;
         case (op)
         ///
         /// @defgroup Execution flow ops
@@ -222,30 +223,30 @@ module eforth #(
     /// register values for state machine input
     ///
     task step;
-//        $display(
-//            "%6t> ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
-//            $time, ip, ma, mb_if.vo, ds_if.sp, ds_if.s, tos, op.name, st);
-            as  <= _as;
-            if (xop) op  <= op1;
-            if (xip) ip  <= _ip;
-            if (xma) ma  <= _ma;
-            if (xt)  tos <= _tos;
-            if (xds) ds  <= _ds;
-            if (xib) ib  <= ib + 1;
-            if (xob) ob  <= ob + 1;
+        as  <= _as;
+        if (xop) op  <= _op;
+        if (xip) ip  <= _ip;
+        if (xma) ma  <= _ma;
+        if (xt)  tos <= _tos;
+        if (xds) ds  <= _ds;
+        if (xob) ob  <= ob + 1;
+        $display(
+            "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
+            $time, pfa, _ip, _ma, _op, ss_if.sp, _tos, ss_if.s0, _op.name, st);
     endtask: step
     ///
     /// logic for current output
     ///
     always_ff @(posedge clk) begin
-        if (!en) begin
-            tos<= {DSZ{1'b0}};
-            ma <= {ASZ{1'b0}};
-            ip <= {ASZ{1'b0}};
+        if (rst) begin
+            tos<= -1;
+            ma <= 0;
             as <= 1'b0;
             ds <= 3;
-            ib <= TIB;
             ob <= PAD;
+        end
+        else if (!en) begin
+            op <= _NOP;
         end
         else step();
     end
