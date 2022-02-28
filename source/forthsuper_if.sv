@@ -4,7 +4,9 @@
 `ifndef FORTHSUPER_FORTHSUPER_IF
 `define FORTHSUPER_FORTHSUPER_IF
 
-typedef enum logic [1:0] { NOP = 2'b0, PUSH = 2'b01, POP = 2'b10, PICK = 2'b11 } stack_ops;
+typedef enum logic [1:0] {
+    SS_PICK = 2'b0, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_LOAD = 2'b11 
+} sop_e;
 
 interface mb32_io #(
     parameter ASZ=15,
@@ -53,25 +55,32 @@ interface ss_io #(
     parameter DSZ   = 32);
     localparam SSZ  = $clog2(DEPTH);
     localparam NEG1 = DEPTH - 1;
-    stack_ops    op;
+    sop_e           op;
     logic [DSZ-1:0] vi;
-    logic [DSZ-1:0] s0;
+    logic [DSZ-1:0] s0, tos = -1;
     logic [SSZ-1:0] sp = 0;
 
-    modport master(input s0, output op, vi, import push, pop);
-    modport slave(input op, vi, output sp, s0);
+    modport master(output op, vi, import load, push, pop);
+    modport slave(input op, vi, output sp, s0, tos);
 
+    function void load(input [DSZ-1:0] v);
+        op  = SS_LOAD;
+        tos = v;          // update tos
+    endfunction: load
+    
     function void push(input [DSZ-1:0] v);
-        op  = PUSH;
-        vi  = v;
-        sp  = sp + 1;
-        s0  = v;
+        op  = SS_PUSH;
+        vi  = tos;        // push tos onto stack[sp+1]
+        s0  = tos;
+        sp  = sp + 'h1;
+        tos = v;
     endfunction: push
 
     function logic [DSZ-1:0] pop;
-        op   = POP;
-        sp   = sp + NEG1;
-        pop  = s0;
+        op  = SS_POP;
+        pop = tos;
+        sp  = sp + NEG1;  // pop s0 from stack[sp]
+        tos = s0;
     endfunction: pop
 
 endinterface: ss_io
