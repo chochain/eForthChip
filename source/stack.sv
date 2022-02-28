@@ -23,11 +23,11 @@ module stack #(
         .Address   (ss_if.sp),
         .Clock     (~clk),
         .ClockEn   (en),
-        .WE        (ss_if.op == PUSH),
+        .WE        (ss_if.op == SS_PUSH),
         .Reset     (~en),
         .Q         (v0)
     );
-    always_comb begin // (sensitivity list: ss_if.sp)
+    always_comb begin // sensitive list: ss_if.s0
         ss_if.s0 = v0;
     end
 endmodule: stack
