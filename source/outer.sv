@@ -33,7 +33,7 @@ module outer #(
     outer_sts             _st, st;       /// outer interpreter states
     logic [ASZ-1:0]       tib;           /// address to terminal input buffer
     logic [ASZ-1:0]       ctx;           /// word search context
-    logic [ASZ-1:0]       here;          /// dictionary 
+    logic [ASZ-1:0]       here;          /// dictionary
     logic                 compile = 1'b0;/// TODO: compile flag
     // finder control
     logic                 en_fdr;        /// finder module enable signal
@@ -54,7 +54,7 @@ module outer #(
     logic                 en_ss;
     logic                 bsy_ss;
     // inner interpreter
-    logic                 en_exe;        
+    logic                 en_exe;
     logic [ASZ-1:0]       pfa = 'h0;     /// take ai when finder module exits
     opcode_e              _op;
     logic                 bsy_exe;
@@ -92,7 +92,7 @@ module outer #(
         .en(en_a2i),
         .hex(hex),
         .tib(tib_fdr),
-        .ch, 
+        .ch,
         .bsy(bsy_a2i),
         .vo(vo_a2i)
         );
@@ -174,6 +174,7 @@ module outer #(
         end
         EXE: begin
             en_exe = bsy_exe;
+            en_ss  = bsy_exe;
             {mb_if.we, mb_if.ai, mb_if.vi} = {exe_if.we, exe_if.ai, exe_if.vi};
         end
         CMA: begin
@@ -195,10 +196,10 @@ module outer #(
         end
         endcase
     end
-    
+
     assign vw_fdr = mem;
     assign ch     = mem;
-    assign {op1}  = {mem};
+    assign {_op}  = {mem};
     ///
     /// register values for state machine input
     ///
