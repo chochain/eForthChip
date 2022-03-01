@@ -9,8 +9,6 @@
 module eforth #(
     parameter DSZ      = 32,              /// 32-bit data path
     parameter ASZ      = 17,              /// 128K address path
-    parameter SS_DEPTH = 64,              /// data stack depth
-    parameter RS_DEPTH = 64,              /// return stack depth
     parameter PAD      = 'h80             /// address of output buffer
     ) (
     mb8_io                 mb_if,         /// generic master to drive memory block
@@ -27,17 +25,20 @@ module eforth #(
     opcode_e               op;
     logic [ASZ-1:0]        _ip,  ip;      /// instruction pointer
     logic [ASZ-1:0]        _ma,  ma;      /// memory address
-    logic [DSZ-1:0]        _tos, tos;     /// top of stack
-    logic                  xop, xip, xma, xt;   /// latches
+    logic                  xop, xip, xma; /// latches
+    /// stack ops
+    sop_e                  ss_op;
+    logic [DSZ-1:0]        _tos;
     /// IO controls
     logic                  _as, as;       /// address select
     logic [1:0]            _ds, ds;       /// data select
     logic [ASZ-1:0]        ob;            /// output buffer pointers
     logic                  xds, xob;      /// IO latches
-    
-    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.s0); _tos = v; xt = 1'b1; endtask;
-    task POP; _tos = ss_if.pop(); xt = 1'b1; endtask;
-    task ALU(input logic [DSZ-1:0] v); _tos = v; xt = 1'b1; endtask;  
+
+    task PUSH(input logic [DSZ-1:0] v); if (st == 'h1) begin _tos = v; ss_op = SS_PUSH; end endtask;
+    task POP; if (st == 'h1) _tos = ss_if.s0; ss_op = SS_POP; endtask;
+    task ALU(input logic [DSZ-1:0] v); if (st == 'h1) begin _tos = v; ss_op = SS_POP; end 
+    endtask;
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -51,9 +52,10 @@ module eforth #(
     ///
     always_comb begin
         case (st)
-        1'b0: _st = en;
-        1'b1: _st = st + 1;
-        default: _st = 1'b0;
+        'h0: _st = en;
+        'h1: _st = st + 1;
+        'h2: _st = st + 1;
+        default: _st = 'h0;
         endcase
     end
     ///
@@ -61,10 +63,12 @@ module eforth #(
     /// note: depends on opcode, multiple-cycle controlled by st
     ///
     always_comb begin
-        _ip = (en ? ip : pfa) + 'h1;       // establish next opcode
-        mb_if.get_u8(_ip);                 // prefetch next opcode
-        xip = 1'b1;
-        xop = 1'b1;
+        bsy   = st != 'h0;
+        _ip   = (st == 'h0 ? pfa : ip) + 'h1; // establish next opcode
+        ss_op = SS_LOAD;                      // default value
+        _tos  = ss_if.tos;
+        xip   = 1'b1;
+        xop   = st == 'h0 ? 1'b1 : 1'b0;
         case (op)
         ///
         /// @defgroup Execution flow ops
@@ -85,28 +89,28 @@ module eforth #(
         /// @defgroup Stack ops
         /// @brief - opcode sequence can be changed below this line
         /// @{
-        _DUP:  PUSH(tos);
+        _DUP:  PUSH(ss_if.tos);
         _DROP: POP();
         _OVER: PUSH(ss_if.s0);
         _SWAP: begin end
-        _ROT: begin end
+        _ROT:  begin end
         _PICK: begin end
         /// @}
         /// @defgroup ALU ops
         /// @{
-        _ADD: ALU(tos + ss_if.pop());
-        _SUB: ALU(tos - ss_if.pop());
-        _MUL: ALU(tos * ss_if.pop());
-        _DIV: ALU(tos / ss_if.pop());
-        _MOD: ALU(tos % ss_if.pop());
+        _ADD: ALU(ss_if.s0 + ss_if.tos);
+        _SUB: ALU(ss_if.s0 - ss_if.tos);
+        _MUL: ALU(ss_if.s0 * ss_if.tos);
+        _DIV: ALU(ss_if.s0 / ss_if.tos);
+        _MOD: ALU(ss_if.s0 % ss_if.tos);
         _MDIV: begin end
         _SMOD: begin end
         _MSMOD: begin end
-        _AND: ALU(tos & ss_if.pop());
-        _OR:  ALU(tos | ss_if.pop());
-        _XOR: ALU(tos ^ ss_if.pop());
-        _ABS: _tos = tos[31] ? -tos : tos;
-        _NEG: _tos = -tos;
+        _AND: ALU(ss_if.s0 & ss_if.tos);
+        _OR:  ALU(ss_if.s0 | ss_if.tos);
+        _XOR: ALU(ss_if.s0 ^ ss_if.tos);
+        _ABS: begin _tos = ss_if.tos[31] ? -ss_if.tos : ss_if.tos; ss_op = SS_LOAD; end
+        _NEG: begin _tos = -ss_if.tos; ss_op = SS_LOAD; end
         _MAX: begin end
         _MIN: begin end
         /// @}
@@ -223,29 +227,46 @@ module eforth #(
     /// register values for state machine input
     ///
     task step;
+        mb_if.get_u8(_ip);                  // prefetch next opcode
         as  <= _as;
         if (xop) op  <= _op;
         if (xip) ip  <= _ip;
         if (xma) ma  <= _ma;
-        if (xt)  tos <= _tos;
         if (xds) ds  <= _ds;
         if (xob) ob  <= ob + 1;
+        case (ss_op)
+        SS_LOAD: begin
+            ss_if.tos<= _tos;               // load tos
+        end
+        SS_PUSH: begin
+            ss_if.op <= SS_PUSH;
+            ss_if.vi <= ss_if.tos;          // push tos onto stack[sp+1]
+            ss_if.s0 <= ss_if.tos;
+            ss_if.sp <= ss_if.sp + 'h1;
+            ss_if.tos<= _tos;
+        end
+        SS_POP: begin
+            ss_if.op <= SS_POP;
+            ss_if.sp <= ss_if.sp - 'h1;      // pop s0 from stack[sp]
+            ss_if.tos<= _tos;
+        end
+        endcase
         $display(
             "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
-            $time, pfa, _ip, _ma, _op, ss_if.sp, _tos, ss_if.s0, _op.name, st);
+            $time, pfa, _ip, _ma, _op, ss_if.sp, ss_if.tos, ss_if.s0, _op.name, st);
     endtask: step
     ///
     /// logic for current output
     ///
     always_ff @(posedge clk) begin
         if (rst) begin
-            tos<= -1;
             ma <= 0;
             as <= 1'b0;
             ds <= 3;
             ob <= PAD;
         end
         else if (!en) begin
+            ip <= pfa;
             op <= _NOP;
         end
         else step();
