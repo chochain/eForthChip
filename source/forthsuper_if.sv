@@ -5,7 +5,7 @@
 `define FORTHSUPER_FORTHSUPER_IF
 
 typedef enum logic [1:0] {
-    SS_PICK = 2'b0, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_LOAD = 2'b11 
+    SS_LOAD = 2'b0, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_ALU = 2'b11 
 } sop_e;
 
 interface mb32_io #(
@@ -60,28 +60,33 @@ interface ss_io #(
     logic [DSZ-1:0] s0, tos = -1;
     logic [SSZ-1:0] sp = 0;
 
-    modport master(output op, vi, import load, push, pop);
+    modport master(output op, vi, import load, push, pop, alu);
     modport slave(input op, vi, output sp, s0, tos);
 
     function void load(input [DSZ-1:0] v);
-        op  = SS_LOAD;
-        tos = v;          // update tos
+        op  <= SS_LOAD;
+        tos <= v;          // update tos
     endfunction: load
     
     function void push(input [DSZ-1:0] v);
-        op  = SS_PUSH;
-        vi  = tos;        // push tos onto stack[sp+1]
-        s0  = tos;
-        sp  = sp + 'h1;
-        tos = v;
+        op  <= SS_PUSH;
+        vi  <= tos;        // push tos onto stack[sp+1]
+        s0  <= tos;
+        sp  <= sp + 'h1;
+        tos <= v;
     endfunction: push
 
     function logic [DSZ-1:0] pop;
-        op  = SS_POP;
-        pop = tos;
-        sp  = sp + NEG1;  // pop s0 from stack[sp]
-        tos = s0;
+        op  <= SS_POP;
+        pop <= tos;
+        sp  <= sp + NEG1;  // pop s0 from stack[sp]
+        tos <= s0;
     endfunction: pop
 
+    function alu(input [DSZ-1:0] v);
+        op  <= SS_LOAD;
+        sp  <= sp + NEG1;  // pop s0 from stack[sp]
+        tos <= v;
+    endfunction: alu
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
