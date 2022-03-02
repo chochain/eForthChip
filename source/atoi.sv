@@ -72,7 +72,7 @@ module atoi #(
     ///
     always_comb begin
         max = 1'b0;
-        if ("0" <= ch && ch <= "9") inc = {ch - "0"}[3:0];  /// "0" ~ "9"
+        if (ch inside {["0":"9"]})  inc = {ch - "0"}[3:0];  /// "0" ~ "9"
         else if (hex && ch >= "a")  inc = {ch - "W"}[3:0];  /// "a" ~ "f", "a" - 10 = "W"
         else if (hex && ch >= "A")  inc = {ch - "7"}[3:0];  /// "A" ~ "F", "A" - 10 = "7"
         else                        max = 1'b1;
