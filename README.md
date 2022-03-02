@@ -32,3 +32,11 @@
 |stack op|<img src="./img/exec_ss_01.png">|
 |alu op|<img src="./img/exec_02.png">|
 
+### inner interpreter
+|case|simulation|
+|---|---|
+|123 dup|<img src="./img/inner_0.png">|
+|456 sub|<img src="./img/inner_1.png">|
+
+
+
