@@ -48,20 +48,12 @@ module eforth #(
         ph  <= _ph;                           // phase control
     end
     ///
-    /// logic for next state (state diagram)
-    ///
-    always_comb begin
-        case(bsy)
-        1'b0: _bsy = en;
-        1'b1: _bsy = en && ph == 'h0;         // single cycle for now
-        endcase
-        _ph = _bsy ? ph + 'h1 : 'h0;          // multi-cycle phase control
-    end
-    ///
     /// eForth execution unit
     /// note: depends on opcode, multiple-cycle controlled by ph
     ///
     always_comb begin
+        _bsy  = bsy ? (en && ph == 'h0) : en;
+        _ph   = _bsy ? ph + 'h1 : 'h0;        // multi-cycle phase control
         _ip   = (bsy ? ip : pfa) + 'h1;       // prefetch next opcode
         xip   = 1'b1;
         xop   = 1'b1;
