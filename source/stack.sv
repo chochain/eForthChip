@@ -13,22 +13,37 @@ module stack #(
     input  logic    clk,           /// clock
     input  logic    en             /// enable
     );
-    localparam SSZ = $clog2(DEPTH);
+    localparam SSZ  = $clog2(DEPTH);
+    localparam NEG1 = DEPTH - 1;
     logic [DSZ-1:0] v0;
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
         .Data      (ss_if.vi),
-        .Address   (ss_if.sp),
+        .Address   (ss_if.op == SS_PUSH ? ss_if.sp + 'h1 : ss_if.sp),
         .Clock     (~clk),
         .ClockEn   (en),
         .WE        (ss_if.op == SS_PUSH),
         .Reset     (~en),
         .Q         (v0)
     );
-    always_comb begin // sensitive list: ss_if.s0
-        ss_if.s0 = v0;
+    task ss_update;
+        case (ss_if.op)
+        SS_PUSH: begin
+            ss_if.sp <= ss_if.sp + 'h1;   // write to stack[sp+1]
+            ss_if.s0 <= ss_if.vi;         // cached s0
+        end
+        SS_POP:  begin
+            ss_if.sp <= ss_if.sp + NEG1;
+            ss_if.s0 <= v0;
+        end
+        endcase
+    endtask: ss_update
+    
+    always_ff @(negedge clk) begin
+        if (en) ss_update;
+        ss_if.op <= SS_LOAD;
     end
 endmodule: stack
 

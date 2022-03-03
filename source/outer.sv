@@ -183,7 +183,10 @@ module outer #(
             en_num = 1'b1;
             /* TODO, encode a number onto pfa */
         end
-        PSH: en_ss = 1'b1;
+        PSH: begin
+            en_ss = 1'b1;
+            ss_if.push(ss_if.tos);
+        end
         endcase
     end
 
@@ -214,7 +217,7 @@ module outer #(
             end                
         end
         PSH: begin
-            ss_if.push(vo_a2i);           /// push latched data onto stack
+            ss_if.tos <= vo_a2i;
             $display("PSH: pushed %0d", vo_a2i);
         end    
         endcase

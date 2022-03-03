@@ -5,7 +5,7 @@
 `define FORTHSUPER_FORTHSUPER_IF
 
 typedef enum logic [1:0] {
-    SS_LOAD = 2'b0, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_ALU = 2'b11 
+    SS_LOAD = 2'b0, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_PICK = 2'b11 
 } sop_e;
 
 interface mb32_io #(
@@ -54,51 +54,29 @@ interface ss_io #(
     parameter DEPTH = 64,
     parameter DSZ   = 32);
     localparam SSZ  = $clog2(DEPTH);
-    localparam NEG1 = DEPTH - 1;
     sop_e           op;
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] s0, tos = -1;
     logic [SSZ-1:0] sp = 0;
 
-    modport master(output op, vi, import load, push, pop, alu);
+    modport master(output op, vi, import push, pop);
     modport slave(input op, vi, output sp, s0, tos);
 
-    function void load(input [DSZ-1:0] v);
-        op  <= SS_LOAD;
-        tos <= v;          // update tos
-        $display(
-            "%6t> ss_if.load(%0d) => tos:ss[%2x]<%0d,%0d>", 
-            $time, v, ss_if.sp, ss_if.tos, ss_if.s0);
-    endfunction: load
-    
     function void push(input [DSZ-1:0] v);
-        op  <= SS_PUSH;
-        vi  <= tos;        // push tos onto stack[sp+1]
-        s0  <= tos;
-        sp  <= sp + 'h1;
-        tos <= v;
         $display(
-            "%6t> ss_if.push(%0d) => tos:ss[%2x]<%0d,%0d>", 
-            $time, v, ss_if.sp, ss_if.tos, ss_if.s0);
+            "%6t> ss_if.push(%0d) => ss[%2x]<%0d>", 
+            $time, v, ss_if.sp, ss_if.s0);
+        op  = SS_PUSH;
+        vi  = v;
     endfunction: push
 
     function logic [DSZ-1:0] pop;
-        op  <= SS_POP;
-        pop <= tos;
-        sp  <= sp + NEG1;  // pop s0 from stack[sp]
-        tos <= s0;
+        op  = SS_POP;
+        pop = s0;         // return from cached s0
         $display(
-            "%6t> ss_if.pop <= tos:ss[%2x]<%0d,%0d>", 
-            $time, ss_if.sp, ss_if.tos, ss_if.s0);
+            "%6t> ss_if.pop <= ss[%2x]<%0d>", 
+            $time, ss_if.sp, ss_if.s0);
     endfunction: pop
 
-    function alu(input [DSZ-1:0] v);
-        op  <= SS_LOAD;
-        sp  <= sp + NEG1;  // pop s0 from stack[sp]
-        tos <= v;
-        $display(
-            "%6t> ss_if.alu(%0d) => tos:ss[%2x]<%0d,%0d>", 
-            $time, v, ss_if.sp, ss_if.tos, ss_if.s0);
-    endfunction: alu
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
