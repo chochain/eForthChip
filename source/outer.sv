@@ -159,17 +159,12 @@ module outer #(
                     en_exe   = 1'b1;      // enable inner interpreter
                     pfa      = fdr_if.ai; // starting opcode address
                     $cast(_op, vw_fdr);   // opcode at pfa
-                    $display("%6t> finder HIT, pfa = %04x[%02x] %s", $time, pfa, vw_fdr, _op.name);
                 end
                 else if (vw_fdr) begin    /// or, might be a number (run in parallel?)
                     en_a2i   = 1'b1;
                     mb_if.ai = tib_fdr;   // starting address for atoi module
-                    $display("%6t> finder MISS, reset tib at %04x", $time, tib_fdr); 
                 end
-                else begin
-                    mb_if.ai = TIB;
-                    $display("%6t> finder EMPTY, reset tib at %04x", $time, TIB); 
-                end
+                else mb_if.ai = TIB;
             end
         end
         EXE: begin
@@ -181,18 +176,16 @@ module outer #(
             {mb_if.we, mb_if.ai, mb_if.vi} = {1'b1, here, vw_fdr};
         end
         A2I: begin
-            en_a2i   = 1'b1;
+            en_a2i = 1'b1;
             {mb_if.we, mb_if.ai, mb_if.vi} = {1'b0, a2i_if.ai, 8'b0};
-            $display("%6t> a2i_if reading %04x[%c]", $time, a2i_if.ai, ch);  // two cycles per char, 2nd is what we need
         end
         NUM: begin
             en_num = 1'b1;
-            /* TODO */
+            /* TODO, encode a number onto pfa */
         end
         PSH: begin
             en_ss = 1'b1;
             ss_if.push(vo_a2i);
-            $display("%6t> data stack dss_if.push(%0d)", $time, vo_a2i);
         end
         endcase
     end
@@ -206,10 +199,25 @@ module outer #(
     task step;
         case (st)
         FND: begin
-            if (!bsy_fdr) tib <= tib_fdr;   // keep tib from finder result
+            if (!bsy_fdr) begin
+                tib <= tib_fdr;   // keep tib from finder result
+                if (hit_fdr) begin        /// a word is found in the dictionary
+                    $display("FND: HIT, pfa = %04x[%02x] %s", pfa, vw_fdr, _op.name);
+                end
+                else if (vw_fdr) begin    /// or, might be a number (run in parallel?)
+                    $display("FND: MISS, reset tib at %04x", tib_fdr); 
+                end
+                else $display("FND: EMPTY, reset tib at %04x", TIB); 
+            end
         end
         A2I: begin
-            if (!bsy_a2i) tib <= a2i_if.ai; // feed tib from atoi result
+            if (!bsy_a2i) begin
+                tib <= a2i_if.ai; // feed tib from atoi result
+                $display("A2I: num = %0d, tib=%04x", vo_a2i, a2i_if.ai);
+            end                
+        end
+        PSH: begin
+            $display("PSH: push %0d", vo_a2i);
         end
         endcase
     endtask: step
