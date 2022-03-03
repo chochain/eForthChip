@@ -66,7 +66,9 @@ interface ss_io #(
     function void load(input [DSZ-1:0] v);
         op  <= SS_LOAD;
         tos <= v;          // update tos
-        $display("\tload %0d => tos:ss[%2x]<%0d,%0d>", v, ss_if.sp, ss_if.tos, ss_if.s0);
+        $display(
+            "%6t> ss_if.load(%0d) => tos:ss[%2x]<%0d,%0d>", 
+            $time, v, ss_if.sp, ss_if.tos, ss_if.s0);
     endfunction: load
     
     function void push(input [DSZ-1:0] v);
@@ -75,7 +77,9 @@ interface ss_io #(
         s0  <= tos;
         sp  <= sp + 'h1;
         tos <= v;
-        $display("\tpush %0d => tos:ss[%2x]<%0d,%0d>", v, ss_if.sp, ss_if.tos, ss_if.s0);
+        $display(
+            "%6t> ss_if.push(%0d) => tos:ss[%2x]<%0d,%0d>", 
+            $time, v, ss_if.sp, ss_if.tos, ss_if.s0);
     endfunction: push
 
     function logic [DSZ-1:0] pop;
@@ -83,14 +87,18 @@ interface ss_io #(
         pop <= tos;
         sp  <= sp + NEG1;  // pop s0 from stack[sp]
         tos <= s0;
-        $display("\tpop <= tos:ss[%2x]<%0d,%0d>", ss_if.sp, ss_if.tos, ss_if.s0);
+        $display(
+            "%6t> ss_if.pop <= tos:ss[%2x]<%0d,%0d>", 
+            $time, ss_if.sp, ss_if.tos, ss_if.s0);
     endfunction: pop
 
     function alu(input [DSZ-1:0] v);
         op  <= SS_LOAD;
         sp  <= sp + NEG1;  // pop s0 from stack[sp]
         tos <= v;
-        $display("\talu %0d => tos:ss[%2x]<%0d,%0d>", v, ss_if.sp, ss_if.tos, ss_if.s0);
+        $display(
+            "%6t> ss_if.alu(%0d) => tos:ss[%2x]<%0d,%0d>", 
+            $time, v, ss_if.sp, ss_if.tos, ss_if.s0);
     endfunction: alu
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
