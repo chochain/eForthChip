@@ -28,17 +28,17 @@ module eforth #(
     logic [ASZ-1:0]        _ma, ma;       /// memory address
     logic                  xop, xip, xma; /// latches
     /// stack ops
-    sop_e                  ss_op;
     logic [DSZ-1:0]        _tos;
+    logic                  xtos;
     /// IO controls
     logic                  _as, as;       /// address select
     logic [1:0]            _ds, ds;       /// data select
     logic [ASZ-1:0]        ob;            /// output buffer pointers
     logic                  xds, xob;      /// IO latches
 
-    task PUSH(input logic [DSZ-1:0] v); _tos = v;        ss_op = SS_PUSH; endtask
-    task POP;                           _tos = ss_if.s0; ss_op = SS_POP;  endtask
-    task ALU(input logic [DSZ-1:0] v);  _tos = v;        ss_op = SS_ALU;  endtask
+    task ALU(input logic [DSZ-1:0] v);  _tos = v; xtos = 1'b1;           endtask
+    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.tos); ALU(v);   endtask
+    task POP;                           _tos = ss_if.pop(); xtos = 1'b1; endtask
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -52,14 +52,13 @@ module eforth #(
     /// note: depends on opcode, multiple-cycle controlled by ph
     ///
     always_comb begin
-        _bsy  = bsy ? (en && ph == 'h0) : en;
+        _bsy  = bsy ? ph == 'h0 : en;         // single cycle for now
         _ph   = _bsy ? ph + 'h1 : 'h0;        // multi-cycle phase control
         _ip   = (bsy ? ip : pfa) + 'h1;       // prefetch next opcode
+        xtos  = 1'b0;
         xip   = 1'b1;
         xop   = 1'b1;
-        ss_op = SS_LOAD;                      // default stack ops
-        _tos  = ss_if.tos;
-        case (op)
+        case (_op)
         ///
         /// @defgroup Execution flow ops
         /// @brief - DO NOT change the sequence here (see forth_opcode enum)
@@ -88,19 +87,19 @@ module eforth #(
         /// @}
         /// @defgroup ALU ops
         /// @{
-        _ADD: ALU(ss_if.s0 + ss_if.tos);
-        _SUB: ALU(ss_if.s0 - ss_if.tos);
-        _MUL: ALU(ss_if.s0 * ss_if.tos);
-        _DIV: ALU(ss_if.s0 / ss_if.tos);
-        _MOD: ALU(ss_if.s0 % ss_if.tos);
+        _ADD: ALU(ss_if.pop() + ss_if.tos);
+        _SUB: ALU(ss_if.pop() - ss_if.tos);
+        _MUL: ALU(ss_if.pop() * ss_if.tos);
+        _DIV: ALU(ss_if.pop() / ss_if.tos);
+        _MOD: ALU(ss_if.pop() % ss_if.tos);
         _MDIV: begin end
         _SMOD: begin end
         _MSMOD: begin end
-        _AND: ALU(ss_if.s0 & ss_if.tos);
-        _OR:  ALU(ss_if.s0 | ss_if.tos);
-        _XOR: ALU(ss_if.s0 ^ ss_if.tos);
-        _ABS: begin _tos = ss_if.tos[31] ? -ss_if.tos : ss_if.tos; ss_op = SS_LOAD; end
-        _NEG: begin _tos = -ss_if.tos; ss_op = SS_LOAD; end
+        _AND: ALU(ss_if.pop() & ss_if.tos);
+        _OR:  ALU(ss_if.pop() | ss_if.tos);
+        _XOR: ALU(ss_if.pop() ^ ss_if.tos);
+        _ABS: ALU(ss_if.tos[31] ? -ss_if.tos : ss_if.tos);
+        _NEG: ALU(-ss_if.tos);
         _MAX: begin end
         _MIN: begin end
         /// @}
@@ -222,24 +221,12 @@ module eforth #(
     task step;
         mb_if.get_u8(_ip);                  // prefetch next opcode
         as  <= _as;
+        if (xtos) ss_if.tos <= _tos;
         if (xop) op  <= _op;
         if (xip) ip  <= _ip;
         if (xma) ma  <= _ma;
         if (xds) ds  <= _ds;
         if (xob) ob  <= ob + 1;
-        if (bsy) begin
-            case (ss_op)                    // data stack ops
-            SS_LOAD: ss_if.load(_tos);
-            SS_PUSH: ss_if.push(_tos);
-            SS_POP:  void'(ss_if.pop());
-            SS_ALU:  void'(ss_if.alu(_tos));
-            endcase
-        end
-        if (_bsy) begin
-            $display(
-                "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
-                $time, pfa, _ip, _ma, _op, ss_if.sp, ss_if.tos, ss_if.s0, _op.name, ph);
-        end
     endtask: step
     ///
     /// logic for current output
@@ -256,6 +243,11 @@ module eforth #(
             op <= _NOP;
         end
         else step();
+        if (_bsy) begin
+            $display(
+                "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
+                $time, pfa, _ip, _ma, _op, ss_if.sp, ss_if.tos, ss_if.s0, _op.name, ph);
+        end
     end
 endmodule: eforth
 `endif // FORTHSUPER_EFORTH
