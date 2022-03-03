@@ -45,7 +45,7 @@ module eforth #(
     ///
     always_ff @(posedge clk) begin
         bsy <= en ? _bsy : 1'b0;              // module control
-        ph  <= ph ? 1'h0 : _ph;               // phase control (single for now)
+        ph  <= _ph;                           // phase control
     end
     ///
     /// logic for next state (state diagram)
@@ -53,15 +53,15 @@ module eforth #(
     always_comb begin
         case(bsy)
         1'b0: _bsy = en;
-        1'b1: _bsy = ph;                      // multi-cycle control
+        1'b1: _bsy = en && ph == 'h0;         // single cycle for now
         endcase
+        _ph = _bsy ? ph + 'h1 : 'h0;          // multi-cycle phase control
     end
     ///
     /// eForth execution unit
     /// note: depends on opcode, multiple-cycle controlled by ph
     ///
     always_comb begin
-        _ph   = _bsy ? ph + 'h1 : 'h0;        // increment phase
         _ip   = (bsy ? ip : pfa) + 'h1;       // prefetch next opcode
         xip   = 1'b1;
         xop   = 1'b1;
@@ -239,8 +239,8 @@ module eforth #(
             case (ss_op)                    // data stack ops
             SS_LOAD: ss_if.load(_tos);
             SS_PUSH: ss_if.push(_tos);
-            SS_POP:  ss_if.pop();
-            SS_ALU:  ss_if.alu(_tos);
+            SS_POP:  void'(ss_if.pop());
+            SS_ALU:  void'(ss_if.alu(_tos));
             endcase
         end
         $display(
@@ -260,7 +260,6 @@ module eforth #(
         else if (!en) begin
             ip <= pfa;
             op <= _NOP;
-            ph <= 'h0;
         end
         else step();
     end
