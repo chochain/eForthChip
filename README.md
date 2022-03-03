@@ -35,8 +35,8 @@
 ### inner interpreter
 |case|simulation|
 |---|---|
-|123 dup|<img src="./img/inner_0.png">|
-|456 sub|<img src="./img/inner_1.png">|
+|123 dup +|<img src="./img/inner_0.png">|
+|456 -|<img src="./img/inner_1.png">|
 
 
 

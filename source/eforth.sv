@@ -7,9 +7,9 @@
 `include "../source/forthsuper.vh"
 
 module eforth #(
-    parameter DSZ      = 32,              /// 32-bit data path
-    parameter ASZ      = 17,              /// 128K address path
-    parameter PAD      = 'h80             /// address of output buffer
+    parameter DSZ = 32,                   /// 32-bit data path
+    parameter ASZ = 17,                   /// 128K address path
+    parameter PAD = 'h80                  /// address of output buffer
     ) (
     mb8_io                 mb_if,         /// generic master to drive memory block
     ss_io                  ss_if,         /// data stack interface
@@ -20,11 +20,12 @@ module eforth #(
     opcode_e               _op,           /// opcode to be executed
     output logic           bsy            /// 0:busy, 1:done
     );
-    logic [2:0]            _st, st;       /// FSM  states
+    logic                  _bsy;          /// inner interpreter states
+    logic [2:0]            _ph, ph;       /// phases for multiple-cycle opcodes
     /// registers
     opcode_e               op;
-    logic [ASZ-1:0]        _ip,  ip;      /// instruction pointer
-    logic [ASZ-1:0]        _ma,  ma;      /// memory address
+    logic [ASZ-1:0]        _ip, ip;       /// instruction pointer
+    logic [ASZ-1:0]        _ma, ma;       /// memory address
     logic                  xop, xip, xma; /// latches
     /// stack ops
     sop_e                  ss_op;
@@ -35,40 +36,37 @@ module eforth #(
     logic [ASZ-1:0]        ob;            /// output buffer pointers
     logic                  xds, xob;      /// IO latches
 
-    task PUSH(input logic [DSZ-1:0] v); if (st == 'h1) begin _tos = v; ss_op = SS_PUSH; end endtask;
-    task POP; if (st == 'h1) _tos = ss_if.s0; ss_op = SS_POP; endtask;
-    task ALU(input logic [DSZ-1:0] v); if (st == 'h1) begin _tos = v; ss_op = SS_POP; end 
-    endtask;
+    task PUSH(input logic [DSZ-1:0] v); _tos = v;        ss_op = SS_PUSH; endtask
+    task POP;                           _tos = ss_if.s0; ss_op = SS_POP;  endtask
+    task ALU(input logic [DSZ-1:0] v);  _tos = v;        ss_op = SS_ALU;  endtask
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
     ///
     always_ff @(posedge clk) begin
-        if (!en) st <= 1'b0;
-        else     st <= _st;
+        bsy <= en ? _bsy : 1'b0;              // module control
+        ph  <= ph ? 1'h0 : _ph;               // phase control (single for now)
     end
     ///
     /// logic for next state (state diagram)
     ///
     always_comb begin
-        case (st)
-        'h0: _st = en;
-        'h1: _st = st + 1;
-        'h2: _st = st + 1;
-        default: _st = 'h0;
+        case(bsy)
+        1'b0: _bsy = en;
+        1'b1: _bsy = ph;                      // multi-cycle control
         endcase
     end
     ///
     /// eForth execution unit
-    /// note: depends on opcode, multiple-cycle controlled by st
+    /// note: depends on opcode, multiple-cycle controlled by ph
     ///
     always_comb begin
-        bsy   = st != 'h0;
-        _ip   = (st == 'h0 ? pfa : ip) + 'h1; // establish next opcode
-        ss_op = SS_LOAD;                      // default value
-        _tos  = ss_if.tos;
+        _ph   = _bsy ? ph + 'h1 : 'h0;        // increment phase
+        _ip   = (bsy ? ip : pfa) + 'h1;       // prefetch next opcode
         xip   = 1'b1;
-        xop   = st == 'h0 ? 1'b1 : 1'b0;
+        xop   = 1'b1;
+        ss_op = SS_LOAD;                      // default stack ops
+        _tos  = ss_if.tos;
         case (op)
         ///
         /// @defgroup Execution flow ops
@@ -116,7 +114,10 @@ module eforth #(
         /// @}
         /// @defgroup Logic ops
         /// @{
-        _ZEQ: begin end
+        _ZEQ: case (ph)
+            'h0: begin end
+            'h1: begin end
+            endcase
         _ZLT: begin end
         _ZGT: begin end
         _EQ: begin end
@@ -220,7 +221,7 @@ module eforth #(
         /// @}
         _BYE: begin end
         _BOOT: begin end
-        default: bsy = 1'b0;
+        default: begin end
         endcase // (op)
     end
     ///
@@ -234,26 +235,17 @@ module eforth #(
         if (xma) ma  <= _ma;
         if (xds) ds  <= _ds;
         if (xob) ob  <= ob + 1;
-        case (ss_op)
-        SS_LOAD: begin
-            ss_if.tos<= _tos;               // load tos
+        if (bsy) begin
+            case (ss_op)                    // data stack ops
+            SS_LOAD: ss_if.load(_tos);
+            SS_PUSH: ss_if.push(_tos);
+            SS_POP:  ss_if.pop();
+            SS_ALU:  ss_if.alu(_tos);
+            endcase
         end
-        SS_PUSH: begin
-            ss_if.op <= SS_PUSH;
-            ss_if.vi <= ss_if.tos;          // push tos onto stack[sp+1]
-            ss_if.s0 <= ss_if.tos;
-            ss_if.sp <= ss_if.sp + 'h1;
-            ss_if.tos<= _tos;
-        end
-        SS_POP: begin
-            ss_if.op <= SS_POP;
-            ss_if.sp <= ss_if.sp - 'h1;      // pop s0 from stack[sp]
-            ss_if.tos<= _tos;
-        end
-        endcase
         $display(
             "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
-            $time, pfa, _ip, _ma, _op, ss_if.sp, ss_if.tos, ss_if.s0, _op.name, st);
+            $time, pfa, _ip, _ma, _op, ss_if.sp, ss_if.tos, ss_if.s0, _op.name, ph);
     endtask: step
     ///
     /// logic for current output
@@ -268,6 +260,7 @@ module eforth #(
         else if (!en) begin
             ip <= pfa;
             op <= _NOP;
+            ph <= 'h0;
         end
         else step();
     end
