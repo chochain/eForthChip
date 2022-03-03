@@ -183,10 +183,7 @@ module outer #(
             en_num = 1'b1;
             /* TODO, encode a number onto pfa */
         end
-        PSH: begin
-            en_ss = 1'b1;
-            ss_if.push(vo_a2i);
-        end
+        PSH: en_ss = 1'b1;
         endcase
     end
 
@@ -200,7 +197,7 @@ module outer #(
         case (st)
         FND: begin
             if (!bsy_fdr) begin
-                tib <= tib_fdr;   // keep tib from finder result
+                tib <= tib_fdr;           // keep tib from finder result
                 if (hit_fdr) begin        /// a word is found in the dictionary
                     $display("FND: HIT, pfa = %04x[%02x] %s", pfa, vw_fdr, _op.name);
                 end
@@ -213,12 +210,13 @@ module outer #(
         A2I: begin
             if (!bsy_a2i) begin
                 tib <= a2i_if.ai; // feed tib from atoi result
-                $display("A2I: num = %0d, tib=%04x", vo_a2i, a2i_if.ai);
+                $display("A2I: parsed num = %0d, tib=%04x", vo_a2i, a2i_if.ai);
             end                
         end
         PSH: begin
-            $display("PSH: push %0d", vo_a2i);
-        end
+            ss_if.push(vo_a2i);           /// push latched data onto stack
+            $display("PSH: pushed %0d", vo_a2i);
+        end    
         endcase
     endtask: step
     ///
