@@ -218,7 +218,7 @@ module outer #(
         end
         PSH: begin
             ss_if.tos <= vo_a2i;
-            $display("PSH: pushed %0d", vo_a2i);
+            $display("PSH: pushed tos=%0d", vo_a2i);
         end    
         endcase
     endtask: step

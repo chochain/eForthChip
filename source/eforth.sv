@@ -245,8 +245,8 @@ module eforth #(
         else step();
         if (_bsy) begin
             $display(
-                "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] sp=%2x<%8x, %8x> %s.%d",
-                $time, pfa, _ip, _ma, _op, ss_if.sp, ss_if.tos, ss_if.s0, _op.name, ph);
+                "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] %s.%d",
+                $time, pfa, _ip, _ma, _op, _op.name, ph);
         end
     end
 endmodule: eforth
