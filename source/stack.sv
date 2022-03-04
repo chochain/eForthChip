@@ -14,14 +14,13 @@ module stack #(
     input  logic    en             /// enable
     );
     localparam SSZ  = $clog2(DEPTH);
-    localparam NEG1 = DEPTH - 1;
     logic [DSZ-1:0] v0;
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
         .Data      (ss_if.vi),
-        .Address   (ss_if.op == SS_PUSH ? ss_if.sp + 'h1 : ss_if.sp),
+        .Address   (ss_if.op == SS_POP ? ss_if.sp_1 : ss_if.sp),   // ss[idx++] : ss[--idx]
         .Clock     (~clk),
         .ClockEn   (en),
         .WE        (ss_if.op == SS_PUSH),
@@ -31,12 +30,18 @@ module stack #(
     task ss_update;
         case (ss_if.op)
         SS_PUSH: begin
-            ss_if.sp <= ss_if.sp + 'h1;   // write to stack[sp+1]
+            ss_if.sp <= ss_if.sp + 'h1;   // write to ss[idx++]
             ss_if.s0 <= ss_if.vi;         // cached s0
+            $display(
+                "%6t> ss_if.push => tos=%0d, ss[%2x]<%0d, %0d>", 
+                $time, ss_if.tos, ss_if.sp, ss_if.vi, ss_if.s0);
         end
         SS_POP:  begin
-            ss_if.sp <= ss_if.sp + NEG1;
+            ss_if.sp <= ss_if.sp_1;       // pop from ss[--idx]
             ss_if.s0 <= v0;
+            $display(
+                "%6t> ss_if.pop tos=%0d <= ss[%2x]<%0d>", 
+                $time, ss_if.tos, ss_if.sp_1, ss_if.s0);
         end
         endcase
     endtask: ss_update

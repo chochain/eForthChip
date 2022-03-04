@@ -54,18 +54,20 @@ interface ss_io #(
     parameter DEPTH = 64,
     parameter DSZ   = 32);
     localparam SSZ  = $clog2(DEPTH);
+    localparam NEG1 = DEPTH - 1;
     sop_e           op;
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] s0, tos = -1;
-    logic [SSZ-1:0] sp = 0;
+    logic [SSZ-1:0] sp_1, sp = 0;
 
     modport master(output op, vi, import push, pop);
-    modport slave(input op, vi, output sp, s0, tos);
+    modport slave(input op, vi, output sp, sp_1, s0, tos);
+    
+    always_comb begin
+        sp_1 = sp + NEG1;
+    end
 
     function void push(input [DSZ-1:0] v);
-        $display(
-            "%6t> ss_if.push(%0d) => ss[%2x]<%0d>", 
-            $time, v, ss_if.sp, ss_if.s0);
         op  = SS_PUSH;
         vi  = v;
     endfunction: push
@@ -73,9 +75,6 @@ interface ss_io #(
     function logic [DSZ-1:0] pop;
         op  = SS_POP;
         pop = s0;         // return from cached s0
-        $display(
-            "%6t> ss_if.pop <= ss[%2x]<%0d>", 
-            $time, ss_if.sp, ss_if.s0);
     endfunction: pop
 
 endinterface: ss_io
