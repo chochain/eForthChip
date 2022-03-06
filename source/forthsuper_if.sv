@@ -57,16 +57,23 @@ interface ss_io #(
     localparam NEG1 = DEPTH - 1;
     sop_e           op;
     logic [DSZ-1:0] vi;
-    logic [DSZ-1:0] s0, tos = -1;
+    logic [DSZ-1:0] s0, _tos, tos = -1;
     logic [SSZ-1:0] sp_1, sp = 0;
+    logic xt;
 
-    modport master(output op, vi, import push, pop);
-    modport slave(input op, vi, output sp, sp_1, s0, tos);
+    modport master(output op, vi, import load, push, pop);
+    modport slave(input op, vi, output sp, sp_1, s0, tos, import update_tos);
     
     always_comb begin
         sp_1 = sp + NEG1;
+        xt   = 1'b0;
     end
 
+    function void load(input [DSZ-1:0] v);
+        _tos = v;
+        xt   = 1'b1;
+    endfunction: load
+    
     function void push(input [DSZ-1:0] v);
         op  = SS_PUSH;
         vi  = v;
@@ -76,6 +83,10 @@ interface ss_io #(
         op  = SS_POP;
         pop = s0;         // return from cached s0
     endfunction: pop
+    
+    task update_tos;
+        if (xt) tos <= _tos;
+    endtask: update_tos;
 
 endinterface: ss_io
 `endif // FORTHSUPER_FORTHSUPER_IF
