@@ -27,18 +27,15 @@ module eforth #(
     logic [ASZ-1:0]        _ip, ip;       /// instruction pointer
     logic [ASZ-1:0]        _ma, ma;       /// memory address
     logic                  xop, xip, xma; /// latches
-    /// stack ops
-    logic [DSZ-1:0]        _tos;
-    logic                  xtos;
     /// IO controls
     logic                  _as, as;       /// address select
     logic [1:0]            _ds, ds;       /// data select
     logic [ASZ-1:0]        ob;            /// output buffer pointers
     logic                  xds, xob;      /// IO latches
 
-    task ALU(input logic [DSZ-1:0] v);  _tos = v; xtos = 1'b1;           endtask
-    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.tos); ALU(v);   endtask
-    task POP;                           _tos = ss_if.pop(); xtos = 1'b1; endtask
+    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.tos); ss_if.load(v); endtask
+    task POP;                           ss_if.load(ss_if.pop()); endtask
+    task ALU(input logic [DSZ-1:0] v);  ss_if.load(v);           endtask
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
@@ -55,7 +52,6 @@ module eforth #(
         _bsy  = bsy ? ph == 'h0 : en;         // single cycle for now
         _ph   = _bsy ? ph + 'h1 : 'h0;        // multi-cycle phase control
         _ip   = (bsy ? ip : pfa) + 'h1;       // prefetch next opcode
-        xtos  = 1'b0;
         xip   = 1'b1;
         xop   = 1'b1;
         case (_op)
@@ -219,9 +215,8 @@ module eforth #(
     /// register values for state machine input
     ///
     task step;
-        mb_if.get_u8(_ip);                  // prefetch next opcode
+        mb_if.get_u8(_ip);              // prefetch next opcode
         as  <= _as;
-        if (xtos) ss_if.tos <= _tos;
         if (xop) op  <= _op;
         if (xip) ip  <= _ip;
         if (xma) ma  <= _ma;
@@ -231,6 +226,10 @@ module eforth #(
     ///
     /// logic for current output
     ///
+    always_ff @(negedge clk) begin
+        if (en) ss_if.update_tos;       // memory returns a half cycle earlier
+    end            
+
     always_ff @(posedge clk) begin
         if (rst) begin
             ma <= 0;
@@ -243,6 +242,7 @@ module eforth #(
             op <= _NOP;
         end
         else step();
+            
         if (_bsy) begin
             $display(
                 "%6t> pfa=%04x ip:ma=%04x:%04x[%02x] %s.%d",

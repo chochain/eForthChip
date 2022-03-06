@@ -28,6 +28,7 @@ module stack #(
         .Q         (v0)
     );
     task ss_update;
+        ss_if.update_tos;
         case (ss_if.op)
         SS_PUSH: begin
             ss_if.sp <= ss_if.sp + 'h1;   // write to ss[idx++]
@@ -46,7 +47,7 @@ module stack #(
         endcase
     endtask: ss_update
     
-    always_ff @(negedge clk) begin
+    always_ff @(posedge clk) begin
         if (en) ss_update;
         ss_if.op <= SS_LOAD;
     end

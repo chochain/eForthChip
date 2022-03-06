@@ -186,6 +186,7 @@ module outer #(
         PSH: begin
             en_ss = 1'b1;
             ss_if.push(ss_if.tos);
+            ss_if.load(vo_a2i);
         end
         endcase
     end
@@ -217,7 +218,7 @@ module outer #(
             end                
         end
         PSH: begin
-            ss_if.tos <= vo_a2i;
+            ss_if.update_tos;
             $display("PSH: pushed tos=%0d", vo_a2i);
         end    
         endcase
