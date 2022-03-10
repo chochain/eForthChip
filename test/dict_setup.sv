@@ -55,7 +55,7 @@ module dict_setup #(
         '{ _ADD,   "+"    },
         '{ _SUB,   "-"    }
     };
-    string tib = "123 dup + 234 -";
+    string tib = "123 dup + 456 swap -";
 
     task add_u8(input logic [ASZ-1:0] ax, [7:0] vx);
         repeat(1) @(posedge clk) begin

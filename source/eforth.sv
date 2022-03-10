@@ -27,6 +27,7 @@ module eforth #(
     logic [ASZ-1:0]        _ip, ip;       /// instruction pointer
     logic [ASZ-1:0]        _ma, ma;       /// memory address
     logic                  xop, xip, xma; /// latches
+    logic [DSZ-1:0]        _tmp;
     /// IO controls
     logic                  _as, as;       /// address select
     logic [1:0]            _ds, ds;       /// data select
@@ -49,7 +50,8 @@ module eforth #(
     /// note: depends on opcode, multiple-cycle controlled by ph
     ///
     always_comb begin
-        _bsy  = bsy ? ph == 'h0 : en;         // single cycle for now
+        ss_if.op = SS_LOAD;
+        _bsy  = bsy ? ph < 'h3 : en;          // single cycle for now
         _ph   = _bsy ? ph + 'h1 : 'h0;        // multi-cycle phase control
         _ip   = (bsy ? ip : pfa) + 'h1;       // prefetch next opcode
         xip   = 1'b1;
@@ -77,7 +79,14 @@ module eforth #(
         _DUP:  PUSH(ss_if.tos);
         _DROP: POP();
         _OVER: PUSH(ss_if.s0);
-        _SWAP: begin end
+        _SWAP: begin 
+            case (ph)
+            'h0: begin _ph = 'h1; xip = 1'b0; end
+            'h1: begin _tmp = ss_if.pop(); xop = 1'b0; xip = 1'b0; end
+            'h2: begin PUSH(_tmp); xop = 1'b0; xip = 1'b0; end
+            default: _ph = 'h0;
+            endcase
+        end
         _ROT:  begin end
         _PICK: begin end
         /// @}
