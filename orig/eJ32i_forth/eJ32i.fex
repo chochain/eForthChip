@@ -1,0 +1,48 @@
+( eJ32i, 13dec21cht, Java bytecode, input, output)
+( eJ32h, 29nov21cht, Java bytecode, >r,r@, >r)
+( eJ32g, 17nov21cht, Java bytecode, case, top)
+( eP32s, 23jun21cht, bytecode, subrouting threading )
+( espForth_56, 06MAR19cht )
+\ HTTP server
+( espForth_54, 02MAR19cht )
+\ HTTP server
+( espForth_53, 19feb19cht )
+\ load LOAD.TXT from flash on boot
+( ep32r, move to F#, 6/3/2021 cht )
+( copy ep32q to espForth_50 )
+( espForth_52, 22jan19cht )
+\ fugues and musete
+( espForth_51, 21jan19cht )
+\ add peeks.txt and organ1.txt 
+( espForth_50, 15jan19cht )
+\ Move from ESP8266 to ESP32, for AIR robot
+\ cEFa  10sep09cht
+\ Goal is to produce a dictionary file to be compiled by a C compiler
+\ Assume 31 eForth primitives are coded in C
+\ Each FORTH word contains a link field, a name field, a code field
+\    and a parameter field, as in standard eForth model
+\ The code field contains a token pointing to a primitive word
+\ Low level primitive FORTH words has 1 cell of code field
+\ High level FORTH word has doList in code field and a address list
+\ Variable has doVAR in code field and a cell for value
+\ Array is same as variable, but with many cells in parameter field
+\ User variable has doUSE in code, and an offset as parameter
+\
+\
+
+ FLOAD init.f         \ initial stuff
+ FLOAD win32.f        \ win32 system interface
+ FLOAD consolei.f     \ api and constant defination
+ 
+ FLOAD ui.f           \ user interface helper routine ( reposition )
+ 
+ FLOAD console.f      \ the main program
+ FLOAD ansi.f
+ FLOAD fileinc.f
+ FLOAD META32i.f
+ 
+cr .( Version FIX eJ32 forth )
+        
+        
+
+

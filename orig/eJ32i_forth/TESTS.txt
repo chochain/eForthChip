@@ -1,0 +1,16 @@
+12345 67890
+words
+: test1 1 2 3 ;
+test1
+: test2 if 1 else 2 then . ;
+0 test2
+1 test2
+: test3 10 for r@ . next ;
+test3
+: test4 10 for aft r@ . then next ;
+test4
+: test5 10 begin dup . dup while 1 - repeat drop ;
+test5
+: test6 cr ." hello, world!" ;
+test6
+bye
