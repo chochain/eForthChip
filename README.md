@@ -2,6 +2,9 @@
 * temp storage before transition to the team project (https://github.com/angelus9/AI-Robotics/)
 * work in progress (inner, comma, pusher)
 
+## Is it time for another Forth Chip?
+[this conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of seal the fate of this project.
+
 ### Outer Interpreter block diagram
 <img src="./img/forthsuper_outer_arch.png">
 
