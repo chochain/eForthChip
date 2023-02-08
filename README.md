@@ -6,7 +6,7 @@
 * [this conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of seal the fate of this project.
 
 ## Outer Interpreter block diagram
-> ![](./img/forthsuper_outer_arch.png | width=600px)
+  <img src="./img/forthsuper_outer_arch.png" width='600px'>
 
 ## Implementation Details
 * Mem pool and Find
