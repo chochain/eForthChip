@@ -1,0 +1,85 @@
+HEX
+( F00 ORG )
+
+CODE COMM  ( n - n )
+   com
+   @+ push ;'
+
+CODE SHL ( n - 2n )
+   2*
+   @+ push ;'
+
+CODE SHR ( n - n/2 )
+   2/
+   @+ push ;'
+
+CODE PLUS  ( n n - n )
+   +
+   @+ push ;'
+
+CODE MINUS  ( n n - n )
+   com + 1 #
+   +
+   @+ push ;'
+
+CODE NEG  ( n - -n )
+   com 1 # +
+   @+ push ;'
+
+CODE INC ( n -- n+1 )
+   1 # +
+   @+ push ;'                    \ NEXT
+
+CODE DEC ( n -- n-1 )
+   -1 # +
+   @+ push ;'                    \ NEXT
+
+CODE PSTORE ( n a -- )
+   a push a!                     \ save I, move a to A
+   @ + nop
+   ! pop a!                      \ store n, restore I
+   @+ push ;'                    \ NEXT
+
+CODE ULESS ( n n - f )
+   com 1 # + +
+   -if dup -or
+       @+ push ;'
+   then
+   drop -1 #
+   @+ push ;'
+
+CODE ZEQU ( n - f )
+   if dup -or ( 0 )
+       @+ push ;'
+   then
+   drop -1 # 
+   @+ push ;'
+
+CODE EQUAL ( n n - f )
+   -or
+   if dup -or ( 0 )
+       @+ push ;'
+   then
+   drop -1 # 
+   @+ push ;'
+
+CODE DDROP ( n n - )
+   drop drop
+   @+ push ;'
+
+CODE DDUP ( d - d )
+   a push push
+   dup a! pop 
+   dup push a
+   pop pop a!
+   @+ push ;'
+
+CODE (COUNT) ( a - a+1 n )
+   a push a!
+   @+ push a
+   pop pop a!
+   @+ push ;'
+
+
+
+   

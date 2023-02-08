@@ -32,8 +32,16 @@
     + with outer_tb as the top module.
     + It will take about 500K cycles to finish the built-in test cases.
 
-
-
+### References
+    * P8
+    * eP16
+    * P21-4th
+    * P21eF208
+    * J1
+    * eJ32i_forth
+    * eJ32j_vhdl
+    * eJsv32k
+    
 
 
 

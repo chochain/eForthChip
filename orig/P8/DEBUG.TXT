@@ -1,0 +1,215 @@
+
+comment:
+9/18/99, debug.txt to debug ! and !+
+9/11/99, test16.txt to debug KEY, EMIT and !IO
+11/06/99, compile to P16 specifications
+11/30/98, convert to P16
+	meta16, ef16, kern16, ok16
+meta.seq, meta-compiler for eForth high level words, 04feb95cht
+Compile ok21c, okchar21, eforth, and bforth, 11feb96cht
+Compile headers in name dictionary, 16feb95cht V2.02
+   beta version
+Update baudRate, !IO, add tv words, 11mar95cht, V2.04
+   compile ok22c,okchar22, kernel, inner and eforth
+Update ok22c, okchar22c, slow down I/O for eForth communication.
+   Release as V2.06.
+   Use original 74HC138/74HC245/74HC574 IO chip set.
+   Replace 14.318 MHz clock by 1.8432 MHz clock for stability in RS232.
+   Rename files as meta26, ok26c, okchar26.
+meta27.seq, include hline27, okchar27, with retchangle, 24nov95cht
+meta28.seq, MuP21h with 82C51 serial chip, 14mar96cht
+   Add RECTANGLE to ok28c.seq, 19mar96cht
+
+comment;
+
+ONLY FORTH ALSO DEFINITIONS
+
+hexbase
+empty  HEX  WARNING OFF
+
+variable printing?
+printing? on
+variable debugging?
+debugging? off
+
+: .head ( addr -- addr )
+   printing? @
+   IF >IN @ 20 word count type space >IN !
+      dup .
+   THEN
+   ;
+
+: CR CR
+   debugging? @
+   if .s KEY 0D = abort" done"
+   then
+   ;
+
+' dup    alias forthDUP
+' drop   alias forthDROP
+' over   alias forthOVER
+' swap   alias forthSWAP
+' @      alias forth@
+' !      alias forth!
+' and    alias forthAND
+' +      alias forth+
+' -      alias forth-
+' word   alias forthWORD
+' CR     alias CRR
+' .(     alias forth.(
+
+: -OR   XOR ;
+
+CREATE ram  6000 ALLOT
+: RESET   ram 6000 ERASE ;   RESET
+: R@   2 * ram +  @ ;
+: R!   2 * ram +  ! ;
+
+: FOUR   4 0 DO  DUP R@ 5 U.R  1+ LOOP ;
+: SHOW ( a)   10 0 DO  CR  DUP 5 .R SPACE
+      FOUR SPACE FOUR  LOOP ;
+
+handle outhcb
+
+: writeROMfile  ( writeROMfile <outputfile> <return> )
+        outhcb !hcb                             \ ouput file spec
+        write-only outhcb hopen
+        IF      outhcb hcreate abort" Create file error"
+                cr ." Create "
+        ELSE    cr ." Update "
+        THEN
+        outhcb count type
+        0.0 outhcb movepointer                  \ reset file pointer
+        2000 0 do
+                I ram +
+                1 outhcb hwrite
+                1- abort" write file error"
+        loop
+        outhcb hclose abort" Close file error"
+        ;
+
+VARIABLE CHECKSUM
+: SEND ( addr len -- )
+        HEX
+        0 DO
+                DUP 0F AND
+                IF ELSE
+                        CR DUP 0FF AND
+                        CHECKSUM !
+                        DUP 100 / CHECKSUM +!
+                        10 CHECKSUM +!
+                        ." :10"
+                        DUP 0 <# # # # # #> TYPE
+                        ." 00"
+                THEN
+                DUP RAM + C@
+                DUP CHECKSUM +!
+                0 <# # # #> TYPE
+                1 + DUP
+                0F AND
+                IF ELSE
+                        CHECKSUM C@ NEGATE
+                        0 <# # # #> TYPE
+                THEN
+        LOOP
+        CR DROP
+        ." :00000001FF"
+        CR
+        ;
+
+CR .( include ok )
+include ok16.txt
+
+comment:
+CR .( include inner )
+800 org
+include inner16.txt
+0 org
+include inner16.txt
+
+CR .( include kernel )
+include kern16.txt
+
+CR
+
+: again ( a -- )
+   BRANCH #, ;
+: until ( a -- )
+   QBRANCH #, ;
+: if ( -- a )
+   QBRANCH begin 0 #, ;
+: then ( a -- )
+   begin swap R! ;
+: else ( a -- a )
+   BRANCH begin forthSWAP 0 #,
+   then ;
+: while ( a -- a' a )
+   if forthSWAP ;
+: repeat ( a' a -- )
+   again then ;
+
+: for ( -- a )
+   >R begin ;
+: next ( a -- )
+   doNEXT #, ;
+: aft ( a -- a' a" )
+   forthDROP BRANCH begin 0 #, begin SWAP ;
+: LIT ( d -- )
+   DOLIT #, ;
+: $LIT ( -- )
+   22 forthWORD count
+   forthDUP #, ( compile count )
+   0 DO
+      count #, ( compile characters )
+   LOOP
+   forthDROP ;
+
+' STORE alias !
+' AT alias @
+' STORE alias C!
+' AT alias C@
+' (DUP) alias dup
+' (SWAP) alias swap
+' (DROP) alias drop
+' (OVER) alias over
+' (AND) alias and
+' (XOR) alias xor
+' (OR) alias or
+
+' EXIT alias ;;
+\ ' WAIT alias ;;               \ debugger
+
+
+: :: makeHead begin .head CONSTANT doLIST DOES> forth@ #, ;
+: CREATE makeHead begin .head CONSTANT doVAR DOES> forth@ #, ;
+: VARIABLE CREATE ( 0 #,) ;        \ let eForth init its variables
+
+.( include eforth )
+\ include ef16.txt
+
+:: EMIT-TEST
+        begin 42 lit emit again ;;
+
+:: IO-TEST
+\        !IO
+        begin 42 lit emit key emit again ;;
+
+
+CRR forth.( done compiling ) CRR
+
+comment;
+
+hex
+20 # a! 1234 #
+! @ drop
+5678 # ! @
+1234 # 5678 # abcd #
+!+ !+ !+
+20 # a! nop
+@+ @+ @+
+drop drop drop
+0 jump
+
+crr forth.( done compiling ) crr
+
+

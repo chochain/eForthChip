@@ -1,0 +1,272 @@
+
+comment:
+meta.seq, meta-compiler for eForth high level words, 04feb95cht
+Compile ok21c, okchar21, eforth, and bforth, 11feb96cht
+Compile headers in name dictionary, 16feb95cht V2.02
+   beta version
+Update baudRate, !IO, add tv words, 11mar95cht, V2.04
+   compile ok22c,okchar22, kernel, inner and eforth
+Update ok22c, okchar22c, slow down I/O for eForth communication.
+   Release as V2.06.
+   Use original 74HC138/74HC245/74HC574 IO chip set.
+   Replace 14.318 MHz clock by 1.8432 MHz clock for stability in RS232.
+   Rename files as meta26, ok26c, okchar26.
+meta27.seq, include hline27, okchar27, with retchangle, 24nov95cht
+meta28.seq, MuP21h with 82C51 serial chip, 14mar96cht
+   Add RECTANGLE to ok28c.seq, 19mar96cht
+
+comment;
+
+ONLY FORTH ALSO DEFINITIONS
+
+empty  HEX  WARNING OFF
+
+variable printing?
+printing? on
+variable debugging?
+debugging? off
+
+: .head ( addr -- addr )
+   printing? @
+   IF >IN @ 20 word count type space >IN !
+      dup .
+   THEN
+   ;
+
+: CR CR
+   debugging? @
+   if .s KEY 0D = abort" done"
+   then
+   ;
+
+' dup    alias forthDUP
+' drop   alias forthDROP
+' over   alias forthOVER
+' swap   alias forthSWAP
+' @      alias forth@
+' !      alias forth!
+' and    alias forthAND
+' +      alias forth+
+' -      alias forth-
+' word   alias forthWORD
+' CR     alias CRR
+' .(     alias forth.(
+
+: 2-OR   ROT XOR >R  XOR R> ;
+: 2AND   ROT AND >R  AND R> ;
+: -OR   XOR ;
+
+: ADDRESS   C 302 PC!  DUP FLIP  301 PC!  300 PC!  ;
+: DISABLE   7 305 PC!  7 306 PC!  ;
+: ENABLE    6 305 PC!  ;
+: 8255 ( n -- ) ( ports A,C output, mode 0)
+   80 303 PC!  ( output )
+   ( C0) 307 PC!  ( A,C mode 2, B mode 0 output )
+    DISABLE ;
+C0 8255
+ENABLE
+
+: READ 6 306 PC!  ;
+: WRITE 7 306 PC!  ;
+: READ-PULSE  4 306 PC!  6 306 PC!  ;
+: WRITE-PULSE 3 306 PC!  7 306 PC!  ;
+
+: ROM@ ( a - b)   ADDRESS  READ-PULSE
+   304 PC@  ;
+
+: RAM! ( b a)   ADDRESS  304 PC!  WRITE-PULSE ;
+
+: CLEAN   WRITE  3000 0 DO  0 I RAM!  LOOP READ ;
+: VIEW ( a)   DUP .  10 0 DO  CR 10 0 DO  DUP ROM@ 3 .R
+      1 + LOOP LOOP ;
+
+
+
+CREATE ram  6000 ALLOT
+: RESET   ram 6000 ERASE ;   RESET
+: R@   3 * ram +  DUP 1 + @ FLIP  SWAP C@ ;
+: R!   3 * ram +  SWAP OVER C!  SWAP FLIP  SWAP 1 + ! ;
+
+: FOUR   4 0 DO  DUP R@ AAAAA. 2-OR 6 D.R  1 + LOOP ;
+: SHOW ( a)   10 0 DO  CR  DUP 3 .R SPACE
+      FOUR SPACE FOUR  LOOP ;
+: SEND1   WRITE  2000 3FFF DO  I AAA -OR  ram + C@  I 4000 + RAM!
+      -1 +LOOP  READ ;
+: SEND2   WRITE  4000 5FFF DO  I AAA -OR  ram + C@  I RAM!
+      -1 +LOOP  READ ;
+: CHECK1   4000 2000 DO  I AAA -OR  ram + C@  I 4000 + ROM@  2DUP -OR IF
+         CR I 3 .R  4 .R  3 .R  ELSE 2DROP  THEN LOOP ;
+: CHECK2   6000 4000 DO  I AAA -OR  ram + C@  I ROM@  2DUP -OR IF
+         CR I 3 .R  4 .R  3 .R  ELSE 2DROP  THEN LOOP ;
+: SEND   WRITE  0 1FFF DO  I AAA -OR  ram + C@  I RAM!
+      -1 +LOOP  READ send1 send2 ;
+: CHECK   2000 0 DO  I AAA -OR  ram + C@  I ROM@  2DUP -OR IF
+         CR I 3 .R  4 .R  3 .R  ELSE 2DROP  THEN LOOP check1 check2 ;
+
+\ comment:
+handle outhcb
+
+: writeROMfile  ( writeROMfile <outputfile> <return> )
+        outhcb !hcb                             \ ouput file spec
+        write-only outhcb hopen
+        IF      outhcb hcreate abort" Create file error"
+                cr ." Create "
+        ELSE    cr ." Update "
+        THEN
+        outhcb count type
+        0.0 outhcb movepointer                  \ reset file pointer
+        2000 0 do
+                I AAA -OR ram +
+                1 outhcb hwrite
+                1- abort" write file error"
+        loop
+        4000. outhcb movepointer                \ skip 8K bytes
+        6000 4000 do                            \ this segment in place
+                I AAA -OR ram +
+                1 outhcb hwrite
+                1- abort" write file error"
+        loop
+        4000 2000 do                            \ relocate to 6000-7FFF
+                I AAA -OR ram +
+                1 outhcb hwrite
+                1- abort" write file error"
+        loop
+        outhcb hclose abort" Close file error"
+        ;
+\ comment;
+
+CR .( include ok28c )
+include ok28c
+
+CR .( include hline27 )
+include hline27
+
+CR .( include okchar28 )
+include okchar28
+
+CR .( include eforth kernel )
+include kernel27
+
+comment:
+CR
+': CLS
+:KEY CLSkey   BLANK KEY -;'
+
+': redScreen red SCREEN KEY -;'
+': blueScreen blue SCREEN KEY -;'
+': greenScreen green SCREEN KEY -;'
+
+CR
+
+:KEY TEST MENU greenScreen
+   ioTest 50dump+ 50dump- emitTest CLSkey keyTest IS !main --
+
+:KEY SELECTION MENU blueScreen
+   IS !debug -- nibble3 nibble2 nibble1 nibble0 showStacks TEST
+
+!debug fix
+:KEY DEBUG MENU redScreen
+   showStacks goAddress continue repeatAddress -- SELECTION TEST
+comment;
+
+\ comment:
+SWITCH                  \ comment out these lines to activate debugger
+40001. p PAGE
+BLANK
+\ comment;
+
+IS !cold
+:KEY coldStart
+   F3E. # 3FF. # nop a!
+   !
+   ljump goAddress
+
+comment:
+3FC ORG
+F3E. #, 3C0. #, 3E0. #, F3E. #,
+
+SWITCH                \ un-comment these two lines to activate debugger
+40001. p PAGE
+BLANK
+comment;
+
+CODE BYE
+\ !main FIX
+\ ': MAIN MENU 'OK'  DEBUG 50dump+ 50dump- coldStart TEST SELECTION RESET
+
+': main menu 'ok'  50dump+ 50dump- \ test1 test2 test3 test4 test5
+                   -- coldStart -- -- reset
+
+SWITCH .
+begin .
+
+
+CR 800 ORG
+include inner
+CR C00 ORG
+include inner
+CR 1000 ORG
+include inner
+
+CR
+
+: again ( a -- )
+   BRANCH 0 #, ;
+: until ( a -- )
+   QBRANCH 0 #, ;
+: if ( -- a )
+   QBRANCH begin 0. #, ;
+: then ( a -- )
+   begin 0 AAAAA. 2-or rot R! ;
+: else ( a -- a )
+   BRANCH begin forthSWAP 0. #,
+   then ;
+: while ( a -- a' a )
+   if forthSWAP ;
+: repeat ( a' a -- )
+   again then ;
+
+: for ( -- a )
+   >R begin ;
+: next ( a -- )
+   doNEXT 0 #, ;
+: aft ( a -- a' a" )
+   forthDROP BRANCH begin 0. #, begin SWAP ;
+: LIT ( d -- )
+   DOLIT #, ;
+: $LIT ( -- )
+   22 forthWORD count
+   forthDUP 0 #, ( compile count )
+   0 DO
+      count 0 #, ( compile characters )
+   LOOP
+   forthDROP ;
+
+' STORE alias !
+' AT alias @
+' STORE alias C!
+' AT alias C@
+' (DUP) alias dup
+' (SWAP) alias swap
+' (DROP) alias drop
+' (OVER) alias over
+' (AND) alias and
+' (XOR) alias xor
+' (OR) alias or
+
+' EXIT alias ;;
+\ ' WAIT alias ;;               \ debugger
+
+
+: :: makeHead begin .head CONSTANT doLIST DOES> forth@ 0 #, ;
+: USER makeHead begin .head CONSTANT doUSER #, DOES> forth@ 0 #, ;
+: CREATE makeHead begin .head CONSTANT doVAR DOES> forth@ 0 #, ;
+: VARIABLE CREATE ( 0. #,) ;        \ let eForth init its variables
+
+.( include eforth28 )
+include eforth28
+
+CRR forth.( done compiling ) CRR
+
+
+

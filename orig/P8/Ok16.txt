@@ -1,0 +1,98 @@
+( EPROM Programmer, Chuck Moore, 1993 Aug 16)
+( modified from ok28 for P16, 08dec98cht )
+
+VARIABLE H
+: LOC   CONSTANT  DOES> @  H ! ;
+
+variable nameH 1FFF nameH !               \ point to next available location
+variable lastH 0 lastH !                  \ init linkfield address lfa
+
+: nameR! ( n -- )
+   H @ R!               \ store double to code buffer
+   1 H +!                             \ bump nameH
+   ;
+
+: (makeHead)
+   20 word                                \ get name of new definition
+   lastH @ nameR!                         \ fill link field of last word
+   H @ lastH !                        \ save nfa in lastH
+   dup c@ nameR!                          \ store count
+   count 0 do
+      count nameR!                        \ fill name field
+   loop drop
+   ;
+
+: makeHead
+   >IN @ >R                               \ save interpreter pointer
+   (makeHead)
+   R> >IN !                               \ restore word pointer
+   ;
+
+: compile-only 40 lastH @ R@ XOR lastH @ R! ;
+: immediate    80 lastH @ R@ XOR lastH @ R! ;
+
+\ Derived from Chuck Moore's P21 20 bit assembler
+
+VARIABLE Hi   VARIABLE Hw
+: ALIGN   8 Hi ! ;
+: ORG   DUP . CR H !  ALIGN ;
+: SWITCH   H @  SWAP  ORG ;
+: IS   H @  Hi @ 8 / +  CONSTANT ;
+: ALLOT ( n -- ) H +! ;
+
+CREATE mask  0 ,  F800 , 7C0 , 3E ,
+: p,   H @ R!  1 H +! ;
+: #,   p, ;
+: ,w   Hw @ R@  XOR  Hw @ R! ;
+: ,I   Hi @ 8 AND IF  2 Hi !  H @ Hw !  0 p,  THEN
+   Hi @ mask + @ AND  ,w  2 Hi +! ;
+
+: INST   CONSTANT   DOES> @  ,I ;
+8420 INST com   F7BC INST nop
+: JMP   CONSTANT  DOES> @  BEGIN  Hi @ 4 AND WHILE  nop  REPEAT
+   ,I  7FF AND ,w  ALIGN ;
+: begin   BEGIN  Hi @ 8 AND 0= WHILE  nop  REPEAT  H @ ;
+: -;'   Hw @ R@  OVER 2000 AND  IF 2000  ELSE 0  THEN XOR  Hw @ R! ;
+: p   5294 ,I  p, ;
+: -p   negate p ;
+: #    p ;
+: -#   -p ;
+: FIX   DROP 1 - >R  begin  R> R! ;
+
+( bits 10 8 4 2 1: 8420 4210 2108 1084 0842)
+0000 JMP jump   1000 JMP T=0    1800 JMP C=0    2000 JMP call
+                1000 JMP until  1800 JMP -until
+: ':   begin  .head CONSTANT  DOES> @  call ;
+: :KEY   begin  .head CONSTANT  DOES> @ #, ;
+
+: CODE   makeHead :KEY ;            \ for eForth kernel words
+
+: if   0 T=0  Hw @ ;
+: -if   0 C=0  Hw @ ;
+: skip   0 jump  Hw @ ;
+: then   DUP >R >R  begin  7FF AND  R> R@ XOR  R> R! ;
+: else   skip  SWAP then ;
+: while   if  SWAP ;
+: -while -if  SWAP ;
+: repeat   jump  then ;
+
+( bits 10 8 4 2 1: 8420 4210 2108 1084 0842)
+4A52 INST @+  ( 5AD6 INST @ )   6B5A INST !+    7BDE INST !
+                8C62 INST 2*    94A4 INST 2/    9CE6 INST +*
+A528 INST -or   AD6A INST and   BDEE INST +
+C630 INST pop   CE72 INST a     D6B4 INST dup   DEF6 INST over
+E738 INST push  EF7A INST a!
+0842 INST ;'
+
+: ,   p  !+ ;
+: J   FFFF XOR #  !+ ;
+
+: ljump ' >body @ #           \ get address of target word
+   push ;' ;                    \ long jump
+
+FFFE INST drop
+5AD6 INST @
+
+cr
+begin .
+

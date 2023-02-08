@@ -1,0 +1,20 @@
+\ inner.seq, inner interpreter, 17feb95cht
+\ inner16 10jun99cht
+
+CRR
+
+\ doLIST must be at the beginning of every 2K page which
+\ contains high level colon definitions
+
+': reset
+   0 # push ;'             \ jump to COLD on reset
+
+': doLIST                        \ list address is in R
+   pop a push                 \ get return stack pointer in R1
+   a! @+ push 
+   ;'                    \ execute (I), I->I+1
+
+': doVAR                         \ variable address is in R
+   pop @+ push 
+   ;'                 \ next
+

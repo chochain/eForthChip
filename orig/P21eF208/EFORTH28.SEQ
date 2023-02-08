@@ -1,0 +1,637 @@
+\ eForth.seq, adapted from Bill Muench's aFIG.b, 27feb96cht
+\ V2.06, slow down I/O for stability of RS232, 11/nov95cht
+\ V2.07, merge rectangle routine in hline27, 24nov95cht
+\ V20.8, add RECTANGLE to ok28c.seq, add space to 'redef ',
+\        use 82C51 for serial communication. 18mar96cht
+
+\        tracker =============================================
+\ 950311 improve !IO, add P21 words, V2.04
+\ 950227 boot up using serial port, V2.03
+\ 950216 compiled successfully
+\ 950210 compiled from ok20c
+\ 950204 MuP21 bForth
+\ 900729 match MASM listing
+\ 900708 cleanup editing  remove NIP .$
+\ 900707 Ting's MASM working
+\ 900412 start afig model
+\        coyote ==============================================
+
+comment:
+CRR .( Memory allocation )
+
+$FFFFF. 2CONSTANT =EM   \ end of memory
+$00F30. 2CONSTANT =COLD \ cold start vector
+
+$0010. 2CONSTANT =US   \ user area size in cells
+$0020. 2CONSTANT =RTS  \ return stack/TIB size
+
+$03E0. 2CONSTANT =RP   \ return stack base
+$0310. 2CONSTANT =TIB  \ default Terminal Input Buffer
+$03C0. 2CONSTANT =SP   \ data stack base
+$03B0. 2CONSTANT =UP   \ user base
+comment;
+
+
+CRR .( System variables ) CRR
+
+810 ORG
+
+VARIABLE tmp 0. #,         COMPILE-ONLY \ scratch
+VARIABLE SPAN 0. #,        \ #chars input by EXPECT
+VARIABLE >IN  0. #,        \ input buffer offset
+VARIABLE #TIB 0. #,        \ #chars in the input buffer
+              310. #,     \ TIB
+VARIABLE UP  3B0. #,       \ user base pointer
+VARIABLE CSP  0. #,        \ save stack pointers
+VARIABLE 'EVAL IS !EVAL 0. #,           \ interpret/compile vector
+VARIABLE 'NUMBER IS !NUMBER 0. #,         \ numeric input vector
+
+CRR
+
+VARIABLE HLD 0. #,        \ ptr to converted # string
+VARIABLE HANDLER 0. #,    \ error frame pointer
+
+VARIABLE CONTEXT 0. #,    \ first search vocabulary
+\      8 CELLS ALLOT       \ vocabulary stack
+   0. #, 0. #, 0. #, 0. #, 0. #, 0. #, 0. #, 0. #,
+
+VARIABLE CURRENT 0. #,    \ definitions vocabulary
+\      1 CELLS ALLOT       \ voc-link  newest vocabulary
+   0. #,
+
+VARIABLE CP 0. #,         \ dictionary code pointer
+VARIABLE NP 0. #,         \ dictionary name pointer
+VARIABLE LAST 0. #,       \ ptr to last name compiled
+
+CRR .( User variables ) CRR
+
+0 \ start offset
+
+0. USER SP0       \ initial data stack pointer
+1. USER RP0       \ initial return stack pointer
+
+2. USER '?KEY     \ character input vector
+3. USER 'EMIT     \ character output vector
+
+CRR
+
+4. USER 'EXPECT   \ line input vector
+5. USER 'TAP      \ input case vector
+6. USER 'ECHO     \ input echo vector
+7. USER 'PROMPT   \ operator prompt vector
+
+8. USER BASE      \ number base
+
+. ( number of user variables )
+
+CRR .( Common functions ) CRR
+
+:: doVOC ( -- ) R> CONTEXT ! ;;
+
+:: FORTH ( -- ) doVOC 19CE. #, 0. #,
+
+:: ?DUP ( w -- w w | 0 ) DUP IF DUP THEN ;;
+
+:: ROT ( w1 w2 w3 -- w2 w3 w1 ) >R SWAP R> SWAP ;;
+
+:: 2DROP ( w w  -- ) DROP DROP ;;
+
+:: 2DUP ( w1 w2 -- w1 w2 w1 w2 ) OVER OVER ;;
+
+:: + ( w w -- w ) UM+ DROP ;;
+
+:: NOT ( w -- w ) -1. LIT XOR ;;
+
+CRR
+
+::  NEGATE ( n -- -n ) NOT 1. LIT + ;;
+:: DNEGATE ( d -- -d ) NOT >R NOT 1. LIT UM+ R> + ;;
+
+\ :: D+ ( d d -- d ) >R SWAP >R UM+ R> R> + + ;;
+
+:: - ( w w -- w ) NEGATE + ;;
+
+:: ABS ( n -- +n ) DUP 0< IF NEGATE THEN ;;
+
+CRR .( Comparison ) CRR
+
+:: = ( w w -- t ) XOR IF 0. LIT EXIT THEN -1. LIT ;;
+
+:: U< ( u u -- t ) 2DUP XOR 0< IF SWAP DROP 0< EXIT THEN - 0< ;;
+::  < ( n n -- t ) 2DUP XOR 0< IF      DROP 0< EXIT THEN - 0< ;;
+
+:: MAX ( n n -- n ) 2DUP      < IF SWAP THEN DROP ;;
+:: MIN ( n n -- n ) 2DUP SWAP < IF SWAP THEN DROP ;;
+
+:: WITHIN ( u ul uh -- t ) \ ul <= u < uh
+  OVER - >R - R> U< ;;
+
+CRR .( Divide ) CRR
+
+:: UM/MOD ( ud u -- ur uq )
+  2DUP U<
+  IF NEGATE  13. LIT
+    FOR >R DUP UM+ >R >R DUP UM+ R> + DUP
+        R> R@ SWAP >R UM+  R> OR
+      IF >R DROP 1. LIT + R> ELSE DROP THEN R>
+    NEXT DROP SWAP EXIT
+  THEN DROP 2DROP  -1. LIT DUP ;;
+
+:: M/MOD ( d n -- r q ) \ floored
+  DUP 0<  DUP >R
+  IF NEGATE >R DNEGATE R>
+  THEN >R DUP 0< IF R@ + THEN R> UM/MOD R>
+  IF SWAP NEGATE SWAP THEN ;;
+
+:: /MOD ( n n -- r q ) OVER 0< SWAP M/MOD ;;
+:: MOD ( n n -- r ) /MOD DROP ;;
+:: / ( n n -- q ) /MOD SWAP DROP ;;
+
+CRR .( Multiply ) CRR
+
+:: UM* ( u u -- ud )
+  0. LIT SWAP ( u1 0 u2 ) 13. LIT ( 19 decimal )
+  FOR DUP UM+ >R >R DUP UM+ R> + R>
+    IF >R OVER UM+ R> + THEN
+  NEXT ROT DROP ;;
+
+:: * ( n n -- n ) UM* DROP ;;
+
+:: M* ( n n -- d )
+  2DUP XOR 0< >R  ABS SWAP ABS UM*  R> IF DNEGATE THEN ;;
+
+:: */MOD ( n n n -- r q ) >R M* R> M/MOD ;;
+:: */ ( n n n -- q ) */MOD SWAP DROP ;;
+
+CRR .( Bits & Bytes ) CRR
+
+:: CELL- ( a -- a ) -1. LIT + ;;
+:: CELL+ ( a -- a ) 1. LIT + ;;
+\ :: CELLS ( n -- n ) ;;
+
+\ :: ALIGNED ( b -- a ) ;;
+
+:: BL ( -- 32 ) 20. LIT ;;
+CRR
+:: >CHAR ( c -- c )
+  $7F. LIT AND DUP 7F. LIT BL WITHIN
+  IF DROP ( CHAR _ ) 5F. LIT THEN ;;
+
+:: DEPTH ( -- n ) SP@ SP0 @ - ;;
+
+:: PICK ( +n -- w ) 1. LIT + SP@ SWAP - @ ;;
+
+CRR .( Memory access ) CRR
+
+:: +! ( n a -- ) SWAP OVER @ + SWAP ! ;;
+
+:: 2! ( d a -- ) SWAP OVER ! CELL+ ! ;;
+:: 2@ ( a -- d ) DUP CELL+ @ SWAP @ ;;
+
+:: COUNT ( b -- b +n ) DUP 1. LIT + SWAP C@ ;;
+
+:: HERE ( -- a ) CP @ ;;
+:: PAD ( -- a ) HERE 50. LIT  + ;;
+:: TIB ( -- a ) #TIB CELL+ @ ;;
+CRR
+:: @EXECUTE ( a -- ) @ ?DUP IF EXECUTE THEN ;;
+
+:: CMOVE ( b b u -- )
+  FOR AFT >R DUP C@ R@ C! CELL+ R> CELL+ THEN NEXT 2DROP ;;
+
+:: FILL ( b u c -- )
+  SWAP FOR SWAP AFT 2DUP C! CELL+ THEN NEXT 2DROP ;;
+
+:: -TRAILING ( b u -- b u )
+  FOR AFT BL OVER R@ + C@ <
+    IF R> CELL+ EXIT THEN THEN
+  NEXT 0. LIT ;;
+
+:: PACK$ ( b u a -- a ) \ null fill
+  DUP >R 2DUP C!  CELL+ SWAP CMOVE  R> ;;
+
+CRR .( Numeric Output ) CRR \ single precision
+
+:: DIGIT ( u -- c ) 9. LIT OVER < 7. LIT AND +
+  ( CHAR 0 ) 30. LIT + ;;
+:: EXTRACT ( n base -- n c ) 0. LIT SWAP UM/MOD SWAP DIGIT ;;
+
+:: <# ( -- ) PAD HLD ! ;;
+
+:: HOLD ( c -- ) HLD @ CELL- DUP HLD ! C! ;;
+
+:: # ( u -- u ) BASE @ EXTRACT HOLD ;;
+
+:: #S ( u -- 0 ) BEGIN # DUP WHILE REPEAT ;;
+CRR
+:: SIGN ( n -- ) 0< IF ( CHAR - ) 2D. LIT HOLD THEN ;;
+
+:: #> ( w -- b u ) DROP HLD @ PAD OVER - ;;
+
+:: str ( n -- b u ) DUP >R ABS <# #S R> SIGN #> ;;
+
+:: HEX ( -- ) 10. LIT BASE ! ;;
+:: DECIMAL ( -- ) 0A. LIT BASE ! ;;
+
+CRR .( Numeric Input ) CRR \ single precision
+
+:: DIGIT? ( c base -- u t )
+  >R ( CHAR 0 ) 30. LIT - 9. LIT OVER <
+  IF 7. LIT - DUP 0A. LIT  < OR THEN DUP R> U< ;;
+
+!NUMBER FIX
+:: NUMBER? ( a -- n T | a F )
+  BASE @ >R  0. LIT OVER COUNT ( a 0 b n)
+  OVER C@ ( CHAR $ ) 24. LIT =
+  IF HEX SWAP CELL+ SWAP CELL- THEN ( a 0 b' n')
+  OVER C@ ( CHAR - ) 2D. LIT = >R ( a 0 b n)
+  SWAP R@ - SWAP R@ + ( a 0 b" n") ?DUP
+  IF CELL- ( a 0 b n)
+    FOR DUP >R C@ BASE @ DIGIT?
+      WHILE SWAP BASE @ * +  R> CELL+
+    NEXT DROP R@ ( b ?sign) IF NEGATE THEN SWAP
+      ELSE R> R> ( b index) 2DROP ( digit number) 2DROP 0. LIT
+      THEN DUP
+  THEN R> ( n ?sign) 2DROP R> BASE ! ;;
+
+CRR .( Basic I/O ) CRR
+
+:: ?KEY ( -- c T | F ) '?KEY @EXECUTE ;;
+:: KEY ( -- c ) BEGIN ?KEY UNTIL ;;
+:: EMIT ( c -- ) 'EMIT @EXECUTE ;;
+
+\ :: NUF? ( -- f ) ?KEY DUP IF 2DROP KEY ( =Cr ) 0D. LIT = THEN ;;
+
+::  PACE ( -- ) 0B. LIT EMIT ;;
+:: SPACE ( -- ) BL EMIT ;;
+CRR
+:: CHARS ( +n c -- ) \ ???ANS conflict
+  SWAP 0. LIT MAX FOR AFT DUP EMIT THEN NEXT DROP ;;
+
+:: SPACES ( +n -- ) BL CHARS ;;
+
+:: TYPE ( b u -- ) FOR AFT DUP C@ EMIT CELL+ THEN NEXT DROP ;;
+
+:: CR ( -- ) ( =Cr ) 0D. LIT EMIT ( =Lf ) 0A. LIT EMIT ;;
+
+:: do$ ( -- a )
+  R> R@ R> COUNT + >R SWAP >R ;; COMPILE-ONLY
+CRR
+:: $"| ( -- a ) do$ ;; COMPILE-ONLY
+
+:: ."| ( -- ) do$ COUNT TYPE ;; COMPILE-ONLY
+
+::  .R ( n +n -- ) >R str      R> OVER - SPACES TYPE ;;
+:: U.R ( u +n -- ) >R <# #S #> R> OVER - SPACES TYPE ;;
+
+:: U. ( u -- ) <# #S #> SPACE TYPE ;;
+::  . ( n -- ) BASE @ 0A. LIT  XOR IF U. EXIT THEN str SPACE TYPE ;;
+
+:: ? ( a -- ) @ . ;;
+
+CRR .( Parsing ) CRR
+
+:: (parse) ( b u c -- b u delta ; <string> )
+  tmp !  OVER >R  DUP \ b u u
+  IF CELL-  tmp @ BL =
+    IF \ b u' \ 'skip'
+      FOR BL OVER C@ - 0< NOT  WHILE CELL+
+      NEXT ( b) R> DROP 0. LIT DUP EXIT \ all delim
+        THEN  R>
+    THEN OVER SWAP \ b' b' u' \ 'scan'
+    FOR tmp @ OVER C@ -  tmp @ BL =
+      IF 0< THEN WHILE CELL+
+    NEXT DUP >R  ELSE R> DROP DUP CELL+ >R
+                 THEN OVER -  R>  R> - EXIT
+  THEN ( b u) OVER R> - ;;
+
+:: PARSE ( c -- b u ; <string> )
+  >R  TIB >IN @ +  #TIB @ >IN @ -  R> (parse) >IN +! ;;
+
+:: CHAR ( -- c ) BL PARSE DROP C@ ;;
+
+:: TOKEN ( -- a ;; <string> )
+  BL PARSE 1F. LIT MIN NP @ OVER - CELL- PACK$ ;;
+
+:: WORD ( c -- a ; <string> ) PARSE HERE PACK$ ;;
+
+CRR .( Dictionary Search ) CRR
+
+:: NAME> ( a -- xt ) CELL- CELL- @ ;;
+
+:: SAME? ( a a u -- a a f \ -0+ )
+  FOR AFT OVER R@ + @
+          OVER R@ + @ -  ?DUP
+    IF R> DROP EXIT THEN THEN
+  NEXT 0. LIT ;;
+
+:: find ( a va -- xt na | a F ) \ ************ be careful here!!!
+  SWAP              \ va a
+  DUP C@ tmp !  \ va a  \ get cell count                      !!!
+  DUP @ >R          \ va a  \ count
+  CELL+ SWAP        \ a' va
+  BEGIN @ DUP       \ a' na na
+    IF DUP @ 3F. LIT AND  R@ XOR \ ignore lexicon bits
+      IF CELL+ -1. LIT ELSE CELL+ tmp @ SAME? THEN
+    ELSE R> DROP SWAP CELL- SWAP EXIT \ a F
+    THEN
+  WHILE CELL- CELL- \ a' la
+  REPEAT R> DROP SWAP DROP CELL-  DUP NAME> SWAP ;;
+
+CRR
+
+\ page break.  insert doList, doUser and doVar
+
+C10 ORG
+
+:: NAME? ( a -- xt na | a F )
+  CONTEXT  DUP 2@ XOR IF CELL- THEN >R \ context<>also
+  BEGIN R>  CELL+  DUP >R  @  ?DUP
+  WHILE find  ?DUP
+  UNTIL R> DROP EXIT THEN R> DROP  0. LIT ;;
+
+CRR .( Terminal ) CRR
+
+:: ^H ( b b b -- b b b ) \ backspace
+  >R OVER R> SWAP OVER XOR
+  IF ( =BkSp ) 8. LIT 'ECHO @EXECUTE
+     CELL-         BL 'ECHO @EXECUTE \ distructive
+     ( =BkSp ) 8. LIT 'ECHO @EXECUTE \ backspace
+  THEN ;;
+
+:: TAP ( bot eot cur c -- bot eot cur )
+  DUP 'ECHO @EXECUTE OVER C! CELL+ ;;
+
+:: kTAP ( bot eot cur c -- bot eot cur )
+  DUP ( =Cr ) 0D. LIT XOR
+  IF ( =BkSp ) 8. LIT XOR IF BL TAP ELSE ^H THEN EXIT
+  THEN DROP SWAP DROP DUP ;;
+CRR
+:: accept ( b u -- b u )
+  OVER + OVER
+  BEGIN 2DUP XOR
+  WHILE  KEY  DUP BL -  5F. LIT U<
+    IF TAP ELSE 'TAP @EXECUTE THEN
+  REPEAT DROP  OVER - ;;
+
+:: EXPECT ( b u -- ) 'EXPECT @EXECUTE SPAN ! DROP ;;
+
+:: QUERY ( -- )
+  TIB 50. LIT 'EXPECT @EXECUTE #TIB !  DROP 0. LIT >IN ! ;;
+
+CRR .( Error handling ) CRR
+
+:: CATCH ( xt -- 0 | err# )
+  SP@ >R  HANDLER @ >R  RP@ HANDLER !
+  EXECUTE
+  R> HANDLER !  R> DROP  0. LIT ;;
+
+:: THROW ( err# -- err# )
+  HANDLER @ RP!  R> HANDLER !  R> SWAP >R SP! DROP R> ;;
+                        
+CREATE NULL$ 0. #, 0. #, ( 0 , $," coyote" )
+
+:: ABORT ( -- ) NULL$ THROW ;;
+
+:: abort" ( f -- ) IF do$ THROW THEN do$ DROP ;; COMPILE-ONLY
+
+CRR .( Interpret ) CRR
+
+!EVAL FIX
+:: $INTERPRET ( a -- )
+  NAME?  ?DUP
+  IF @ 40. LIT AND
+    ABORT" $LIT compile only" EXECUTE EXIT
+  THEN 'NUMBER @EXECUTE IF EXIT THEN THROW ;;
+
+:: [ ( -- ) DOLIT $INTERPRET 'EVAL ! ;; IMMEDIATE
+
+:: .OK ( -- ) DOLIT $INTERPRET 'EVAL @ = IF SPACE ."| $LIT ok" THEN CR ;;
+
+:: ?STACK ( -- ) DEPTH 0< ABORT" $LIT underflow" ;;
+
+:: EVAL ( -- )
+  BEGIN TOKEN DUP C@
+  WHILE 'EVAL @EXECUTE ?STACK
+  REPEAT DROP 'PROMPT @EXECUTE ;;
+
+\ bFORTH Copyright (c) 1990 Bill Muench All rights reserved
+
+CRR .( Shell ) CRR
+
+:: PRESET ( -- ) SP0 @ SP!  ( =TIB) 310. LIT #TIB CELL+ ! ;;
+
+:: xio ( a a a -- ) \ reset  'EXPECT 'TAP  'ECHO 'PROMPT
+  DOLIT accept  'EXPECT 2! 'ECHO 2! ;; COMPILE-ONLY
+
+:: FILE ( -- )
+  DOLIT PACE DOLIT DROP DOLIT kTAP  xio ;;
+
+:: HAND ( -- )
+  DOLIT .OK  DOLIT EMIT DOLIT kTAP  xio ;;
+
+CREATE I/O  ?RX  TX!  \ defaults
+
+:: CONSOLE ( -- ) I/O 2@ '?KEY 2! HAND ;;
+
+:: QUIT ( -- )
+  RP0 @ RP!
+  BEGIN [
+    BEGIN QUERY   DOLIT EVAL  CATCH ?DUP
+    UNTIL 'PROMPT @ SWAP CONSOLE  NULL$ OVER XOR
+    IF SPACE COUNT TYPE SPACE ."| $LIT ?" CR
+    THEN  DOLIT .OK   XOR
+    IF ( =ERR ) 1B. LIT EMIT THEN
+    PRESET
+  AGAIN ;;
+
+CRR .( Compiler Primitives ) CRR
+
+:: ' ( -- xt ) TOKEN NAME? IF EXIT THEN THROW ;;
+
+:: ALLOT ( n -- ) CP +! ;;
+
+:: , ( w -- ) HERE DUP CELL+ CP ! ! ;; \ ???ALIGNED
+
+:: [COMPILE] ( -- ; <string> ) ' , ;; IMMEDIATE
+CRR
+:: COMPILE ( -- ) R> DUP @ , CELL+ >R ;; COMPILE-ONLY
+
+:: LITERAL doLIT doLIT , , ;; IMMEDIATE
+
+:: $," ( -- ) ( CHAR " ) 22. LIT WORD C@ CELL+ ALLOT ;;
+
+:: RECURSE ( -- ) LAST @ NAME> , ;; IMMEDIATE
+
+CRR .( Name Compiler ) CRR
+
+:: ?UNIQUE ( a -- a )
+  DUP NAME? IF SPACE ."| $LIT reDef " OVER COUNT TYPE THEN DROP ;;
+
+:: $,n ( a -- )
+  DUP C@
+  IF ?UNIQUE
+    ( na) DUP LAST ! \ for OVERT
+    ( na) HERE SWAP
+    ( cp na) CELL-
+    ( cp la) CURRENT @ @
+    ( cp la na') OVER !
+    ( cp la) CELL- DUP NP ! ( ptr) ! EXIT
+  THEN $"| $LIT name" THROW ;;
+
+CRR .( FORTH Compiler ) CRR
+
+:: $COMPILE ( a -- )
+  NAME? ?DUP
+  IF @ 80. LIT AND
+    IF EXECUTE ELSE , THEN EXIT
+  THEN 'NUMBER @EXECUTE
+  IF LITERAL EXIT
+  THEN THROW ;;
+
+:: OVERT ( -- ) LAST @ CURRENT @ ! ;;
+
+:: ; ( -- )
+  COMPILE EXIT [ OVERT ;; COMPILE-ONLY IMMEDIATE
+
+:: ] ( -- ) DOLIT $COMPILE   'EVAL ! ;;
+
+:: : ( -- ; <string> ) TOKEN $,n ( ' doLIST 8155.) A2BFF. LIT , ] ;;
+
+CRR .( Defining Words ) CRR
+
+:: code ( -- ; <string> ) TOKEN $,n OVERT ;;
+
+:: USER ( n -- ; <string> )
+  code ( 815D.) A2BF7. LIT , ;;
+
+CRR .( Tools ) CRR
+
+:: _TYPE ( b u -- )
+  FOR AFT DUP C@ >CHAR EMIT CELL+ THEN NEXT DROP ;;
+
+:: dm+ ( b u -- b )
+  OVER 5. LIT U.R SPACE FOR AFT DUP C@ 6. LIT U.R CELL+ THEN NEXT ;;
+
+:: DUMP ( b u -- )
+  BASE @ >R HEX  8. LIT /
+  FOR CR 8. LIT 2DUP dm+ ROT ROT 2. LIT SPACES _TYPE
+  NEXT  DROP  R> BASE ! ;;
+
+:: .S ( -- ) SPACE DEPTH FOR AFT R@ PICK . THEN NEXT ;;
+:: .BASE ( -- ) BASE @ DECIMAL DUP . BASE  ! ;;
+:: .FREE ( -- ) NP @ CP @ - U. ;;
+CRR
+:: !CSP ( -- ) SP@ CSP ! ;;
+:: ?CSP ( -- ) SP@ CSP @ XOR ABORT" $LIT stack depth" ;;
+
+:: >NAME ( xt -- na | F )
+  CURRENT
+  BEGIN CELL+ @ ?DUP WHILE 2DUP
+    BEGIN @ DUP WHILE 2DUP NAME> XOR
+    WHILE CELL-
+    REPEAT      THEN SWAP DROP ?DUP
+  UNTIL SWAP DROP SWAP DROP EXIT THEN DROP 0. LIT ;;
+
+:: .ID ( a -- )
+  ?DUP IF COUNT $01F. LIT AND _TYPE EXIT THEN SPACE ."| $LIT {noName}" ;;
+
+:: SEE ( -- ; <string> )
+  ' CR
+  BEGIN
+    20. LIT FOR
+      CELL+ DUP @ DUP IF >NAME THEN ?DUP
+      IF SPACE .ID ELSE DUP @ U. THEN
+    NEXT KEY 0D. LIT =                  \ can't use ESC on terminal
+  UNTIL DROP ;;
+
+:: WORDS ( -- )
+  CR  CONTEXT @
+  BEGIN @ ?DUP
+  WHILE DUP SPACE .ID CELL-
+  REPEAT ;;
+
+CRR .( Hardware reset ) CRR
+
+\ version
+
+:: VER ( -- u ) 208. LIT ;;
+
+:: hi ( -- )
+   !IO
+   HEX           \   !IO \ initialize IO device & sign on
+   CR ."| $LIT MuP21 eForth V"
+   VER <# # # ( CHAR . ) 2E. LIT HOLD # #> TYPE
+   CR DECIMAL
+   ;; COMPILE-ONLY
+
+:: EMPTY ( -- )
+   FORTH CONTEXT @ DUP CURRENT 2!      \ init vocabulary
+   DOLIT IS !CP 0. #, CP !             \ init code dictionary pointer
+   DOLIT IS !NP 0. #, NP !             \ init name dictionary pointer
+   DOLIT IS !LAST 0. #, LAST !         \ init last name field pointer
+   OVERT ;;                            \ init vocabulary link
+
+CREATE 'BOOT  hi  \ application vector
+
+CREATE up' \ MUST match user, room for 12
+   3C0. #, ( SP0)   3E0. #, ( RP0 ) ?RX TX!
+   accept kTap TX! .OK
+   0A. #, ( base ) 0. #, 0. #, 0. #,
+
+:: COLD ( -- )
+  BEGIN
+!cold 1. D+ FIX
+    up' UP @ ( #USER ) 9. LIT CMOVE \ ???
+    PRESET  'BOOT @EXECUTE
+    EMPTY    \  FORTH CONTEXT @ DUP CURRENT 2! OVERT
+    QUIT
+  AGAIN ;;
+
+
+CRR .( Structures ) CRR
+
+:: <MARK ( -- a ) HERE ;;
+:: <RESOLVE ( a -- ) , ;;
+:: >MARK ( -- A ) HERE 0. LIT , ;;
+:: >RESOLVE ( A -- ) <MARK SWAP ! ;;
+CRR
+:: FOR ( -- a ) COMPILE >R <MARK ;; IMMEDIATE
+:: BEGIN ( -- a ) <MARK ;; IMMEDIATE
+:: NEXT ( a -- ) COMPILE doNEXT <RESOLVE ;; IMMEDIATE
+:: UNTIL ( a -- ) COMPILE qbranch <RESOLVE ;; IMMEDIATE
+:: AGAIN ( a -- ) COMPILE  branch <RESOLVE ;; IMMEDIATE
+:: IF ( -- A )   COMPILE qbranch >MARK ;; IMMEDIATE
+CRR
+:: AHEAD ( -- A ) COMPILE branch >MARK ;; IMMEDIATE
+:: REPEAT ( A a -- ) AGAIN >RESOLVE ;; IMMEDIATE
+:: THEN ( A -- ) >RESOLVE ;; IMMEDIATE
+:: AFT ( a -- a A ) DROP AHEAD BEGIN SWAP ;; IMMEDIATE
+:: ELSE ( A -- A )  AHEAD SWAP THEN ;; IMMEDIATE
+:: WHEN ( a A -- a A a ) IF OVER ;; IMMEDIATE
+:: WHILE ( a -- A a )    IF SWAP ;; IMMEDIATE
+CRR
+:: ABORT" ( -- ; <string> ) COMPILE abort" $," ;; IMMEDIATE
+
+:: $" ( -- ; <string> ) COMPILE $"| $," ;; IMMEDIATE
+:: ." ( -- ; <string> ) COMPILE ."| $," ;; IMMEDIATE
+
+:: CREATE ( -- ; <string> )
+  code ( 8151.) A2BFB. LIT , ;;
+
+:: VARIABLE ( -- ; <string> ) CREATE 0. LIT , ;;
+CRR
+:: .( ( -- ) 29. LIT PARSE TYPE ;; IMMEDIATE
+:: \ ( -- ) #TIB @ >IN ! ;; IMMEDIATE
+:: ( 29. LIT PARSE 2DROP ;; IMMEDIATE
+:: IMMEDIATE 80. LIT LAST @ @ OR LAST @ ! ;;
+
+CRR
+
+         1010. AAAAA. 2-OR !CP forthDROP 1- R!
+nameH forth@ 0 AAAAA. 2-OR !NP forthDROP 1- R!
+lastH forth@ 0 AAAAA. 2-OR !LAST forthDROP 1- R!
+
+
+
+

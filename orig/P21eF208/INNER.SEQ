@@ -1,0 +1,29 @@
+\ inner.seq, inner interpreter, 17feb95cht
+
+CRR
+
+\ doLIST must be at the beginning of every 1K page which
+\ contains high level colon definitions
+
+': doLIST                        \ list address is in R
+   pop a pop nop                 \ get return stack pointer in R1
+   a! @+ drop !                  \ push I on return stack
+   a push nop a!                 \ restore R, init new I
+\ ': $NEXT                       \ list address is in A
+   @+ push ;'                    \ execute (I), I->I+1
+
+': doVAR                         \ variable address is in R
+   push a pop nop                \ exchange I and S
+   a! @+ drop pop                \ increment S, copy R to stack
+   ! push a pop                  \ restore I and S
+   a! @+ push ;'                 \ next
+
+': doUSER
+   pop a push nop                \ exchange I and R which points to
+\ IS !UP                           \ user area offset
+   a! @ 3B0. # nop               \ get offset and add to UP
+   + push nop a!                 \ save address, increment S
+   @+ drop pop !                 \ push address on data stack
+   a pop nop a!                  \ restore I and S
+   @+ push ;'                    \ next
+

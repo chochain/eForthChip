@@ -1,0 +1,215 @@
+\ hline.seq, draw a horizontal line, 09sep96cht
+\ hline26.seq, polishing up, 16sep95cht
+\ hline27.seq, merge into eForth2.07, 24nov95cht
+\   Use 0F0-0F7 for end masks, 0FC-0FF for parameters, 24nov95cht
+
+cr
+
+comment:
+': vline ( height mask color -- , starting addr in A )
+   over com and push push           \ clear unwanted color bits
+   begin  pop pop over @            \ clear color bits in memory
+      and over -or !                \ add needed pattern bits and store
+      push push a 66. #
+      + nop a! 1. #                 \ ready A for next line
+   + -until                         \ decrement height until zero
+   pop pop drop drop drop ;'
+comment;
+
+': initHline
+\ ': corners ( x1 x2 y1 y2 --, stored in 0FB-0FF, x1,x2,count,ul,colorPtr )
+\ reorder x1,x2 and y1,y2 so that x1<x2 and y1<y2
+\ if x1>384 quit, clip x2 to 384
+\ if y>482 quit
+\ store x1 x2 -count ul colorPtr in 0FB-0FF
+\ colorPtr points to a 16 word color array, normally at 300
+
+   push push over over              \ x1 x2 x1 -x2 --
+   com nop nop +
+   -if drop push nop a!           \ x2>x1, push x2, save x1
+   else  drop nop a! push           \ x1>x2, save x2, push x1
+   then
+   a dup -180. # nop
+   + -if drop drop pop drop         \ if x1>384, quit!
+      pop drop pop ;'
+   then
+   drop 0FB. # nop a!
+   !+ pop dup -180. #               \ save x1 in 0FC
+   + -if
+      drop drop 180. # !+           \ if x2>384, replace it by 384
+   else drop !+                     \ save x2 in 0FD
+   then
+   pop pop over over                \ y1 y2 y1 y2 --
+   com nop nop +
+   -if !+ drop                      \ y1<y2, save y1-y2 as count
+   else com !+ push drop            \ y1>y2, save y2-y1 as count
+      pop
+   then                             \ (lesser of y1 and y2) --
+   dup -1E2. # nop nop              \ test y
+   + -if drop drop pop ;'           \ y>482, quit!
+   else drop
+   then
+IS colorPtr
+   300. # over 7. # and             \ pick two color patterns from array
+   2* -or push dup
+   2* nop nop +                     \ 66*y1
+   2* dup 2* 2*
+   2* 2*  nop nop
+   + ( 800.) AE37A. # nop nop       \ 66*y+UL
+   + !+ pop !                       \ save ul and color ptr in 0FE-0FF
+   ;'
+
+': hLine                            \ draw one horizontal line
+\ ': singleCell
+   0FB. # nop a! @+
+   @+ over over -or                 \ get x1 and x2 from 0FC
+   FFFFC. # and
+   if                               \ x1=x2 except 2 lsb's
+      drop drop                     \ keep only x1 for leftEnd
+   else                             \ no middle section to show
+      drop dup 2/ 2/                \ x1 x2 x2/4 --
+      @+ over nop nop               \ x1 x2 x2/4 ul x2/4 --
+      + push 1. # and               \ x1 x2 LSB(x2/4) --
+      @ nop nop +                   \ x1 x2 colorPtr --; R: addr --
+      a! @ push push                \ x1 x2 --; R: addr color x2 --
+      3. # and 0F0. # -or           \ addr(x1mask) --
+      a! @ pop 3. #                 \ x1mask x2 3 --
+      and 0F4. # -or nop            \ x1mask addr(x2mask) --
+      a! @ and pop                  \ mask color --
+      pop nop a! over               \ mask color mask --; addr in A
+      and push com @                \ /mask mem --
+      and pop -or !                 \ --
+      pop ;'
+   then
+
+\ ': leftEnd ( x1 -- )
+   dup 3. # and 0F0. #
+   + nop a! @                       \ x1 mask --
+   push 2/ 2/ 0FE. #                \ x1/4 0FE --
+   a! @+ over nop                   \ x1/4 ul x1/4 --
+   + push 1. # and                  \ (x1/4)and1 --; R: mask addr --
+   @ nop + nop                      \ colorPtr --
+   a! @ pop nop                     \ color addr -- ; R: mask --
+   a! pop dup push                  \ mask color bits
+   and @ pop com                    \ mask mem bits
+   and -or !+                       \ write new mem bits to memory
+
+\ ': middle ( -- )
+   a push 0FB. # nop                \ R: x1addr --
+   a! @+ FFFFC. # and               \ strip off ls 2 bits from x1
+   @+ com nop nop                   \ x1 -x2 --
+   + 4. # nop nop                   \ discard count
+   + @+ drop @+                     \ discard ul
+   drop @ nop a!                    \ x1-x2+1 --; colorPtr in A
+   pop dup push 1. #                \ x1-x2 x1addr -- ; R: x1addr --
+   and if                           \ from x1addr determine color order
+      @+ push @ pop                 \ x1-x2 color2 color1 --
+   else @+ @                        \ x1-x2 color1 coler2 --
+   then
+\  push push drop 0F0. #            \ x1-x2+1 0F0. --; R: x1addr col col --
+\  a! dup !+ pop                    \ dump stack for debugging
+\  dup !+ pop dup
+\  !+ pop dup !
+\  push push push nop
+   push push drop nop
+   a! pop pop a
+   pop nop a!                       \ color1 color2 x1-x2+1 x1addr --
+                                    \ x1addr is now in A
+   begin                            \ color1 color2 count --, x1addr in A
+      8. # nop nop +
+   -while
+      push over !+ dup              \ write 2 words at a time
+      !+ pop
+   repeat
+   4. # and
+   if drop drop drop                \ write odd word
+   else drop drop !+
+   then
+
+\ ': rightEnd ( --, A has memory address )
+   a push 0FC. # nop                \ 0FD. --; R: x2addr --
+   a! @+ @+ drop                    \ x2 --
+   @+ drop nop nop                  \ discard counts and ul
+   @ pop dup push                   \ x2 colorPtr x2/4 --
+   1. # and nop +                   \ x2 colorPtr' --
+   a! @ over 3. #                   \ x2 color x2 3
+   and 0F4. # nop +                 \ x2 color maskAddr --
+   a! @ dup push                    \ x2 color mask --
+   and pop pop nop                  \ x2 color.mask mask x2addr --
+   a! com @ and                     \ x2 color.mask mem/mask --
+   -or ! drop ;'
+
+CODE RECT ( x1 x2 y1 y2 -- )
+   a push 3. # com
+   + 3FC. # nop a!
+   dup !+ pop !+                    \ save SP, IP, and RP in this order
+   pop ! nop a!
+   @+ drop @+ @+                    \ fetch x1, x2, y1, and y2 from DS
+   @+ @
+   initHline                        \ prepare data in 0FB-0FF
+   begin
+      hLine                         \ write one line
+      0FD. # nop a! @               \ increment count
+      1. # nop nop +
+      -if drop 3FC. # nop a!        \ overflow, restore SP, IP and RP
+         @+ @+ @ push
+         a! @ push ;'               \ rectangle completed. exit
+      else !+ @ 66. # nop           \ store bumped count
+         + !+ @ 2. #                \ add 66 to ul
+         + 30F. # and !             \ add 2 to colorPtr
+      then
+   jump                             \ repeat
+
+CODE SetColor ( color -- )          \ set color in 8x8 pattern array
+   a push dup a!                    \ save IP
+   @ 7BDEF. # and                   \ get color from DS
+   300. # nop a! 10. #              \ init shift-counter to do 16 loops
+   begin over !+ 2*                 \ write pattern, bump counter
+   -until
+   drop dup -or com                 \ decrement SP
+   + pop nop a!                     \ restore IP and do next
+   @+ push ;'
+
+comment:
+
+:KEY newColor ( -- )
+IS 'newColor                        \ where new pattern comes from
+   0. # nop a! 300. #               \ source in A, ( dest 10 -- )
+   10. #
+   begin
+      push push @+ 7BDEF. #         \ dest pattern --
+      and AAAAA. # -or a            \ dest --, R: count pattern source --
+      pop nop a! push               \ dest in A, store pattern, source --
+      !+ a pop nop                  \ source in A
+      a! pop 2*                     \ dest count*2 --
+   -until
+   drop drop a 'newColor #          \ preserve newColor for next time
+   a! !
+   0. # 17F. # over 1E0. #          \ plot screen with new pattern
+   rectangle
+   KEY
+comment;
+
+cr
+begin 300 org                       \ color as patterns
+7BDEF. p, 7BDEF. p, 7BDEF. p, 7BDEF. p,
+7BDEF. p, 7BDEF. p, 7BDEF. p, 7BDEF. p,
+7BDEF. p, 7BDEF. p, 7BDEF. p, 7BDEF. p,
+7BDEF. p, 7BDEF. p, 7BDEF. p, 7BDEF. p,
+
+0F0 org
+7BDEF. #, 03DEF. #, 001EF. #, 0000F. #,
+78000. #, 7BC00. #, 7BDE0. #, 7BDEF. #,
+ORG
+
+begin .
+cr
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,405 @@
+( EPROM Programmer, Chuck Moore, 1993 Aug 16)
+( modified, C. H. Ting, 1993 Nov 23 for mode 2 operations )
+( test text display, 3-4-94 cht )
+( allot 3000 bytes for ram, include OKCHAR, 3-5-94 cht )
+( OKCHAR6.SEQ has text demos, called from TEST.  3-11-94 cht )
+( OKCHAR7.SEQ has MuP21.TXT manual demo. 7-16-94 cht )
+( OKCHAR8.SEQ has menu captions, 7-17-94 cht )
+( OKCHAR10.SEQ blocks of text and demo2, 8-8-94 cht )
+( OKCHAR11.SEQ parallel output tests, 8-11-94 cht )
+( OK12.seq Bit map display, 9-9-94 cht )
+( include OKPICT and compressed pictures, 10-2094 cht )
+( OK13.SEQ, 16 pictures, 10-7-94 cht, with OKPICT13.SEQ )
+( include OKPICT14 for plastic chips, 01nov94cht )
+( OK16.SEQ, add nop before a!, 05nov94cht )
+( OK16a.SEQ, sram+text, OK16b.SEQ, sram+picture, OK16c.SEQ, rom+text )
+( OK16x.SEQ, experiments with OKCHAR14, rom+text, 06nov94cht )
+( Update OK16c.SEQ from OK16x.SEQ, 09nov94cht )
+( OK19c.seq, output tests, RS232 interface, 20jan95cht )
+(            Scrollup in okchar16.seq, 24jan95cht      )
+( ok20c.seq, with meta.seq, eforth.seq, and bforth, 10feb95cht )
+( ok21c.seq, compiled from meta.seq, 11feb95cht )
+( ok22c.seq, add rectangle eforth words, 10mar95cht )
+( ok26c.seq, slow down I/O, 11nov95cht )
+( ok27c.seq, merge rectangle, 24nov95cht )
+( ok28c.seq, add RECTANGLE, 19mar96cht )
+
+VARIABLE H
+: LOC   CONSTANT  DOES> @  H ! ;
+VOCABULARY 8-B   8-B DEFINITIONS   ( 8-bit instructions)
+: , ( b)   H @ ram + C!   1 H +! ;
+: INST   CONSTANT   DOES> @  , ;
+: p   44 ,  , ;
+: #   AA -OR p ;
+
+41 INST @+    45 INST @     51 INST !+    55 INST !
+80 INST com   81 INST 2*    84 INST 2/    85 INST +*
+90 INST -or   91 INST and   95 INST +
+C4 INST dup   C5 INST over  D4 INST nop   D5 INST drop
+C0 INST pop   C1 INST a     D0 INST push  D1 INST a!
+01 INST ;'
+
+18 INST byte    A4D LOC :byte
+30 INST word    A65 LOC :word
+                AAA LOC ;reset
+3A INST 0a!     A6F LOC :0a!
+24 INST =0
+20 INST jump
+22 INST start
+
+:0a!   a start  ( =0) ;'  nop nop nop
+    ( jump) @+ a ( start) =0 jump
+:byte   2* 2* 2* 2*  2* 2* 2* 2*
+   push  00 # -or  pop -or ;'
+:word   byte byte !+ ;'
+
+;reset   pop pop dup ( clear stack pointers)
+   -or a!  0a!
+
+   83 p 0E p 0C p word  46 p 0E p 0C p word
+   55 p AA p 0A p word  21 p 4E p 06 p word
+   F9 p 4B p 0F p word  FC p 0F p 06 p word
+   55 p 81 p 00 p word  55 p 49 p 08 p word
+
+   F9 p 0B p 0F p word  01 p C7 p 0B p word  a push
+   DC p 21 p 06 p word  65 p F5 p 0F p word        \ start from AA030
+   AA p A2 p 0A p word  51 p C1 p 0A p word        \ copy 2000 words
+   FC p 13 p 0B p word  2A p AA p 0A p word ;'     \ 11feb95cht
+
+
+\ header compiler
+\ header:  | code field | link field |      name field             |
+\ headers are linked backwords and fill name dictionary from hi to low
+\    memory, towards the code dictionary.
+
+FORTH DEFINITIONS   ( 20-bit instructions)
+
+variable nameH 1FFF nameH !               \ point to next available location
+variable lastH 0 lastH !                  \ init linkfield address lfa
+
+: nameR! ( n -- )
+   0 AAAAA. 2-OR nameH @ R!               \ store double to code buffer
+   1 nameH +!                             \ bump nameH
+   ;
+
+: (makeHead)
+   20 word                                \ get name of new definition
+   dup c@ 2+ negate nameH +!              \ compute cfa
+   H @ nameR!                             \ fill code pointer field
+   lastH @ nameR!                         \ fill link field of last word
+   nameH @ lastH !                        \ save nfa in lastH
+   dup c@ nameR!                          \ store count
+   count 0 do
+      count nameR!                        \ fill name field
+   loop drop
+   lastH @ 3 - nameH !                    \ nameH point to free space
+   ;
+
+: makeHead
+   >IN @ >R                               \ save interpreter pointer
+   (makeHead)
+   R> >IN !                               \ restore word pointer
+   ;
+
+: compile-only 40. lastH @ R@ 2-OR lastH @ R! ;
+: immediate    80. lastH @ R@ 2-OR lastH @ R! ;
+
+\ Chuck Moore's P21 20 bit assembler
+
+: 2,   , , ;
+
+VARIABLE Hi   VARIABLE Hw
+: ALIGN   10 Hi ! ;
+: ORG   DUP . CR H !  ALIGN ;
+: SWITCH   H @  SWAP  ORG ;
+: IS   H @  Hi @ 10 / +  0 2CONSTANT ;
+: ALLOT ( n -- ) H +! ;
+
+CREATE mask  AA800. 2,  55400. 2,  32A. 2,  D5. 2,
+: p,   H @ R!  1 H +! ;
+: #,   AAAAA. 2-OR p, ;
+: ,w   Hw @ R@  2-OR  Hw @ R! ;
+: ,I   Hi @ 10 AND IF  0 Hi !  H @ Hw !  0. p,  THEN
+   Hi @ mask + 2@ 2AND  ,w  4 Hi +! ;
+
+: INST   2CONSTANT   DOES> 2@  ,I ;
+C0280. INST com   FF3FC. INST nop
+: JMP   2CONSTANT  DOES> 2@  BEGIN  Hi @ 8 AND WHILE  nop  REPEAT
+   ,I  3FF AND 155 -OR 0 ,w  ALIGN ;
+: begin   BEGIN  Hi @ 10 AND 0= WHILE  nop  REPEAT  H @ ;
+: -;'   Hw @ R@  OVER 4000 AND  IF 4000  ELSE 8000  THEN 0 2-OR  Hw @ R! ;
+: p   3314C. ,I  p, ;
+: -p   FFFFF. 2-OR  p com ;
+: #   AAAAA. 2-OR p ;
+: -#   55555. 2-OR p ;
+: FIX   DROP 1 - >R  begin 0  AAAAA. 2-OR  R> R! ;
+
+( bits 10 8 4 2 1: C0280 30140 0C030 0300C 00C03)
+00000. JMP jump   0300C. JMP T=0    03C0F. JMP C=0    0C030. JMP call
+                  0300C. JMP until  03C0F. JMP -until
+: ':   begin  .head CONSTANT  DOES> @  call ;
+: :KEY   begin  .head CONSTANT  DOES> @ 0  #, ;
+
+: CODE   makeHead :KEY ;            \ for eForth kernel words
+
+: if   155 T=0  Hw @ ;
+: -if   155 C=0  Hw @ ;
+: skip   155 jump  Hw @ ;
+: then   DUP >R >R  begin  3FF AND 155 -OR 0  R> R@ 2-OR  R> R! ;
+: else   skip  SWAP then ;
+: while   if  SWAP ;
+: -while -if  SWAP ;
+: repeat   jump  then ;
+
+30D43. INST @+  ( 33D4F. INST @ )   3CD73. INST !+    3FD7F. INST !
+                  C0E83. INST 2*    C328C. INST 2/    C3E8F. INST +*
+CC2B0. INST -or   CCEB3. INST and   CFEBF. INST +
+F03C0. INST pop   F0FC3. INST a     F33CC. INST dup   F3FCF. INST over
+FC3F0. INST push  FCFF3. INST a!
+00C03. INST ;'
+
+: !!+   dup ! !+ ;
+: dup!!+   dup ! dup !+ ;
+: ,   p  !!+ ;
+: J   FFFFF. 2-OR #  !!+ ;
+
+: ljump ' >body @ 0 #           \ get address of target word
+   push ;' ;                    \ long jump
+
+FFFFF. INST drop
+33D4F. INST @
+
+( black     blue      red  magenta    green     cyan   yellow    white    )
+( 42108. , 08421. , 10842. , 18C63. , 21084. , 294A5. , 318C6. , 39CE7. , )
+: brown   318C6. p ;
+: blue   4A529. p ;    : red   5294A. p ;    : magenta  5AD6B. p ;
+: green   6318C. p ;   : cyan   6B5AD. p ;   : yellow   739CE. p ;
+: black   0. p ;       : white   7BDEF. p ;  : silver   39CE7. p ;
+
+( Boot)  0 ORG
+': byte   2* 2* 2* 2*
+   2* 2* 2*  FF. #
+   @+ and -or ;'
+': word'   a push nop a! @+
+   2* byte
+   2* byte
+   a pop nop a! push
+   !+ pop ;'
+
+( A) ': BOOT   A8030. -# com  800. #  ( allow 8K addressing space )
+   begin push  word'
+      pop 80. # nop nop       \ copy 8K words
+( 10) + -until
+
+
+( Memory Map)
+(   Host     SRAM           DRAM                   )
+( number number pattern number pattern             )
+(    003 1AA003 C.00AA9 000001 AAAAB    DRAM boot  )
+(    033 1AA033             11          OK code    )
+(                          304             end     )
+(                          330          cos        )
+(                          340          shapes     )
+(                          350          dot masks  )
+(                          36C                     )
+(    A45 1AAA45                         SRAM boot  )
+(    AAA 1AAAAA C.00000                 Reset      )
+(    B98 1AAB98                                    )
+(        100000 8.2AAAA   1000 ABAAA    Layout     )
+(        1B0420          59210                     )
+(                        AAAAA 00000    Video image)
+(                        ABDE4          UL corner  )
+(                        B9658                     )
+
+( IO addresses for development board)
+
+(        pattern com                               )
+(        100000  FFFFF  slow SRAM                  )
+(        140000  BFFFF  fast SRAM                  )
+(        180026  7FFD9  write 8255 control         )
+(        18000C  7FFF3  read port C                )
+(        180024  7FFDB  write port C               )
+(        1C0000  3FFFF  read fast input port       )
+(        1C0004  3FFF7  write fast output port     )
+(        1E0028  1FFD7  write configuration        )
+
+( Observations        )
+( over  doesn't work  )
+(  1 -1 +  ripples 3  )
+(  -1 1 +  ripples 9  )
+(   nop +  ripples 19+)
+( slot0 +  ripples 19+)
+
+
+
+80 SWITCH
+': BSR   0. p  dup !+  !+ ( BBBB)
+   05FF7. ,  BDEF7. ,  ;' ( BSRS SSSS)
+': HR ( 18)   BSR  BDFF7. p BDEF7. p ( SSRS SSSS)
+   over over !+ !+  over over !+ !+  !+ !+
+   9DEF7. , 00015. , ( KSSS BBBC)
+   AD6B5. p  ( CCCC)
+   dup !+  dup !+  !+
+   AD6A0. , ( CCCB)
+   0. p ( BBBB)
+   dup !+  !+ ;'
+
+': H   HR  A0000. # ( 96)
+': Bs   begin  0. ,
+      1000. # nop + -until drop ;'
+': Q   BSR  BDEF7. p  dup !+  !+ ( SSSS)
+   BDC00. ,  CE000. # Bs ( SSBB)
+   BSR  9DEF7. ,  BDEF7. , ( KSSS SSSS)
+   BDC00. ,  CE000. # Bs -;' ( SSBB)
+': Ss   D2000. #
+   begin  BDEF7. , ( SSSS)
+      1000. # nop + -until
+   FA000. # Bs -;'
+': V   BSR  BDEF7. ,  Ss ( SSSS)
+   BSR  9DEF7. ,  Ss -;' ( KSSS)
+': a+   a nop nop +  a! ;'
+
+cr
+SWITCH
+AAAAA. # nop a!
+( AAAAA VR1 21 114* 1+)
+   Q Q Q V V V Q Q Q
+   H H H H H H H H H H H H
+   ABDD2. J
+( AB405 VR2 22 114 1+)
+   HR  D9000. # Bs  Q Q Q V V V Q Q Q
+   C7000. # Bs  H H H H H H H H H H H H
+   ABDE6. J
+
+( ABDD2 482 20*)  AE37F. #  E1E00. # begin  HR
+      push  dup com !+  dup !+  66. #  nop +
+      pop 100. # nop + -until
+
+( AE37A 482 66*)  ABDFA. #  E2000. # begin  65. # a+
+      push  dup com !+  14. #  nop nop +
+      pop 100. # nop + -until
+   65. # a+  AB405. J
+   65. # a+  AAAAA. J
+( BA386)
+
+
+cr
+
+SWITCH
+
+( 66 1A * = A5C, 14 1A * = 208)
+': UL   ABFEC. # skip  (  1)
+': L2   AC1F4. # skip  (  2)
+': LL   ADE64. #  ( 16)
+   then then  a! @ FFFFF. # -or  8. # nop nop +  a! ;'
+
+': 100ms   2. #
+': -s
+   1. #
+   begin  +* -until
+   drop drop ;'
+
+': KEY? ( n - n)   100ms
+\  70020.                        ( '245 input )
+\  7FFF3. p com nop a!  @            ( port 6 )
+   7FFFF. p com nop a!  @        ( port 0 for new pcb, slow i/o )
+\   3FFFF. p com nop a!  @         ( port 0 fast i/o )
+   55. # -or  7F. # and ;'
+
+:KEY --
+': KEY   begin  KEY?  until
+   IS 'menu  0. # nop a!
+   begin  @+ drop  2/ while repeat
+   @ push ;'
+': MENU   'menu # nop a!  pop  dup push  ! ;'
+
+': PAGE   1FFD7. p com nop a!  ! ;'
+': -a   com a  nop nop + nop a! ;'
+
+begin .
+cr
+
+100 ORG
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+   dup !+  dup !+  dup !+  dup !+  dup !+  dup !+
+IS 'one    dup !+  dup !+
+': TWOS   !+ skip
+
+begin   a push
+IS 'twos  nop nop  IS 'color
+      0. # TWOS -;'
+SWAP then  66. # pop  nop nop + nop a!
+': HIGH ( 22)  1. # nop nop +
+      -until drop ;'
+': COLOR ( 12)   a push  'color # nop a!  !  pop nop a! ;'
+
+': WIDE ( 22)   a push  'twos # nop a!  2/ 2/  dup 2/  22065. p nop +  !
+   1. # and if  28860. p
+   else  AA861. p  then -or  'one # nop a!  !
+   pop nop a! ;'
+
+': SCREEN
+IS 'XY
+   AE37F. # nop a!
+IS 'width
+   180. # WIDE
+IS 'height
+   1E2. -# HIGH -;'
+
+': BLANK  black COLOR SCREEN ;'
+
+CODE RECTANGLE ( x y width height -- )
+   a push 3. # com
+   + dup 3FC. # nop           \ SP-4
+   a! !+ pop !+               \ save new SP, IP and RP
+   pop ! nop a!               \ put SP-3 in A
+   @+ drop @+ 2/              \ get x and divide it by 4 for an address
+   2/ @+ dup 2*               \ get y and multiply it by 66H
+   + 2* dup 2*
+   2* 2* 2* nop
+   + nop nop +                \ y*66+x/4
+   AE37F. # nop nop +         \ real screen address
+   @+ @+ com 'height #        \ store negated height
+   a! ! 'width # nop          \ store width
+   a! ! 'XY # nop             \ store screen address
+   a! !
+   SCREEN                     \ draw the rectangle
+   3FC. # nop a! @+           \ restore new SP, IP, and RP
+   @+ @ push nop
+   a! @+ push ;'              \ next
+
+
+cr
+
+
+': 'OK   80. # WIDE  34. -# HIGH
+   20. # WIDE  68. -# HIGH
+   80. # WIDE  34. -# HIGH
+   3E0F. # -a  20. # WIDE  68. -# HIGH
+   3E17. # -a  20. # WIDE  4E. -# HIGH
+   80. # WIDE  34. -# HIGH
+   20. # WIDE  4E. -# HIGH
+   52C7. # -a  4E. -# HIGH
+   14B0. # a+  4E. -# HIGH -;'
+
+': 'OK'   BLANK
+   08421. p COLOR  L2  530. # a+  'OK
+   blue COLOR  L2  'OK
+   KEY
+
+:KEY RESET   00000. p PAGE
+   10. # nop a!  BOOT
+
+cr
+begin .
+

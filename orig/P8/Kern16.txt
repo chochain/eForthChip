@@ -1,0 +1,238 @@
+\ eForth Kernel for P16, 02dec98cht
+\ from kernel28.seq, comment out debugging aids, 24nov95cht
+\    Keep 0 page usage to 2FF.  300-3FF needed by system.
+\ kern16 10jun88cht
+\ Debug KEY, EMIT and !IO, 11sep99cht
+\ Fix NEXT, 23sep99cht
+
+comment:
+
+The Forth Virtual Engine is:
+   I     IP       A register            Instruction pointer
+   T              top of stack
+   S              data stack     16 levels
+   R              return stack   16 levels
+Both the data and return stacks are in CPU.
+
+A register is used to host IP because it leads to the most
+efficient $next:
+   @+ push ;
+
+16 levels of stacks are enough for most applications.  They will 
+wrap around when exhausted.
+
+Names of words are in a separated head dictionary.  Only executable
+code are in the code dictionary.  High level words are also in a
+separated segment of memory.  Code words and user variables
+must be in the 1st 2K word page for best performance.
+
+Memory allocation:
+        0       Inner interpreters
+        8       Kernel words
+        800     Inner interpreters
+        808     More words
+        2000    Free space
+
+2/ shifts LEFT into carry and T0 to RIGHT for KEY and EMIT.
+
+comment;
+
+CR .( kernel words ) CR
+hex
+
+\ Chararter IO for P16, 05dec98cht
+
+': 50us
+        4 # skip
+': 100us
+        2 #
+        then
+IS      c/b
+        FF93 # ( 11.09 MHz )
+        begin +* nop nop
+                nop
+        -until
+        drop drop
+        ;'
+
+CODE !IO
+        FFFE # 1 # FFFF # ( inc sum input -- )
+        begin   2/
+        -while nop
+        repeat   ( wait for start bit )
+        begin push +* pop
+                2/
+        -until
+        a push drop
+        2/ fffe # and
+        1 # -or nop
+        c/b # a! !
+        drop pop a!
+        @+ push ;'
+
+CODE EMIT ( c -- )
+        2* FE00 # -or
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        2/ 100us
+        100us
+        100us
+        drop
+        @+ push ;'
+
+CODE KEY ( -- c )
+        FFFF #
+        begin   2/
+        -while  ( wait for start bit )
+        repeat
+        50us
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        100us 2/
+        -if 80 # -or then
+        FF # -or
+        FF # and
+        @+ push ;'
+
+CR
+
+CODE doLIT
+   @+                            \ get literal
+   @+ push ;'                    \ next
+
+CODE EXIT                        \ undo nest
+   pop a!                        \ get new I from return stack
+   @+ push ;'                    \ return with next
+
+CODE EXECUTE ( a )
+   push ;'                       \ return jumps to address
+
+CR
+
+CODE BRANCH
+   @ a!                           \ get inline target address to I
+   @+ push ;'                     \ go there
+
+CODE QBRANCH ( f )
+   if   drop @+ drop             \ f is true, skip branch address
+        @+ push ;'
+   then
+   drop @ a!                     \ f is false, get address to jump
+   @+ push ;'                    \ NEXT
+
+CODE doNEXT
+   pop -1 # +                   \ decrement count
+   -if push @ a!                  \ if index is not 0, loop back
+      @+ push ;'
+   then
+   drop @+ drop                  \ index is 0, exit loop and continue
+   @+ push ;'                    \ go for it
+
+CR
+
+(makeHead) !
+:KEY STORE ( n a -- )
+   a push a!                     \ save I, move a to A
+   ! pop a!                      \ store n, restore I
+   @+ push ;'                    \ NEXT
+
+(makeHead) @
+:KEY AT ( a - n )
+   a push a!                     \ save I, move a to A
+   @ pop a!                      \ get data
+   @+ push ;'                    \ NEXT
+
+CR
+
+CODE R> ( - n )
+   pop 
+   @+ push ;'                 
+
+CODE R@ ( - n )
+   pop dup push                  
+   @+ push ;'                    \ $NEXT
+
+CODE >R ( n )
+   push 
+   @+ push ;'                    \ $NEXT
+
+CR
+
+(makeHead) DROP
+:KEY (DROP) ( n )
+   drop                          
+   @+ push ;'
+
+(makeHead) DUP
+:KEY (DUP) ( n - n n )
+   dup
+   @+ push ;'                    
+
+(makeHead) SWAP
+:KEY (SWAP) ( n1 n2 - n2 n1 )
+   a push a!
+   push a pop
+   pop a!
+   @+ push ;'                 
+
+(makeHead) OVER
+:KEY (OVER) ( n1 n2 - n1 n2 n1 )
+   a push push
+   dup a! pop
+   a pop a!
+   @+ push ;'                 
+
+CR
+
+CODE 0< ( n - f )
+   2* 
+   -if drop -1 #
+       @+ push ;'
+   then
+   dup -or ( drop 0 # )
+   @+ push ;'
+
+(makeHead) AND
+:KEY (AND) ( n n - n )
+   and
+   @+ push ;'
+
+(makeHead) OR
+:KEY (OR) ( n n - n )
+   com push com    
+   pop and com
+   @+ push ;'
+
+(makeHead) XOR
+:KEY (XOR) ( n n - n )
+   -or
+   @+ push ;'
+
+CODE UM+  ( n n - n carry )
+   +
+   -if 1 #
+       @+ push ;'
+   then
+   dup dup -or ( 0 )
+   @+ push ;'
+
+

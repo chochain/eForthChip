@@ -1,0 +1,344 @@
+\ eForth Kernel for MuP21, 21mar94cht
+\ eforth1.seq, update for plastic chip, 03feb95cht
+\ kernel27.seq, comment out debugging aids, 24nov95cht
+\    Keep 0 page usage to 2FF.  300-3FF needed by system.
+
+comment:
+
+The Forth Virtual Engine is:
+   I     IP       A register            Instruction pointer
+   S     SP       T register            Data stack pointer
+   R     RP       R register            Return stack pointer
+Both the data and return stacks are in external memory.  The
+registers R1-R3, and S1-S5 are free.  The three registers A, T
+and R form a very powerful cluster to support a Forth Virtual
+Engine.
+
+A register is used to host IP because it leads to the most
+efficient $next:
+   @+ push ;
+
+To address data stack, one can exchange S and I by
+   a push a! pop   or   push a pop a!
+
+To address return stack, one can exchange R and I by
+   a pop a! push   or   pop a push a!
+
+Because A register has the self-incrementing feature, stacks
+can be addressed conveniently towards the high memory.  It is
+thus chosen that the stacks grow towards high memory.  To pop
+items off the stack, the stack pointer must be decremented
+explicitly.
+
+Names of words are in a separated head dictionary.  Only executable
+code are in the code dictionary.  High level words are also in a
+separated segment of memory.  Code words, stacks, and user variables
+must be in one 1K page for best performance.
+
+Memory allocation:
+        0       Boot code
+        400     Screen and keyboard drivers
+        600     Character table
+        800     Code words
+        B00     User variables
+        BB0     Return stack, for dump
+        BD0     Data stack
+        BF0     Test code
+        BFC     Saved SP, IP, RP, R1
+        C00     Colon words
+        1000    Headers
+        2000    Free space
+
+
+comment;
+
+CR .( kernel words ) CR
+hex
+
+comment:
+?RX TX! IO! are defined in okchar20.seq
+CODE ?RX
+CODE TX!
+CODE !IO
+comment;
+
+
+CODE doLIT
+   @+ a push push                \ get literal, save it and I
+   a! pop @+ drop                \ increment S for pushing
+   ! a pop nop                   \ push literal on stack, restore I
+   a! @+ push ;'                 \ $next
+
+CODE EXIT                        \ undo nest
+   pop nop a! @                  \ get new I from return stack
+   a dup dup -or                 \ make -1
+   com nop nop +                 \ decrement return stack pointer
+   push nop a! @+                \ restore R, get new I
+   push ;'                       \ return
+
+CODE EXECUTE ( a )
+   push a pop nop                \ exchange S and I
+   a! @ push push                \ push address, restore I
+   a pop nop a!                  \ decrement S to top address
+   dup dup -or com
+   + ;'                          \ return jumps to address
+
+CR
+
+CODE BRANCH
+   @+ nop a! @+                  \ get inline target address to I
+   push ;'                       \ go there
+
+CODE QBRANCH ( f )
+   push a pop nop                \ exchange S and I
+   a! @ push push                \ get f and save it
+   a pop nop a!                  \ restore S and I, get f
+   pop if
+        @+ drop                  \ f is true, skip branch address
+   else @+ nop a!                \ f is false, get address to jump
+   then
+   dup -or com nop               \ pop f off stack
+   + @+ push ;'                  \ $NEXT
+
+CODE doNEXT
+   pop a push nop                \ exchange R and I
+   a! @ -1. # nop                \ decrement count
+   + -if                         \ if carry set, continue looping
+      ! pop a push               \ store back decremented count
+      a! @+ nop a!               \ get loop address into A
+   else                          \ carry not set, count must be 0
+      dup -or com a              \ pop count off return stack
+      + pop nop a!               \ jump over loop address
+      push @+ drop               \   by a dummy @+
+   then                          \ A has the proper address of next inst
+   @+ push ;'                    \ go for it
+
+CR
+
+(makeHead) !
+:KEY STORE ( n a -- )
+   dup dup -or com
+   + a push dup                  \ save I, point S to n
+   a! @+ @ nop                   \ get n and a
+   a! ! dup dup                  \ store n to a, point S to next item
+   -or com nop nop
+   + pop nop a!                  \ restore I
+   @+ push ;'                    \ $NEXT
+
+(makeHead) @
+:KEY AT ( a - n )
+   a push dup nop                \ save I, move S to A
+   a! @ nop a!                   \ get data
+   @ push dup a!                 \ store data on stack
+   pop ! pop nop                 \ restore I
+   a! @+ push ;'                 \ $NEXT
+
+CODE RP@ ( - a )
+   push a pop nop                \ exchange S and I
+   a! @+ drop pop                \ increment S, get R
+   dup ! push push               \ push R on stack, restore R
+   a pop nop a!                  \ restore I
+   @+ push ;'                    \ $NEXT
+
+CODE RP! ( a )
+   push a pop nop                \ exchange S and I
+   a! @ pop drop                 \ replace R with a
+   push push a pop               \ restore I
+   a! dup dup -or                \ decrement S
+   com nop nop +
+   @+ push ;'                    \ $NEXT
+
+CR
+
+CODE R> ( - n )
+   pop a push nop                \ exchange R and I
+   a! @ pop a                    \ get n from return stack
+   dup dup -or com               \ -1
+   + push a! push                \ decrement R, push n
+   push a pop nop                \ exchange S and I
+   a! @+ drop pop                \ increment S, push n on stack
+   ! push a pop                  \ restore I and S
+   a! @+ push ;'                 \ $NEXT
+
+CODE R@ ( - n )
+   pop a push nop                \ exchange R and I
+   a! @ pop a push               \ get n from top of R
+   a! push push a                \ push n, exchange S and I
+   pop nop a! @+                 \ increment S, get n
+   drop pop ! push               \ push n on S, restore I and S
+   a pop nop a!
+   @+ push ;'                    \ $NEXT
+
+CODE >R ( n )
+   push a pop nop                \ exchange S and I
+   a! @ push push                \ get and save n
+   a pop nop a!                  \ restore S and I
+   pop pop a push                \ exchange R and I, increment R
+   a! @+ drop !                  \ push n on R, restore R
+   pop a push nop                \ restore I
+   a! dup dup -or
+   com nop nop +                 \ decrement S
+   @+ push ;'                    \ $NEXT
+
+CODE SP@ ( - n )
+   push a pop dup                \ exchange S and I, save extra S
+   a! @+ drop !                  \ increment S, push SP on stack
+   push a pop nop                \ restore S and I
+   a! @+ push ;'                 \ $NEXT
+
+CODE SP! ( n )
+   push a pop nop                \ exchange S and I
+   a! @ push nop
+   a! pop                        \ get new SP and restore I
+   @+ push ;'
+
+CR
+
+(makeHead) DROP
+:KEY (DROP) ( n )
+   dup dup -or com               \ decrement S
+   + @+ push ;'
+
+(makeHead) DUP
+:KEY (DUP) ( n - n n )
+   push a pop nop                \ exchange S and I
+   a! @+ ! push                  \ push n on stack
+   a pop nop a!                  \ restore S and I
+   @+ push ;'                    \ $NEXT
+
+(makeHead) SWAP
+:KEY (SWAP) ( n1 n2 - n2 n1 )
+   dup dup -or com               \ S-1
+   + push a pop                  \ save I, get S-1 to A
+   dup a! @+ @                   \ get n1
+   push push nop a!              \ get n2, save them, get S-1 to A again
+   pop pop !+ !                  \ push n2 and then n1 on stack
+   push a pop nop                \ restore S and I
+   a! @+ push ;'                 \ $NEXT
+
+(makeHead) OVER
+:KEY (OVER) ( n1 n2 - n1 n2 n1 )
+   dup dup -or com               \ S-1
+   + push a pop                  \ save I, get S-1 to A
+   a! @+ @+ drop                 \ get n1, increment S twice
+                                 \ push n1 on stack
+   ! push a pop                  \ restore S and I
+   a! @+ push ;'                 \ $NEXT
+
+CR
+
+CODE 0< ( n - f )
+   push a pop nop                \ exchange S and I
+   a! @ 2* dup                   \ get n, test negativeness
+   -if -or com                   \ if negative, push -1
+   else -or then                 \ if positive, push 0
+   ! push a pop
+   a! @+ push ;'
+
+(makeHead) AND
+:KEY (AND) ( n n - n )
+   dup dup -or com               \ generate -1 with carry
+   + push a pop                  \ save I, decrement S
+   dup a! @+ @                   \ get two item off data stack
+   and push nop a!               \ AND them and push back on stack
+   pop ! push a                  \ restore S and I
+   pop nop a!
+   @+ push ;'
+
+(makeHead) OR
+:KEY (OR) ( n n - n )
+   dup dup -or com               \ generate -1 with carry
+   + push a pop                  \ save I, decrement S
+   dup a! @+ com                 \ get two item off data stack
+   @ com and com                 \ OR=NOT(NAND)
+   push nop a! pop               \ OR them and push back on stack
+   ! push a pop                  \ restore S and I
+   a! @+ push ;'
+
+(makeHead) XOR
+:KEY (XOR) ( n n - n )
+   dup dup -or com               \ generate -1 with carry
+   + push a pop                  \ save I, decrement S
+   dup a! @+ @                   \ get two item off data stack
+   -or push nop a!               \ XOR them and push back on stack
+   pop ! push a                  \ restore S and I
+   pop nop a!
+   @+ push ;'
+
+CR
+
+CODE UM+  ( n n - n carry )
+   dup dup -or com               \ generate -1 with carry
+   + push a pop                  \ save I, decrement S
+   dup a! @+ @                   \ get two item off data stack
+   + -if 1. #                    \ add, get carry
+   else dup dup -or
+   then
+   push push nop a!              \ push carry and sum back on stack
+   pop !+ pop !
+   push a pop nop                \ restore S and I
+   a! @+ push ;'
+
+
+comment:
+
+CR .( debugging words ) CR
+
+:KEY WAIT                        \ save IP, SP and RP
+   a 3FC. # nop a!               \ get IP, init A to 3FC
+   !+ !+ pop !+                  \ save IP, SP, and RP
+:KEY showStacks
+': displayStacks
+   3B0. # 'address # nop
+   a! !                          \ set dump address
+   ljump 50dump                  \ display stacks and registers
+
+:KEY CONTINUE
+   3FD. # nop a! @+              \ restore SP, RP
+   @+ dup nop a!                 \ move RP to A, ready to pop IP
+   dup dup -or com               \ make -1
+   + push @ nop                  \ decrement RP, push in place
+   a! @+ push ;'                 \ get new IP, ready for next word
+
+
+CR
+
+:KEY nibble0                     \ increment nibble 0 in 3FF
+   0F. # skip
+:KEY nibble1                     \ increment nibble 1 in 3FF
+   F0. # skip
+:KEY nibble2                     \ increment nibble 2 in 3FF
+   F00. # skip
+:KEY nibble3                     \ increment nibble 3 in 3FF
+   F000. # skip
+:KEY nibble4                     \ increment nibble 4 in 3FF
+   F0000. #
+   then then then then
+   dup dup dup push              \ n n n -- , another save in R
+IS 'modified
+   3FF. # nop a! @               \ get address in 3FF
+   and + and                     \ add -1 to selected nibble
+   pop com @ and -or             \ merge nibble with address
+   !                             \ modify it and store back
+   displayStacks -;'             \ show results
+
+CR
+
+:KEY repeatAddress               \ repeat executing address in 3FF
+   3FD. # nop a! @+              \ restore SP and RP from 3FD, 3FE
+   @+ push 3FF. # nop            \ get address into A
+   a! @ nop a!
+   @+ push ;'                    \ repeat
+
+comment;
+
+:KEY goADDRESS                   \ jump to address in 3FF
+   3FF. # nop a! @               \ copy address into A
+   a! 3C0. # 3E0. # push         \ init SP and RP
+   @+ push ;'                    \ go
+
+
+begin .
+
+
+

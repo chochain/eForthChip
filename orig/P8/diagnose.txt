@@ -1,0 +1,33 @@
+::   DIAGNOSE     ( - )
+     $65 LIT
+\ 'F'  prove UM+ 0<             \ carry ,no carry, TRUE, FALSE .. .
+     0 LIT 0< -2 LIT 0<     \ 0 FFFF
+     UM+ DROP        \ FFFF ( -1)
+     3 LIT UM+ UM+ DROP  \ 3
+     $43 LIT UM+ DROP  \ 'F'
+        EMIT
+\ 'o' logic: XOR AND OR
+     $4F LIT $6F LIT XOR    \ 20h
+     $F0 LIT AND
+     $4F LIT OR
+        EMIT
+\ 'r' stack: SP@ DUP OVER SWAP DROP, SP!
+      8 LIT 6 LIT SWAP       \ reserve 1-cell SP for SP! in later test
+      OVER XOR 3 LIT AND     \ 1-cell-SP 2    ;
+      $70 LIT UM+ DROP     \  "        'r'
+        EMIT
+\ 't'-- prove BRANCH ?BRANCH, if error, type non 't' char
+      0 LIT IF $3F LIT THEN
+      -1 LIT IF $74 LIT ELSE $21 LIT THEN
+        EMIT
+\ 'h' -- @ ! C@ C!  stack memory also as testing memeory address
+      $68 LIT $1000 LIT !
+      $1000 LIT @
+        EMIT
+\ 'M' -- prove >R R> R@ RP@ RP!
+      $4D LIT >R R@ R> AND
+        EMIT
+\ 'l'  -- prove 'next' can run
+      1 LIT $6A LIT FOR 1 LIT UM+ DROP NEXT
+        EMIT
+      ;;

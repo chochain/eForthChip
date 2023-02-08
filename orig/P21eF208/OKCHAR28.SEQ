@@ -1,0 +1,476 @@
+\ Text utility for MuP21, 05mar94cht
+\ Save return stack in character. 06mar94cht
+\ TextLine ok. 07marcht  okchar3.seq
+\ Foreground background colors, 07mar94cht okchar4.seq
+\ Use 'screen to store screen address, 09mar94cht
+\ Use 'pattern to store pattern address, 09mar94cht
+\ Preliminary ASCII dump using number, 09mar94cht okchar5.seq
+\ ASCII dumps and character set demos. 11mar94cht okchar6.seq
+\   Integrated to ok4.seq
+\ Interface to an Apple II keyboard. 20apr94cht
+\ Display text blocks, 13jul94cht  okchar7.seq
+\ Display captions, 17jul94cht okchar10.seq
+\ Display pictures, 10sep94cht okchar12.seq
+\ Display compressed picture, 25sep94cht
+\       okpict.seq, decompression in P21
+\       okcomprs.seq, compress .bmp to .p21
+\       picture.seq, write .p21 file to sram
+\ Replace inline code with count loops, 25oct94cht
+\ Optimize nibble routines, reduce stack depth, 29oct94cht, okchar14.seq
+\       prevent hickup in nibble, 30oct94cht
+\ okchar19, add scrollUp, 24jan95cht
+\ okchar20, inproved baudRate, 100us, and 50us, 10feb95cht
+\ okchar21, ?RX, TX!, and !IO, 17feb95cht
+\ okchar22, add text word set, rewrite 100us and baudRate, 08mar95cht
+\ okchar26, use slow I/O ports for RS232 stability, 11nov95cht
+\ okchar28, MuP21h with 82C51, 14mar96cht
+
+CR
+
+begin
+
+400 ORG
+
+( 16 patterns for 16 nibbles )
+   00000. #, 0000F. #, 001E0. #, 001EF. #,
+   03C00. #, 03C0F. #, 03DE0. #, 03DEF. #,
+   78000. #, 7800F. #, 781E0. #, 781EF. #,
+   7BC00. #, 7BC0F. #, 7BDE0. #, 7BDEF. #,
+   00000. #, 00000. #, 00000. #, 00000. #, ( for blank underline )
+   00000. #, 00000. #, 00000. #, 00000. #, ( save return stack in 414-417 )
+   00000. #, ( save screen address )
+
+420 ORG
+
+( color table )
+00000. #, 08421. #, 10842. #, 18C63. #,
+21084. #, 294A5. #, 318C6. #, 39CE7. #,
+42108. #, 4A529. #, 5294A. #, 5AD6B. #,
+6318C. #, 6B5AD. #, 739CE. #, 7BDEF. #,
+
+': nibble ( 'nibble has pattern, will be divided by 16 )
+          ( 'screen has screen address, stack depth=3 )
+IS 'nibble                      \ avoid pass it on the stack, 10/29/94
+   0. # 0F. # and 400. #        \ get pattern addres
+   -or nop a! @   dup a!                \ get pattern
+IS 'foreground
+   7BDEF. # and   a com           \ get foreground color
+IS 'background
+   0. # and   -or             \ add background color
+   AAAAA. # -or                 \ convert to screen pattern
+IS 'screen
+   3F0. #   a!                    \ get screen address
+   dup ! a                      \ write to screen
+   66. # nop nop +             \ get next line address
+   nop a! !+                   \ write to next line
+   a -66. #   nop +
+   'screen # nop a! !             \ save screen address
+   'nibble # nop a! @               \ update 'nibble
+   2/ 2/ 2/ 2/                  \ shift to next nibble
+   ! ;'
+
+': setForeground ( color# -- )
+    0F. # and 420. # -or         \ get color from color table
+    a! @
+': foreground ( color -- )
+   'foreground # nop a! ! ;'
+
+': setBackground ( color# -- )
+    0F. # and 420. # -or         \ get color from color table
+    a! @
+': background ( color -- )
+   'background # nop a! ! ;'
+
+
+CR
+
+': 2nibbles ( -- )            \ write out two nibbles on two lines
+   nibble nibble                \ write out two nibbles
+   'screen # nop a! @ CA. #         \ skip one line
+   nop nop + ! ;'                   \ move to next screen line
+
+
+': 4nibbles ( --, stack depth=3 )
+IS 'pattern
+   600. # nop a! @+                 \ get a character pattern word
+   a 'pattern # nop a!   !            \ save pattern address
+   'nibble # nop a! !               \ store dot pattern
+   2nibbles                     \ write 1st two lines
+   2nibbles -;'                 \ repeat 2nd line
+
+
+
+CR
+
+': character ( -- , stack depth=3 )
+   414. # nop a! pop   !+             \ save R
+   pop !+ pop   !+ pop !               \ save R, R1-3
+IS 'character
+   0. #   7F. #             \ get character and use only 7 bits
+   and 2* 2*   600. #             \ n*4, offset into char table
+   -or 'pattern # nop   a! !          \ add offset to char table
+   4nibbles                     \ output 4 nibbles
+   4nibbles                     \ output one nibble from 2nd pattern
+   4nibbles                     \ output 3rd pattern
+   4nibbles                     \ output 4th pattern
+   'pattern # nop a! 600. #   !       \ null pattern
+   4nibbles                     \ output underline
+   'screen # nop a! @   -7F6. #       \ move screen address to next character
+   nop nop +   ! nop nop        \ in the same character line
+   417. #   a! @ push
+   416. #   a! @ push
+   415. #   a! @ push
+   414. #   a! @ push
+   ;'
+
+': showCharacter ( char -- )
+    'character # nop a! !
+    character
+    -;'
+
+
+': textLine ( n -- )            \ 32 text lines of 40 characters
+   push FF00. # pop nop        \ 7F8=20 scan lines
+   +* 2/ nop nop                \ 7F8*n
+   +* 2/ nop nop
+   +* 2/ nop nop
+   +* 2/ nop nop
+   +* 2/ AEDE2. # nop           \ UL. AE37A+A5C+C
+   nop + 'screen # nop a!
+   ! drop ;'                    \ save in 'screen
+
+CR
+
+': digit ( -- )
+IS 'number                      \ where number is to be printed
+   AC008. # 0F. # and dup       \ retain only the last nibble
+   9. -# nop nop +              \ is it less then 10?
+   -if
+     drop 37. #                 \ yes, make it a digit
+   else
+     drop 30. #                 \ no, make it A-F
+   then
+   + showCharacter                    \ print to screen
+   'screen # nop a! @          \ backup character pointer
+   3. -# nop nop +   !
+   'number # nop a! @               \ divide number by 16
+   2/ 2/ 2/ 2/                  \ get next nibble in 'number
+   ! ;'                         \ store number
+
+': number ( n -- )
+   'number # nop a! !               \ store number into 'number in digit
+   digit digit                  \ print nibbles from right to left
+   digit digit digit
+   'screen # nop a! @ 16. #         \ space to next number field
+   nop nop + ! ;'
+
+CR
+
+': 4dump                        \ dump 4 consecutive locations
+IS 'row#
+   0. # textLine
+   'screen # nop a! @   10. #
+   nop nop +   !
+IS 'address
+   0. # number
+   'address # nop a! @
+   a! @ number
+   'address # nop a! @
+   1. # + nop a!
+   @ number
+   'address # nop a! @
+   2. # + nop a!
+   @ number
+   'address # nop a! @
+   3. # + nop a!
+   @ number
+   'address # nop a! @
+   4. # nop nop +   !
+   'row# # nop a!   @
+   1. # nop nop   +
+   ! ;'
+
+:KEY 50dump-                    \ dump 80 locations backward
+   FFF60. # 'address # nop a!   @
+   nop nop + !
+:KEY 50dump+                    \ dump 80 locations foreward
+': 50dump
+   0. # 'row# # nop a!   !
+        1. #
+        begin 4dump
+        2* -until
+        drop
+   ljump KEY
+
+CR
+
+': 25us                    ( 1/2 bit delay )
+   8. # skip
+': 100us                   ( 1 bit delay in serial I/O )
+   2. #                    ( 100 us is about 1 bit at 9600 baud )
+   then
+IS 'speed
+   -3FF. #                 ( 256 cycles for 50us, 512 for 100us )
+   begin +* nop -until
+   drop drop ;'            ( restore IO port in A )
+
+CODE SLOW ( -- , reduce jitter in video )
+   a push 'speed # nop
+   a! -FFFF. # ! pop
+   nop a! @+ push
+   ;'
+
+CODE FAST ( -- , for file downloading )
+   a push 'speed # nop
+   a! -3FF. # ! pop
+   nop a! @+ push
+   ;'
+
+CODE !IO                   ( initialize 82C51 )
+   a push                  ( save IP on S, SP IP -- )
+   7FFFC. p com nop a!     ( slow I/O port, SP IP addr -- )
+   0. p ! 25us             ( 3 default 0's to init 80C51 )
+   0. p ! 25us
+   0. p ! 25us
+   40. p ! 25us            ( reset )
+   CE. p ! 25us            ( 16x, 8 data bits, 2 stop bits, no parity)
+   27. p ! 25us            ( enable Tx, Rx, /DTR, /RTS )
+   pop nop a!              ( restore IP and SP )
+   @+ push ;'              ( next )
+comment:
+:KEY ioTest
+   7FFFC. p com nop a!     ( slow I/O port, SP IP addr -- )
+   0. p ! 25us             ( 3 default 0's to init 80C51 )
+   0. p ! 25us
+   0. p ! 25us
+   40. p ! 25us            ( reset )
+   CD. p ! 25us            ( 1x, 8 data bits, 2 stop bits, no parity)
+   27. p ! 25us            ( enable Tx, Rx, /DTR, /RTS )
+   ljump KEY
+comment;
+
+CODE ?RX ( -- c true | false, get character )
+   25us
+   a push                  ( save IP )
+   7FFFD. p com nop a!     ( slow status port in 82C51 )
+comment:
+   @ AA. # -or 38. # and   ( any error? )
+   if drop nop a! @+       ( yes, push false on data stack )
+      dup -or ! a
+      7FFFC. p com nop a!  ( clear error )
+      37. p !
+      pop nop a!
+      @+ push ;'           ( return with a false flag )
+   else drop               ( no error, continue )
+   then
+comment;
+   @ com 2. # and          ( RxRDY? )
+   if 7FFFF. p com nop a!  ( read character from 82C51 )
+      drop @ AA. # -or
+      FF. # and push nop   ( get SP into A )
+      a! @+ drop pop       ( bump SP and push character )
+      !+ -1. # !           ( push -1 flag )
+   else push nop a! @+     ( else push false flag on data stack )
+      drop pop !
+   then
+   a pop nop a!            ( restore SP and IP )
+   @+ push ;'              ( next )
+
+comment:
+:KEY keyTest
+   10. # textLine
+   7FFFD. p com dup a!     ( slow status port in 82C51 )
+   begin
+      drop 25us
+      @ com 2. # and       ( RxRDY? )
+   until
+   7FFFF. p com nop a!     ( read character from 82C51 )
+   drop @ AA. # -or
+   FF. # and               ( get SP into A )
+   showCharacter
+   ljump KEY
+comment;
+
+CODE TX! ( c -- )
+   a push
+   7FFFD. p com dup a!     ( status port in 82C51 )
+   begin
+      100us
+      drop @ 4. # and      ( wait for TxEmpty )
+   until
+   drop dup nop a!         ( save IP on RS, put SP in A )
+   @ AA. # -or nop
+   7FFFE. p com nop a!
+   ! dup dup -or           ( data output port in 82C51 )
+   com nop nop +           ( send character out )
+   pop nop a!              ( decrement S, restore I )
+   @+ push ;'              ( next )
+
+comment:
+:KEY emitTest
+   7FFFE. p com nop a!     ( status port in 82C51 )
+   42. p !
+   ljump KEY
+comment;
+
+\ comment:
+CR
+
+': move20words ( source in A, dest on stack,  a -- a' )
+   push 1. #                     \ save dest, introduce count
+   begin
+      @+ pop a push              \ get data, exchange source and dest
+      a! !+ pop a                \ store data, exchange source and dest
+      push nop a!
+   2* -until
+   drop pop ;'                   \ restore destination
+
+': scrollUp   ( -- )
+   AEDE2. 7F8. D+ # nop a!       \ init source
+   AEDE2. #                      \ init destination
+   E8400. #                      \ move 19x20 scan lines
+   begin push
+      move20words                \ copy 80 words of a line
+      move20words
+      move20words
+      move20words
+      a 16. # nop nop            \ move source to next line
+      + nop a! 16. #             \ move dest to next line
+      + pop 100. # nop           \ loop 320 lines
+   + -until
+   drop drop ;'
+
+CR
+
+CODE FG ( color# -- )
+   a push dup a!                 \ get SP
+   @ 0F. # and 420. #
+   -or nop a! @                  \ get color
+   dup 'foreground # nop a!      \ put in 'foreground for characters
+   ! AAAAA. # -or 'color #
+   a! ! pop nop                  \ also put in 'color for SCREEN
+   a! dup dup -or                \ restore IP, decrement SP
+   com nop nop +
+   @+ push ;'
+
+CODE BG ( color# -- )
+   a push dup a!                 \ get SP
+   @ 0F. # and 420. #
+   -or nop a! @                  \ get color
+   dup AAAAA. # -or nop
+   'background # nop a! !        \ put in 'background for characters
+   'color # nop a! !             \ also put in 'color for SCREEN
+   pop nop a! dup                \ restore IP, decrement SP
+   dup -or com nop
+   + @+ push ;'                  \ next
+
+CODE tvAT ( x y -- )             \ convert character coordinates to 'screen
+   a 3FC. # nop a!
+   !+ pop !+ dup
+   dup -or com nop
+   + dup ! nop
+   a! @+ @
+   textLine
+   2* 'screen # nop a!           \ add 2x to 'screen
+   @ nop + !
+   3FC. # nop a! @+
+   @+ push push @
+   pop nop a! dup
+   dup -or com nop
+   + @+ push ;'                 \ next
+
+CODE tvEMIT ( char -- )
+   a 3FC. # nop a!
+   !+ pop !+ dup
+   ! nop a! @
+   showCharacter
+   3FC. # nop a! @+
+   @+ push push @
+   pop nop a! dup
+   dup -or com nop
+   + @+ push ;'                 \ next
+
+CODE tvCR
+   a 3FC. # nop a!
+   !+ pop !+ !                   \ save IP, RP, SP
+   scrollUp
+   12. # textLine
+   3FC. # nop a! @+
+   @+ push push @
+   pop nop a!
+   @+ push ;'
+
+\ comment;
+
+begin .
+
+CR
+
+600 ORG  ( character table )
+
+0000. #, 0000. #, 0000. #, 0000. #, 24C3. #, 185A. #, 24DB. #, 00C3. #, 
+E7C3. #, FFBD. #, E73C. #, 00C3. #, EE00. #, EFEF. #, 83C7. #, 0001. #, 
+8301. #, EFC7. #, 83C7. #, 0001. #, C300. #, FF81. #, 80FF. #, 0081. #, 
+8301. #, EFC7. #, 01EF. #, 0083. #, 0000. #, C381. #, 0081. #, 0000. #, 
+FFFF. #, 3C7E. #, FF7E. #, FFFF. #, C300. #, 1824. #, 2418. #, 00C3. #, 
+3CFF. #, E7DB. #, DBE7. #, FF3C. #, 70F1. #, C7D0. #, 6C6C. #, 00C7. #, 
+E700. #, 3C3C. #, 81E7. #, 81E7. #, 6040. #, 4070. #, CF40. #, 008F. #, 
+A0C0. #, B0D0. #, 9F9F. #, F1F1. #, 2900. #, 44C7. #, C76C. #, 0029. #, 
+0000. #, 8706. #, 87E7. #, 0006. #, 0000. #, E160. #, E1E7. #, 0060. #, 
+E781. #, 8181. #, 8181. #, 81E7. #, 6666. #, 6666. #, 0066. #, 0066. #, 
+6BFF. #, 6367. #, 6363. #, 0063. #, 1CE7. #, 22CD. #, F122. #, E738. #, 
+0000. #, E700. #, 00E7. #, 0000. #, E781. #, 8181. #, 81E7. #, FF00. #, 
+E781. #, 8181. #, 8181. #, 0081. #, 8181. #, 8181. #, E781. #, 0081. #, 
+4000. #, FF60. #, 4060. #, 0000. #, 0200. #, FF06. #, 0206. #, 0000. #, 
+0000. #, 0C00. #, 0C0C. #, 00FF. #, 4200. #, FF66. #, 4266. #, 0000. #, 
+0000. #, 8301. #, EFC7. #, 0000. #, 0000. #, EF00. #, 83C7. #, 0001. #, 
+0000. #, 0000. #, 0000. #, 0000. #, 0303. #, 0303. #, 0003. #, 0003. #, 
+6666. #, 0000. #, 0000. #, 0000. #, C6C6. #, C6EF. #, C6EF. #, 00C6. #, 
+C701. #, C72D. #, C768. #, 0001. #, 690F. #, 81CF. #, 27E3. #, 00ED. #, 
+8403. #, 8703. #, CCEC. #, 0087. #, C0C0. #, 0081. #, 0000. #, 0000. #, 
+0601. #, 0C0C. #, 060C. #, 0001. #, C001. #, 6060. #, C060. #, 0001. #, 
+4500. #, EF83. #, 4583. #, 0000. #, 8100. #, E781. #, 8181. #, 0000. #, 
+0000. #, 0000. #, 0000. #, 0781. #, 0000. #, E700. #, 0000. #, 0000. #, 
+0000. #, 0000. #, 0000. #, 0081. #, 6020. #, 81C0. #, 0603. #, 000C. #, 
+ECC7. #, 6FED. #, 6E6E. #, 00C7. #, 8381. #, 8187. #, 8181. #, 00C3. #, 
+6CC7. #, C060. #, 0603. #, 00EF. #, 6CC7. #, C360. #, 6C60. #, 00C7. #, 
+E1E0. #, 6663. #, 60EF. #, 0060. #, 0CEF. #, CF0C. #, 6060. #, 00CF. #, 
+6CC7. #, CF0C. #, 6C6C. #, 00C7. #, 60EF. #, 81C0. #, 0603. #, 0006. #, 
+6CC7. #, C76C. #, 6C6C. #, 00C7. #, 6CC7. #, E76C. #, 6C60. #, 00C7. #, 
+0300. #, 0000. #, 0300. #, 0000. #, 0300. #, 0000. #, 0300. #, 0002. #, 
+C100. #, 0603. #, C103. #, 0000. #, 0000. #, 00E7. #, 00E7. #, 0000. #, 
+0700. #, C081. #, 0781. #, 0000. #, 6CC7. #, 81C0. #, 0003. #, 0003. #, 
+28C7. #, AAA9. #, E9AA. #, 00C7. #, 6CC7. #, EF6C. #, 6C6C. #, 006C. #, 
+66CF. #, C766. #, 6666. #, 00CF. #, 6CC7. #, 0C0C. #, 6C0C. #, 00C7. #, 
+66CF. #, 6666. #, 6666. #, 00CF. #, 26EF. #, 8786. #, 2686. #, 00EF. #, 
+26EF. #, 8786. #, 0686. #, 000F. #, 6CC7. #, 0C6C. #, 6CED. #, 00C7. #, 
+6C6C. #, EF6C. #, 6C6C. #, 006C. #, 81C3. #, 8181. #, 8181. #, 00C3. #, 
+C0E1. #, C0C0. #, CCC0. #, 0087. #, CC6C. #, 0F8D. #, CC8D. #, 006C. #, 
+060F. #, 0606. #, 2606. #, 00EF. #, EE6C. #, 6DEF. #, 6C6C. #, 006C. #, 
+6E6C. #, ED6F. #, 6CEC. #, 006C. #, 6CC7. #, 6C6C. #, 6C6C. #, 00C7. #, 
+66CF. #, C766. #, 0606. #, 000F. #, 6CC7. #, 6C6C. #, 6C6C. #, C0C7. #, 
+66CF. #, C766. #, 6666. #, 006E. #, 6CC7. #, C70C. #, 6C60. #, 00C7. #, 
+A5E7. #, 8181. #, 8181. #, 00C3. #, 6C6C. #, 6C6C. #, 6C6C. #, 00C7. #, 
+6C6C. #, 6C6C. #, C66C. #, 0083. #, 6C6C. #, 6C6C. #, EE6D. #, 006C. #, 
+C66C. #, 8383. #, C683. #, 006C. #, 6666. #, C366. #, 8181. #, 00C3. #, 
+6CEF. #, 81C0. #, 6603. #, 00EF. #, 81C1. #, 8181. #, 8181. #, 00C1. #, 
+060C. #, 8103. #, 60C0. #, 0020. #, 0307. #, 0303. #, 0303. #, 0007. #, 
+0000. #, 8301. #, 6CC6. #, 0000. #, 0000. #, 0000. #, 0000. #, FF00. #, 
+0303. #, 0081. #, 0000. #, 0000. #, 0000. #, 60C7. #, 6CE7. #, 00E7. #, 
+0C0C. #, 6CCF. #, 6C6C. #, 00CF. #, 0000. #, 6CC7. #, 6C0C. #, 00C7. #, 
+6060. #, 6CE7. #, 6C6C. #, 00E7. #, 0000. #, 6CC7. #, 0CEF. #, 00C7. #, 
+66C3. #, 0F06. #, 0606. #, 0006. #, 0000. #, 6CE7. #, E76C. #, C760. #, 
+0C0C. #, 6CCF. #, 6C6C. #, 006C. #, 0081. #, 8183. #, 8181. #, 00C3. #, 
+C000. #, C100. #, C0C0. #, 87CC. #, 0C0C. #, 8D6C. #, 8D0F. #, 006C. #, 
+8183. #, 8181. #, 8181. #, 00C3. #, 0000. #, EFEE. #, 6C6D. #, 006C. #, 
+0000. #, 6CCF. #, 6C6C. #, 006C. #, 0000. #, 6CC7. #, 6C6C. #, 00C7. #, 
+0000. #, 6CCF. #, CF6C. #, 0C0C. #, 0000. #, 6CE7. #, E76C. #, 6060. #, 
+0000. #, 67ED. #, 0606. #, 0006. #, 0000. #, 0CC7. #, 60C7. #, 00C7. #, 
+8181. #, 81E7. #, 8181. #, 00E1. #, 0000. #, 6C6C. #, 6C6C. #, 00E7. #, 
+0000. #, 6C6C. #, C66C. #, 0083. #, 0000. #, 6C6C. #, EF6D. #, 006C. #, 
+0000. #, C66C. #, C683. #, 006C. #, 0000. #, 6C6C. #, E76C. #, C760. #, 
+0000. #, C0EF. #, 0681. #, 00EF. #, 81E0. #, 0781. #, 8181. #, 00E0. #, 
+8181. #, 0081. #, 8181. #, 0081. #, 030E. #, C103. #, 0303. #, 000E. #, 
+0000. #, A907. #, 00E0. #, 0000. #, 0000. #, C381. #, FF66. #, 0000. #,
+
+ORG

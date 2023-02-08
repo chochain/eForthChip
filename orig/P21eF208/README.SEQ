@@ -1,0 +1,281 @@
+eForth for Plastic MuP21 Chips
+
+C. H. Ting
+
+Version 2.07 11/24/95
+
+Files: meta27.seq, ok27c.seq, hline27.seq, kernel27.seq, inner.seq
+   eForth27.seq
+
+Merge rectangle code with eForth.
+Add newColor demo code.
+
+Version 2.06 11/11/95
+
+File name changes: meta26.seq, ok26c.seq, okchar26.seq
+
+I/O is returned to 250ns slow mode to stablize the RS232 communications.
+Use 74HC138, 74HC245, 74HC574 for input and output.
+Use a 1.8432 MHz clock in the place of 14.318 MHz clock.  By slowing
+down the video clock input, the timing on RS232 port can be
+maintained accurately and the drift of baudrate is greatly reduced.
+This makes the serial communication with the host computer stable
+and usable.
+
+Add HOST.EXE.  This is the host terminal/file server adopted from
+Lesson11 in The Forth Course by Richard Haskell.
+
+To download a file from PC to eForth in MuP21:
+1.      bring up HOST by
+        C:>HOST
+2.      Boot eForth
+3.      Press B or b on host keyboard
+4.      Test eForth from keyboard
+5.      Start file down load by typing:
+        FILE <return>
+6.      Press F3 to bring up a file selection menu
+7.      Select file and press return
+8.      Examine the eForth dictionary by
+        WORDS
+
+
+Version 2.04, 2/20/95
+
+This disk contains the beta version of MuP21 eForth v2.02.  The files
+are:
+
+readme.seq      This file
+meta.seq        Metacompiler.  It also loads all other files
+ok21c.seq       Chuck Moore's MuP21 assembler
+okchar21.seq    Character generator and RS232 driver
+kernel.seq      30 eForth primitives for MuP21
+inner.seq       Inner interpreters for MuP21 eForth
+eforth.seq      High level eForth source code
+p21ef.rom       32K byte eForth ROM image
+
+Hardware Requirements
+
+This eForth is to be used in the MuP21 Development Board (Offete 4012)
+or in the MuP21 Evaluation Kit (Offete 4011).  To run eForth, the
+board needs the following modifications:
+
+1.      Replace 74HC138 by a 74ACT138
+2.      Replace 74HC245 by a 74ACT245
+3.      Add 0.1 uF bypass capacitors to 74ACT138 and 74HC574
+4.      Burn a M27C1001 (200ns or lower) EPROM with p21ef.rom
+        located between 0-7FFF.  Place it in the ROM socket.
+5.      Connect pin-9 of '245 to TX of host RS232 port
+6.      Connect pin-19 of '574 to RX of host RS232 port
+
+eForth uses fast I/O mode to communicate with the host.  HC parts
+are too slow for the input.  Running in fast mode, there is a
+significant amonut of noise which tends to disrupt the serial
+output line.  The bypass capacitors are needed to quite down
+the system.
+
+Boot the RS232 Interface
+
+Upon power up, the big blue OK sign will be shown on the TV screen.
+Pressing the middle switch of the 7 switches will activate the serial
+interface and sends the message "MuP21 eForth V2.02" to the host.
+Now you can talk to MuP21 via the host keyboard/screen.
+
+Try the following eForth commands:
+        WORDS
+        HEX 0 2000 DUMP
+        SEE WORDS
+        .FREE
+        .BASE
+        : LOOPTEST -1 FOR NEXT ;
+        LOOPTEST
+
+If the message "MuP21eForth V2.02" is garbled up, the host is not
+talking in 9600 baud, 1 start, 1 stop format.  Change the host
+baud rate to 9600 and reboot MuP21 system.  Then press middle
+switch.
+
+If the message is still not correct, do the following to change
+the baud rate from MuP21.  The 7 switches are number 1 to 7, with
+switch 1 being the software RESET switch.
+
+1.      Press hardware reset switch.  OK must be shown on TV screen.
+        Make sure MuP21 and the host RS232 port are properly connected.
+2.      Press Switch 3.  The TV screen will be darkened.
+3.      Press Switch 2.  Character B will be sent to host.
+        Hold down Switch 2 and use a scope to observed the
+        waveform.  It should be close to 9600 baud.
+4.      Press Switch 7 once.  This puts MuP21 in a waiting loop,
+        waiting for a characte 'B' or 'b' to be transmitted from
+        the host.
+5.      Press 'B' on the host keyboard.
+6.      Hold down Switch 2 again, to verify that B's are properly
+        received by the host.
+7.      Press Switch 1 once to return to the OK screen.  Do not
+        hold it too long to trigger a software reset.  Software
+        reset will erase the new baud rate you just acquired.
+8.      Press Switch 4 again to initialize the serial port.
+        You should see the eForth sign-on message on the host screen.
+        Failing that, repeat from Step 1.
+
+
+MuP21 Hardware Debugger
+
+To bring up this eForth system, I implemented a simple hardware
+debugger under the OK system.  It consists of 4 menus, and the functions
+assigned to switches in the following fashion:
+
+Menu            Switches
+                7       6       5       4       3       2       1
+OK              Debug   Dump+   Dump-   eForth  Test    Select  Reset
+Test (green)    SetBaud Dump+   Dump-   KeyTest CLS     EmitTst OK
+Select (blue)   Debug   Digit3  Digit2  Digit1  Digit0  Stacks  Test
+Debug (red)     Stacks  Go3FF   Continu Rpt3FF  --      Select  Test
+
+Functions are:
+
+Dump+           Dump next 80 words
+Dump-           Dump previous 80 words
+eForth          Start eForth, locked to serial line
+Reset           Software reset
+SetBaud         Wait a 'B' from host and set baud rate
+KeyTest         Enter an infinite loop to receive characters from
+                host and display characters on TV screen
+CLS             Darken the TV screen
+EmitTest        Send 'B' to the host
+Digit3          Decrement digit 3 in memory location 3FF
+Digit2          Decrement digit 2 in memory location 3FF
+Digit1          Decrement digit 1 in memory location 3FF
+Digit0          Decrement digit 0 in memory location 3FF
+Stack           Dump the stack area from 3B0 to 3FF
+                User area:      3B0-3BF
+                Data Stack:     3C0-3DF
+                Return Stack:   3E0-3FF
+                IP:             3FC
+                SP:             3FD
+                RP:             3FE
+                Go Address:     3FF
+Go3FF           Jump to address in 3FF, init SP to 3C0 and RP to 3E0
+                Break at the next EXIT
+Continue        Continue execution till the next break at EXIT
+Rpt3FF          Jump to address in 3FF, do not init SP and RP
+
+To break at EXIT, eForth needs to be recompiled with the phrase
+        ' WAIT alias ;;
+enabled and the phrase
+        ' EXIT alias ;;
+commented out.
+
+With WAIT installed in places of EXIT at the end of all the colon
+definitions, you can choose a colon definition by put its address
+(plus 1, to the address list) in 3FF and press 'Go3FF' switch.
+MuP21 will execute the list and stop at the next WAIT (EXIT).  The
+stacks, pointers and the user area are refreshed for inspection.
+Press 'Continue' will continue the execution and stop at the next
+WAIT (EXIT).
+
+To select a word to trace, go the the Select Menu and use the
+Digit3, Digit2, Digit1, and Digit0 switches to change the address
+in 3FF.  When you have the desired address in 3FF, press 'Debug'
+to go the the Debug Menu.  Use Go3FF to start execution, and
+Continue to trace the code.  If you like to look at other memory
+locations, press 'Test' to get to the Test Menu and then the
+Dump switches to scan the memory.  Press 'Debug' to continue
+tracing.
+
+This debugger is very crude and not very convenient.  It served
+my purpose of bringing up the interpreter of eForth.  Once the
+interpreter is up and working, debugging the rest of the system
+is but a breeze.  However, it can be very useful when you have
+to enhance eForth.  So, I present this debugger as a challenge
+to you.  Try to make it more versatile and easier to use.  Extend
+it so you can use it to debug native MuP21 machine code programs.
+
+The Metacompiler
+
+The purpose of this metacompiler is to build the eForth system
+on the top of the OK system originated from Chuck Moore.  I took a
+short cut.  Instead of insisting on building in in MASM, I tried
+to use the eForth source code provided by Bill Muench.  The OK
+system is extended to the point that it can read Bill's Forth
+source code and generates the desired ROM image executable by
+MuP21.  I am not trying to write a good metacompiler like Bill's,
+only one which can metacompile the eForth proper.
+
+OK is first loaded.  It is used to assembler the 30 some kernel
+words, in the machine code of MuP21.  All code words and colon
+words are defined such that future references will compile their
+addresses in the code dictionary.  Numbers are compiled by the
+compiler word LIT, strings are compiled by the compiler word $LIT.
+Control structures are compiled by the redefined words like
+IF, ELSE, THEN, BEGIN, UNTIL, WHILE, REPEAT, AGAIN, etc.
+As the eForth is being built, more and more Forth words are
+redefined to compile their respective address.  In the end, all
+words are compiler words, and doing nothing else but compiling.
+It become extremely dull, as it will echo 'ok' on any thing you
+type and do nothing interesting.
+
+Hence, the ordering of eForth words is very inportant.  If you have
+to use a function, the corresponding word must be compiled after
+all its functions are served.
+
+Memory Map
+
+        OK                0-196
+        Kernel          197-300
+        TIB             300-350
+        User Area       3B0-3BF
+        Data Stack      3C0-3DF
+        Return Stack    3E0-3FF
+        Text Utility    400-4FF
+        Serial Port     500-5FF
+        Character Table 600-7FF
+        DOLIST,DOVAR    800-80F
+        Variables       810-837
+        User Variables  838-849
+        Colon Words     84A-BFF
+        DOLIST,DOVAR    C00-C0F
+        Colon Words     C10-FFF
+        DOLIST,DOVAR    1000-100F
+        Free Space      1010-19EE
+        Name Dictionry  19EF-1FFF
+        Free Memory     2000-AAAA9
+        Video Buffer    AAAAA-B9658
+        Free Memory     B9659-FFFFF
+
+Notice the DOLIST and DOVAR at the beginning of every
+1K word page which contains colon definitions and variables.
+They are the inner interpreters of colon words and variables
+and they allow words to be referenced across page boundaries.
+The file INNER.SEQ is loaded at the beginning of every page
+used for high level eForth code.
+
+Only 32 words are allocated each for the Data Stack and the
+Return Stack.  They seem to be quite shallow compared to other
+Forth systems.  However, 32 words are adequate.  While eForth is
+running, the water mark of the Return Stack is at 21 words and that
+of the Data Stack is at 13.  You should feel comfortable with these
+stacks.  However, don't get carried away and start doing recursion
+without relocating the stacks.
+
+
+Characters and Words
+
+MuP21 is a 20-bit word addressing machine.  We can pack 2.5 bytes
+to a word, if so desired.  However, we take the simpler approach
+in assigning one byte to a word.  It seems to be quite wasteful,
+but we have 1 MB of ROM space and 1M words of DRAM space.  So far,
+the eForth system uses 2K words for code dictionary and less than
+2K words for name dictionary.  1K words are used by OK and the
+kernel, and 1K words are used by the character table and service
+routines.  It occupies the lowest 8K words in the 1M DRAM space.
+Within this 8K space, there are still more that 2K words for
+dictionary expansion.
+
+C@ and C! are not defined.  @ and ! are used in their places.
+CELLS, ALIGNED are not needed.  CELL+ is 1+ and CELL- is 1-.
+A string is a sequence of words preceeded by a 20-bit count.  Strings
+are therefore not limited to 255 bytes.  Theoretically, a string
+here can be 1M words long.
+
+
+
