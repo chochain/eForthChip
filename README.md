@@ -3,7 +3,7 @@
 * work in progress (inner, comma, pusher)
 
 ## Is it time for another Forth Chip?
-* [this conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of seal the fate of this project.
+* [This Google conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of seal the fate of this project. And, the answer is NOT REALLY!
 
 ## Outer Interpreter block diagram
   <img src="./img/forthsuper_outer_arch.png" width='600px'>
@@ -22,7 +22,7 @@
   |syn|<img src="./img/atoi_0_syn.png" width='500px'>|<img src="./img/atoi_1_syn.png" width='500px'>|
   |sim|<img src="./img/atoi_0_sim.png" width='500px'>|<img src="./img/atoi_1_sim.png" width='500px'>|
 * Module transition (outer interpreter)
-  |fnd->a2i-psh|fnd->exe->fnd|
+  |fnd -> a2i -> psh|fnd -> exe -> fnd|
   |---|---|
   |<img src="./img/fnd_a2i_psh.png" width='500px'>|<img src="./img/fnd_exe.png" width='500px'>|
 * Execution unit
