@@ -1,10 +1,10 @@
 ///
-/// ForthSuper - eForth Inner Interpreter
+/// eForth1 - eForth Inner Interpreter
 ///
-`ifndef FORTHSUPER_EFORTH
-`define FORTHSUPER_EFORTH
-`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
-`include "../source/forthsuper.vh"
+`ifndef EFORTH1_EFORTH
+`define EFORTH1_EFORTH
+`include "../source/eforth1_if.sv"     /// iBus32 or iBus8 interfaces
+`include "../source/eforth1.vh"
 
 module eforth #(
     parameter DSZ = 32,                   /// 32-bit data path
@@ -259,4 +259,4 @@ module eforth #(
         end
     end
 endmodule: eforth
-`endif // FORTHSUPER_EFORTH
+`endif // EFORTH1_EFORTH

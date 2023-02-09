@@ -1,9 +1,9 @@
 ///
-/// ForthSuper Dictionary Setup Testbench
+/// eForth1 Dictionary Setup Testbench
 ///
 `timescale 1ps / 1ps
-`include "../source/forthsuper_if.sv"
-`include "../source/forthsuper.vh"
+`include "../source/eforth1_if.sv"
+`include "../source/eforth1.vh"
 
 module dict_setup #(
     parameter TIB  = 'h0,       /// terminal input buffer
