@@ -1,5 +1,5 @@
 ///
-/// ForthSuper Single-Port Memory with Multi-Driver Testbench
+/// eForth1 Single-Port Memory with Multi-Driver Testbench
 ///
 `timescale 1ps / 1ps
 module mdrv_tb;

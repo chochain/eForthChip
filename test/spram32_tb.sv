@@ -1,5 +1,5 @@
 ///
-/// ForthSuper Single-Port Memory Testbench
+/// eForth1 Single-Port Memory Testbench
 ///
 `timescale 1ps / 1ps
 `include "../source/spram.sv"

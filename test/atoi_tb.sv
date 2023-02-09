@@ -1,5 +1,5 @@
 ///
-/// ForthSuper atoi module Testbench
+/// eForth1 atoi module Testbench
 ///
 `timescale 1ps / 1ps
 `include "../source/spram.sv"

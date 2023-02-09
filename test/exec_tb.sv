@@ -1,5 +1,5 @@
 ///
-/// ForthSuper Execution Unit Testbench
+/// eForth1 Execution Unit Testbench
 ///
 `timescale 1ps / 1ps
 `include "../source/exec.sv"

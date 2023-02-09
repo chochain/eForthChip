@@ -1,5 +1,5 @@
 ///
-/// ForthSuper Stack Testbench
+/// eForth1 Stack Testbench
 ///
 `timescale 1ps / 1ps
 `include "../source/stack.sv"

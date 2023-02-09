@@ -1,5 +1,5 @@
 ///
-/// ForthSuper Outer Interpreter Testbench
+/// eForth1 Outer Interpreter Testbench
 ///
 `timescale 1ps / 1ps
 `include "../source/outer.sv"

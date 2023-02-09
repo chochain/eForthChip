@@ -1,5 +1,5 @@
 ///
-/// ForthSuper comparator testbench
+/// eForth1 comparator testbench
 ///
 module comparator_tb #(
     // test parameters
