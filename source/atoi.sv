@@ -1,5 +1,5 @@
 ///
-/// ForthSuper strtol (or atoi) module
+/// eForth1 strtol (or atoi) module
 ///
 /*
  * reference C code
@@ -28,9 +28,9 @@ int atoi(const char *s, size_t base)
     return (neg) ? -ret : ret;
 }
 */
-`ifndef FORTHSUPER_ATOI
-`define FORTHSUPER_ATOI
-`include "../source/forthsuper_if.sv"
+`ifndef EFORTH1_ATOI
+`define EFORTH1_ATOI
+`include "../source/eforth1_if.sv"
 
 typedef enum logic { AI0, ACC } atoi_sts;
 module atoi #(
@@ -145,4 +145,4 @@ module atoier #(
         mb_if.ai <= en ? mb_if.ai + 1'b1 : tib;
     end // always_ff
 endmodule: atoier
-`endif // FORTHSUPER_ATOI
+`endif // EFORTH1_ATOI

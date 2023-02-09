@@ -1,9 +1,9 @@
 ///
-/// ForthSuper - Dictionary Word Finder (Latched)
+/// eForth1 - Dictionary Word Finder (Latched)
 ///
-`ifndef FORTHSUPER_FINDER
-`define FORTHSUPER_FINDER
-`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
+`ifndef EFORTH1_FINDER
+`define EFORTH1_FINDER
+`include "../source/eforth1_if.sv"        /// iBus32 or iBus8 interfaces
 typedef enum logic [2:0] { FD0, MEM, LF0, LF1, LEN, NFA, TIB, CMP } finder_sts;
 module finder #(
     parameter DSZ = 8,                    /// 8-bit data path
@@ -128,4 +128,4 @@ module finder #(
         end
     end
 endmodule: finder
-`endif // FORTHSUPER_FINDER
+`endif // EFORTH1_FINDER

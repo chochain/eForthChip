@@ -1,9 +1,9 @@
 ///
-/// ForthSuper - Mock Inner Interpreter
+/// eForth1 - Mock Inner Interpreter
 ///
-`ifndef FORTHSUPER_INNER
-`define FORTHSUPER_INNER
-`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
+`ifndef EFORTH1_INNER
+`define EFORTH1_INNER
+`include "../source/eforth1_if.sv"        /// iBus32 or iBus8 interfaces
 typedef enum logic [1:0] { EX0, EX1, EX2 } inner_sts;
 module inner #(
     parameter DSZ = 8,                    /// 8-bit data path
@@ -78,4 +78,4 @@ module inner #(
         else step();
     end
 endmodule: inner
-`endif // FORTHSUPER_INNER
+`endif // EFORTH1_INNER

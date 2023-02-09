@@ -1,9 +1,9 @@
 ///
-/// ForthSuper - Comma (add to memory) Module
+/// eForth1 - Comma (add to memory) Module
 ///
-`ifndef FORTHSUPER_COMMA
-`define FORTHSUPER_COMMA
-`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
+`ifndef EFORTH1_COMMA
+`define EFORTH1_COMMA
+`include "../source/eforth1_if.sv"        /// iBus32 or iBus8 interfaces
 typedef enum logic [1:0] { CM0, CM1 } comma_sts;
 module comma #(
     parameter DSZ = 8,                    /// 8-bit data path
@@ -62,4 +62,4 @@ module comma #(
         else step();
     end
 endmodule: comma
-`endif // FORTHSUPER_INNER
+`endif // EFORTH1_INNER

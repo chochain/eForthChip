@@ -1,11 +1,11 @@
 ///
-/// ForthSuper Single-Port Memory
+/// Eforth1 Single-Port Memory
 ///     spram32_32k - 32K  32-bit 
 ///     spram8_128k - 128K 8-bit (byte)
 ///
-`ifndef FORTHSUPER_SPRAM
-`define FORTHSUPER_SPRAM
-`include "../source/forthsuper_if.sv"
+`ifndef EFORTH1_SPRAM
+`define EFORTH1_SPRAM
+`include "../source/eforth1_if.sv"
 module spram32_32k (
     mb32_io b32_if,              /// 32-bit bus slave
     input   clk                  /// memory can be driven with different clock
@@ -94,4 +94,4 @@ module spram8_128k (
         if (!b8_if.we) _m <= m;          /// read needs to wait for one cycle
     end
 endmodule : spram8_128k
-`endif // FORTHSUPER_SPRAM
+`endif // EFORTH1_SPRAM

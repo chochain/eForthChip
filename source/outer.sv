@@ -1,10 +1,10 @@
 ///
-/// ForthSuper - Outer Interpreter
+/// eForth1 - Outer Interpreter
 ///
-`ifndef FORTHSUPER_OUTER
-`define FORTHSUPER_OUTER
-`include "../source/forthsuper.vh"
-`include "../source/forthsuper_if.sv"    /// iBus32 or iBus8 interfaces
+`ifndef EFORTH1_OUTER
+`define EFORTH1_OUTER
+`include "../source/eforth1.vh"
+`include "../source/eforth1_if.sv"       /// iBus32 or iBus8 interfaces
 `include "../source/spram.sv"            /// memory management module
 `include "../source/finder.sv"           /// dictionary word search module
 `include "../source/atoi.sv"             /// string to number module
@@ -236,4 +236,4 @@ module outer #(
         else step();
     end
 endmodule: outer
-`endif // FORTHSUPER_OUTER
+`endif // EFORTH1_OUTER

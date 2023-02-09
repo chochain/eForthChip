@@ -1,9 +1,9 @@
 ///
-/// ForthSuper stack (FILO)
+/// eForth1 stack (FILO)
 ///
-`ifndef FORTHSUPER_STACK
-`define FORTHSUPER_STACK
-`include "../source/forthsuper_if.sv"
+`ifndef EFORTH1_STACK
+`define EFORTH1_STACK
+`include "../source/eforth1_if.sv"
 
 module stack #(
     parameter DEPTH = 64,
@@ -145,4 +145,4 @@ module dstack #(
     end
 endmodule: dstack
 */
-`endif // FORTHSUPER_STACK
+`endif // EFORTH1_STACK

@@ -1,9 +1,9 @@
 ///
-/// ForthSuper - Dictionary Word Finder
+/// eForth1 - Dictionary Word Finder
 ///
-`ifndef FORTHSUPER_FINDER
-`define FORTHSUPER_FINDER
-`include "../source/forthsuper_if.sv"     /// iBus32 or iBus8 interfaces
+`ifndef EFORTH1_FINDER
+`define EFORTH1_FINDER
+`include "../source/eforth1_if.sv"     /// iBus32 or iBus8 interfaces
 
 `define DIC_NEXT  a0 <= a0 + 1'b1
 `define TIB_NEXT  a1 <= a1 + 1'b1
@@ -130,4 +130,4 @@ module finder #(
         else step();               // prepare state machie input
     end
 endmodule: finder
-`endif // FORTHSUPER_FINDER
+`endif // EFORTH1_FINDER

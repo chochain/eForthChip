@@ -1,9 +1,9 @@
 ///
-/// ForthSuper - Execution Unit
+/// eForth1 - Execution Unit
 ///
-`ifndef FORTHSUPER_EXEC
-`define FORTHSUPER_EXEC
-`include "../source/forthsuper.vh"
+`ifndef EFORTH1_EXEC
+`define EFORTH1_EXEC
+`include "../source/eforth1.vh"
 `include "../source/stack.sv"
 import FS1::*;                            /// import opcode_e
 ///
@@ -251,4 +251,4 @@ module exec #(
             $time, op.name(), $signed(ds_if.s), $signed(tos), $signed(_tos));
     end
 endmodule: exec
-`endif // FORTHSUPER_EXEC
+`endif // EFORTH1_EXEC
