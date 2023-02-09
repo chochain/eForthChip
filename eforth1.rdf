@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<RadiantProject version="4.2" title="forthsuper" device="iCE40UP5K-SG48I" performance_grade="High-Performance_1.2V" default_implementation="impl_1">
+<RadiantProject version="4.2" title="eforth1" device="iCE40UP5K-SG48I" performance_grade="High-Performance_1.2V" default_implementation="impl_1">
     <Options/>
     <Implementation title="impl_1" dir="impl_1" description="impl_1" synthesis="lse" default_strategy="Strategy1">
         <Options VerilogStandard="System Verilog" def_top="outer"/>
@@ -12,17 +12,17 @@
         <Source name="source/finder.sv" type="Verilog" type_short="Verilog">
             <Options VerilogStandard="System Verilog"/>
         </Source>
-        <Source name="source/forthsuper.vh" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/eforth1.vh" type="Verilog" type_short="Verilog" excluded="TRUE">
             <Options/>
         </Source>
-        <Source name="source/forthsuper_if.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
+        <Source name="source/eforth1_if.sv" type="Verilog" type_short="Verilog" excluded="TRUE">
             <Options VerilogStandard="System Verilog"/>
         </Source>
         <Source name="source/inner.sv" type="Verilog" type_short="Verilog">
-            <Options VerilogStandard="System Verilog"/>
+            <Options VerilogStandard="System Verilog" top_module="spram8_128k"/>
         </Source>
         <Source name="source/spram.sv" type="Verilog" type_short="Verilog">
-            <Options VerilogStandard="System Verilog" top_module="spram8_128k"/>
+            <Options VerilogStandard="System Verilog"/>
         </Source>
         <Source name="source/stack.sv" type="Verilog" type_short="Verilog">
             <Options VerilogStandard="System Verilog"/>
@@ -40,5 +40,5 @@
             <Options/>
         </Source>
     </Implementation>
-    <Strategy name="Strategy1" file="forthsuper1.sty"/>
+    <Strategy name="Strategy1" file="eforth1.sty"/>
 </RadiantProject>
