@@ -1,8 +1,8 @@
 ///
-/// ForthSuper comparator (default 8-bit)
+/// eForth1 comparator (default 8-bit)
 ///
-`ifndef FORTHSUPER_COMPARATOR
-`define FORTHSUPER_COMPARATOR
+`ifndef EFORTH1_COMPARATOR
+`define EFORTH1_COMPARATOR
 typedef struct packed {
     logic eq, ne, lt, le, gt, ge;
 } cmp_t;
@@ -25,4 +25,4 @@ module comparator #(
         o.ge = !o.lt;
     end
 endmodule: comparator
-`endif // FORTHSUPER_COMPARATOR
+`endif // EFORTH1_COMPARATOR

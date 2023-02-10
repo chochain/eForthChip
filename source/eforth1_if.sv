@@ -1,8 +1,8 @@
 ///
-/// ForthSuper common interfaces
+/// eForth1 Bus interfaces
 ///
-`ifndef FORTHSUPER_FORTHSUPER_IF
-`define FORTHSUPER_FORTHSUPER_IF
+`ifndef EFORTH1_EFORTH1_IF
+`define EFORTH1_EFORTH1_IF
 
 typedef enum logic [1:0] {
     SS_LOAD = 2'b0, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_PICK = 2'b11 
@@ -89,4 +89,4 @@ interface ss_io #(
     endtask: update_tos;
 
 endinterface: ss_io
-`endif // FORTHSUPER_FORTHSUPER_IF
+`endif // EFORTH1_EFORTH1_IF
