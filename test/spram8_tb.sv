@@ -1,5 +1,6 @@
 ///
-/// eForth1 8-bit Single-Port Memory Testbench
+/// @file
+/// @brief eForth1 - 8-bit Single-Port Memory Testbench
 ///
 `timescale 1ps / 1ps
 `include "../source/spram.sv"
