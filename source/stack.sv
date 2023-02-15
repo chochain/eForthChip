@@ -1,58 +1,36 @@
 ///
-/// eForth1 stack (FILO)
+/// @file
+/// @brief eForth1 stack (FILO) module
 ///
 `ifndef EFORTH1_STACK
 `define EFORTH1_STACK
 `include "../source/eforth1_if.sv"
 
-module stack #(
-    parameter DEPTH = 64,
-    parameter DSZ   = 32
+module stack #(                    /// single port stack
+    parameter DEPTH = 64,          /// stack depth
+    parameter DSZ   = 16           /// 16-bit stack
     ) (
-    ss_io           ss_if,         /// 32-bit stack bus
-    input  logic    clk,           /// clock
-    input  logic    en             /// enable
+    ss_io  ss_if,                  /// stack slave interface
+    input  logic en                /// enable
     );
-    localparam SSZ  = $clog2(DEPTH);
-    logic [DSZ-1:0] s0;
+    localparam SSZ = $clog2(DEPTH);
     ///
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
-        .Data      (ss_if.vi),
-        .Address   (ss_if.op == SS_POP ? ss_if.sp_1 : ss_if.sp),   // ss[--idx] : ss[idx++]
-        .Clock     (clk),
+        .Data      (ss_if.t),                      /// push T into stack
+        .Address   (ss_if.op == SS_PUSH ? ss_if.sp1 : ss_if.sp0), // ss[idx--] : ss[++idx]
+        .Clock     (ss_if.clk),
         .ClockEn   (en),
         .WE        (ss_if.op == SS_PUSH),
         .Reset     (~en),
-        .Q         (s0)
+        .Q         (ss_if.s)                       /// pop to S 
     );
-    task ss_update;
-        ss_if.update_tos;
-        case (ss_if.op)
-        SS_PUSH: begin
-            ss_if.sp <= ss_if.sp + 'h1;   // write to ss[idx++]
-            ss_if.s0 <= ss_if.vi;         // cached s0
-            $display(
-                "%6t> ss_if.push => tos:ss[%2x]=%0d <%0d, %0d>", 
-                $time, ss_if.sp, ss_if.tos, ss_if.vi, ss_if.s0);
-        end
-        SS_POP:  begin
-            ss_if.sp <= ss_if.sp_1;       // pop from ss[--idx]
-            ss_if.s0 <= s0;
-            $display(
-                "%6t> ss_if.pop tos:ss[%2x]=%0d <%0d, %0d>", 
-                $time, ss_if.sp_1, ss_if.tos, ss_if.s0, s0);
-        end
-        endcase
-    endtask: ss_update
     
-    always_ff @(negedge clk) begin
-        if (en) ss_update;
+    always_ff @(posedge ss_if.clk) begin
+        if (!en) ss_if.set('hffff);
     end
-    
 endmodule: stack
-
 ///
 /// Pseudo Dual-port stack (using EBR)
 ///
