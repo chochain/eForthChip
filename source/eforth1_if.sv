@@ -63,7 +63,7 @@ interface mb8_io #(
 endinterface: mb8_io
 
 typedef enum logic [1:0] {
-    SS_SET = 2'b00, SS_PUSH = 2'b01, SS_POP = 2'b10, SS_PICK = 2'b11 
+    SS_PUSH = 2'b00, SS_POP = 2'b01, SS_SET = 2'b10, SS_PICK = 2'b11 
 } sop_e;
 
 interface ss_io #(                      ///> generic stack interface
@@ -73,34 +73,32 @@ interface ss_io #(                      ///> generic stack interface
     localparam SSZ = $clog2(DEPTH);     ///> bit count of stack
     sop_e           op;                 ///> stack opcode
     logic [SSZ-1:0] sp0, sp1;           ///> stack indexes (sp1 = sp0 + 1)
-    logic [DSZ-1:0] s, t;               ///> NOS and TOS
+    logic [DSZ-1:0] s, vi;              ///> NOS, input value
     /* 
     clocking io_clk @(posedge clk);     // if needed, specify input and output signal delay    
         default input #1 output #1;
     endclocking
     */
-    modport master(output op, t, import set, push, pop);
-    modport slave(input clk, op, output sp0, sp1, t, s, import set, push, pop);
+    modport master(output op, vi);
+    modport slave(input clk, op, output sp0, sp1, s, vi, import init, push, pop);
     
-    function void set(input [DSZ-1:0] v);
-        op = SS_SET;
-        t  = v;
-    endfunction: set
+    function void init();
+        vi = 16'hffff;
+    endfunction: init
     
     function void push(input [DSZ-1:0] v);
         op  = SS_PUSH;
-        s   = t;
         sp0 = sp1;
         sp1 = sp1 + 6'h1;
-        t   = v;
+        s   = v;
+        vi  = v;
         // $display("%6t> %s %x => %d[%x %x]", $time, op, v, sp0, t, s);
     endfunction: push
 
-    function logic [DSZ-1:0] pop;
+    function void pop;
         op  = SS_POP;
         sp1 = sp0;
         sp0 = sp0 - 6'h1;
-        t   = s;         // return from cached s0
         // $display("%6t> %s => %d[%x %x]", $time, op, sp0, t, s);
     endfunction: pop
     
