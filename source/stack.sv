@@ -18,17 +18,17 @@ module stack #(                    /// single port stack
     /// instance of EBR Single Port Memory
     ///
     pmi_ram_dq #(DEPTH, SSZ, DSZ, "noreg") ss (    /// noreg saves a cycle
-        .Data      (ss_if.t),                      /// push T into stack
-        .Address   (ss_if.op == SS_PUSH ? ss_if.sp1 : ss_if.sp0), // ss[idx--] : ss[++idx]
+        .Data      (ss_if.vi),                     /// push v onto stack
+        .Address   (ss_if.sp0),                    /// ss[idx--] : ss[++idx]
         .Clock     (ss_if.clk),
         .ClockEn   (en),
         .WE        (ss_if.op == SS_PUSH),
         .Reset     (~en),
-        .Q         (ss_if.s)                       /// pop to S 
+        .Q         (ss_if.s)                       /// pop to S (cached)
     );
     
     always_ff @(posedge ss_if.clk) begin
-        if (!en) ss_if.set('hffff);
+        if (!en) ss_if.init();
     end
 endmodule: stack
 ///
