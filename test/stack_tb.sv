@@ -22,7 +22,7 @@ module stack_tb;
     endfunction: calc_v
     
     initial begin
-        $monitor("%6t> %0s %0x => %x[%0x, %0x]", $time, ss_if.op, v, ss_if.sp1, ss_if.t, ss_if.s);
+        $monitor("%6t> %0s %0x => %x[%0x]", $time, ss_if.op, v, ss_if.sp0, ss_if.s);
         clk = 1;
         // init clock
         en  = 1'b0; repeat(2) @(negedge clk);
@@ -35,26 +35,13 @@ module stack_tb;
                 v = calc_v(i);
                 ss_if.push(v);
             end
-            repeat(1) @(negedge clk) begin
-                v = calc_v(i + 'h100);
-                ss_if.push(v);
-            end
-            repeat(1) @(negedge clk) begin
-                v = calc_v(i + 'h1000);
-                ss_if.push(v);
-            end
-            repeat(1) @(negedge clk) begin
-                v = ss_if.pop();
-            end
-            repeat(1) @(negedge clk) begin
-                v = ss_if.pop();
-            end
+            /// one extra push/pop pair
+            repeat(1) @(negedge clk) ss_if.push(calc_v(i + 'h100));
+            repeat(1) @(negedge clk) ss_if.pop();
         end
         // read
         for (i = DEPTH - 1; i != 1; i = i - 1) begin
-            repeat(1) @(negedge clk) begin
-                v = ss_if.pop();
-            end
+            repeat(1) @(negedge clk) ss_if.pop();
         end
 
         #20 $finish;
