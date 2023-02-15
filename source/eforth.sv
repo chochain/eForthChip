@@ -7,13 +7,12 @@
 `include "../source/eforth1.vh"
 
 module eforth #(
-    parameter DSZ = 32,                   /// 32-bit data path
-    parameter ASZ = 17,                   /// 128K address path
+    parameter DSZ = 16,                   /// 16-bit data path width
+    parameter ASZ = 17,                   /// 17-bit (128K) address path width
     parameter PAD = 'h80                  /// address of output buffer
     ) (
-    mb8_io                 mb_if,         /// generic master to drive memory block
+    mb_io                  mb_if,         /// generic master to drive memory block
     ss_io                  ss_if,         /// data stack interface
-    input                  clk,           /// clock
     input                  rst,           /// reset
     input                  en,            /// enable
     input [ASZ-1:0]        pfa,           /// instruction pointer (pfa of the 1st opcode)
@@ -24,6 +23,7 @@ module eforth #(
     logic [2:0]            _ph, ph;       /// phases for multiple-cycle opcodes
     /// registers
     opcode_e               op;
+    logic [DSZ-1:0]        t;             /// TOS
     logic [ASZ-1:0]        _ip, ip;       /// instruction pointer
     logic [ASZ-1:0]        _ma, ma;       /// memory address
     logic                  xop, xip, xma; /// latches
@@ -34,14 +34,14 @@ module eforth #(
     logic [ASZ-1:0]        ob;            /// output buffer pointers
     logic                  xds, xob;      /// IO latches
 
-    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.tos); ss_if.load(v); endtask
+    task PUSH(input logic [DSZ-1:0] v); ss_if.push(ss_if.t); ss_if.load(v); endtask
     task POP;                           ss_if.load(ss_if.pop()); endtask
-    task ALU(input logic [DSZ-1:0] v);  ss_if.load(v);           endtask
+    task ALU(input logic [DSZ-1:0] v);  ss_if.load(v); endtask
     ///
     /// find - 4-block state machine (Cummings & Chambers)
     /// Note: synchronous reset (TODO: async)
     ///
-    always_ff @(posedge clk) begin
+    always_ff @(posedge mb_if.clk) begin
         bsy <= en ? _bsy : 1'b0;              // module control
         ph  <= _ph;                           // phase control
     end
@@ -59,26 +59,35 @@ module eforth #(
         case (_op)
         ///
         /// @defgroup Execution flow ops
-        /// @brief - DO NOT change the sequence here (see forth_opcode enum)
         /// @{
-        ///
-        _NOP:   begin /* do nothing */ end
-        _DOVAR: begin end
-        _DOLIT: begin end
-        _BRAN: begin end
-        _0BRAN: begin end
-        _DONEXT: begin end
-        _DOES: begin end
-        _TOR: begin end
-        _RFROM: begin end
-        _RAT: begin end
+        _NOP:
+        _BYE:
+        _QRX:
+        _TXSTO:
+        _DOLIT:
+        _DOVAR:
+        _EXECU:
+        _ENTER:
+        _EXIT:
+        _DONEXT:
+        _0BRAN:
+        _BRAN:
+        /// @}
+        /// @defgroup Memory Access ops
+        /// @{
+        _STORE:
+        _PSTOR:
+        _AT:
+        _CSTOR:
+        _CAT:
+        _RFROM:
+        _RAT:
+        _TOR:
         /// @}
         /// @defgroup Stack ops
-        /// @brief - opcode sequence can be changed below this line
         /// @{
-        _DUP:  PUSH(ss_if.tos);
         _DROP: POP();
-        _OVER: PUSH(ss_if.s0);
+        _DUP:  PUSH(ss_if.t);
         _SWAP: begin 
             case (ph)
             'h0: begin _ph = 'h1; xip = 1'b0; end
@@ -87,136 +96,56 @@ module eforth #(
             default: _ph = 'h0;
             endcase
         end
-        _ROT:  begin end
-        _PICK: begin end
+        _OVER: PUSH(ss_if.s0);
+        _ROT:
+        _PICK:
         /// @}
         /// @defgroup ALU ops
         /// @{
-        _ADD: ALU(ss_if.pop() + ss_if.tos);
-        _SUB: ALU(ss_if.pop() - ss_if.tos);
-        _MUL: ALU(ss_if.pop() * ss_if.tos);
-        _DIV: ALU(ss_if.pop() / ss_if.tos);
-        _MOD: ALU(ss_if.pop() % ss_if.tos);
-        _MDIV: begin end
-        _SMOD: begin end
-        _MSMOD: begin end
-        _AND: ALU(ss_if.pop() & ss_if.tos);
-        _OR:  ALU(ss_if.pop() | ss_if.tos);
-        _XOR: ALU(ss_if.pop() ^ ss_if.tos);
-        _ABS: ALU(ss_if.tos[31] ? -ss_if.tos : ss_if.tos);
-        _NEG: ALU(-ss_if.tos);
-        _MAX: begin end
-        _MIN: begin end
+        _AND: ALU(ss_if.pop() & ss_if.t);
+        _OR:  ALU(ss_if.pop() | ss_if.t);
+        _XOR: ALU(ss_if.pop() ^ ss_if.t);
+        _INV:
+        _LSH:
+        _RSH:
+        _ADD: ALU(ss_if.pop() + ss_if.t);
+        _SUB: ALU(ss_if.pop() - ss_if.t);
+        _MUL: ALU(ss_if.pop() * ss_if.t);
+        _DIV: ALU(ss_if.pop() / ss_if.t);
+        _MOD: ALU(ss_if.pop() % ss_if.t);
+        _NEG:
         /// @}
         /// @defgroup Logic ops
         /// @{
+        _GT:
+        _EQ:
+        _LT:
         _ZEQ: case (ph)
             'h0: begin end
             'h1: begin end
             endcase
-        _ZLT: begin end
-        _ZGT: begin end
-        _EQ: begin end
-        _LT: begin end
-        _GT: begin end
-        _NE: begin end
-        _GE: begin end
-        _LE: begin end
+        _ZGT:
+        _ZLT:
         /// @}
-        /// @defgroup IO ops
+        /// @defgroup Misc. ops
         /// @{
-        _BAT: begin end
-        _BSTOR: begin end
-        _HEX: begin end
-        _DEC: begin end
-        _CR: begin end
-        _DOT: begin end
-        _DOTR: begin end
-        _UDOTR: begin end
-        _KEY: begin end
-        _EMIT: begin end
-        _SPC: begin end
-        _SPCS: begin end
+        _ONEP:
+        _ONEM:
+        _QDUP:
+        _DEPTH:
+        _RP:
+        _ULESS:
         /// @}
-        /// @defgroup Literal ops
+        /// @defgroup Misc. ops
         /// @{
-        _LBRAC: begin end
-        _RBRAC: begin end
-        _BSLSH: begin end
-        _STRQP: begin end
-        _DOTQP: begin end
-        _DOSTR: begin end
-        _DOTSTR: begin end
+        _UMMOD:
+        _UMSTAR:
+        _MSTAR:
+        _UMPLUS:
+        _DNEG:
+        _DADD:
+        _DSUB:
         /// @}
-        /// @defgroup Branching ops
-        /// @brief - if...then, if...else...then
-        /// @{
-        _IF: begin end
-        _ELSE: begin end
-        _THEN: begin end
-        /// @}
-        /// @defgroup Loops
-        /// @brief  - begin...again, begin...f until, begin...f while...repeat
-        /// @{
-        _BEGIN: begin end
-        _AGAIN: begin end
-        _UNTIL: begin end
-        _WHILE: begin end
-        _REPEAT: begin end
-        /// @}
-        /// @defgrouop For loops
-        /// @brief  - for...next, for...aft...then...next
-        /// @{
-        _FOR: begin end
-        _NEXT: begin end
-        _AFT: begin end
-        /// @}
-        /// @defgrouop Compiler ops
-        /// @{
-        _COLON: begin end
-        _SEMIS: begin end
-        _VAR: begin end
-        _CON: begin end
-        _EXIT: begin end
-        _EXEC: begin end
-        _CREATE: begin end
-        _TO: begin end
-        _IS: begin end
-        _QTO: begin end
-        _AT: begin end
-        _STOR: begin end
-        _COMMA: begin end
-        _ALLOT: begin end
-        _PSTOR: begin end
-        /// @}
-        /// @defgroup Debug ops
-        /// @{
-        _HERE: begin end
-        _UCASE: begin end
-        _WORDS: begin end
-        _TICK: begin end
-        _SDUMP: begin end
-        _SEE: begin end
-        _DUMP: begin end
-        _FORGET: begin end
-        /// @}
-        /// @defgroup Hardware specific ops
-        /// @{
-        _PEEK: begin end
-        _POKE: begin end
-        _CLOCK: begin end
-        _DELAY: begin end
-        _PIN: begin end
-        _IN: begin end
-        _OUT: begin end
-        _ADC: begin end
-        _DUTY: begin end
-        _ATTC: begin end
-        _SETUP: begin end
-        _TONE: begin end
-        /// @}
-        _BYE: begin end
-        _BOOT: begin end
         default: begin end
         endcase // (op)
     end
@@ -235,11 +164,11 @@ module eforth #(
     ///
     /// logic for current output
     ///
-    always_ff @(negedge clk) begin
+    always_ff @(negedge mb_if.clk) begin
         if (en) ss_if.update_tos;       // memory returns a half cycle earlier
     end            
 
-    always_ff @(posedge clk) begin
+    always_ff @(posedge mb_if.clk) begin
         if (rst) begin
             ma <= 0;
             as <= 1'b0;
