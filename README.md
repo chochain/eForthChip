@@ -1,6 +1,7 @@
 ## Forth on FPGA for AI &amp; Robotics
-Typically, a Forth CPU has a core that functions as the Forth inner-interpreter with a small instruction set that represents the core primitive words. The Forth outer-interpreter is then built on top of these primitive words via crossed-compilation on other development platform and copy onto the FPGA RAM either from external SD card or as binary image onboard ROM.
-With the advance of SystemVerilog, having an outer-interpreter entirly in hardware is possible. The practicality is in question but my task here is to give it a try to see how does and how well it work?
+Typically, a Forth CPU has a core that functions as the Forth inner-interpreter with a small instruction set that represents the core primitive words. The Forth outer-interpreter is then built on top of these primitive words via cross-compilation on other development platform and copy onto the FPGA RAM either from external SD card or as binary image onboard ROM.
+
+With the advance of SystemVerilog, having an outer-interpreter entirly in hardware is possible. Though the practicality of having it is in question, my task here is to give it a try to see how does and how well it work?
 
 ## Is it time for another Forth Chip?
 * [This Google conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of sealing the fate of this project. And, the answer is NOT REALLY!
