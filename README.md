@@ -1,12 +1,29 @@
 ## Forth on FPGA for AI &amp; Robotics
-* temp storage before transition to the team project (https://github.com/angelus9/AI-Robotics/)
-* work in progress (inner, comma, pusher)
+Typically, a Forth CPU has a core that functions as the Forth inner-interpreter with a small instruction set that represents the core primitive words. The Forth outer-interpreter is then built on top of these primitive words via crossed-compilation on other development platform and copy onto the FPGA RAM either from external SD card or as binary image onboard ROM.
+With the advance of SystemVerilog, having an outer-interpreter entirly in hardware is possible. The practicality is in question but my task here is to give it a try to see how does and how well it work?
 
 ## Is it time for another Forth Chip?
-* [This Google conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of seal the fate of this project. And, the answer is NOT REALLY!
+* [This Google conversation](https://groups.google.com/g/comp.lang.forth/c/6adve-Z1ppU) sort of sealing the fate of this project. And, the answer is NOT REALLY!
+* So, with spare time, I look at eJsv32 which was the extension of Dr. Ting's last project before his passing. (https://github.com/chochain/eJsv32/)
 
 ## Outer Interpreter block diagram
   <img src="./img/forthsuper_outer_arch.png" width='600px'>
+
+## Status
+* Serve as a temp storage before transition to the team project (https://github.com/angelus9/AI-Robotics/)
+* Functional units
+
+  |Unit|Desc|Status|Note|
+  |--|--|--|--|
+  |Outer|Top Module|OK||
+  |Atoi(er)|ASCII to integer converter|OK||
+  |Finder|Dictionary walker|OK||
+  |Comma|Byte Compiler|Mock||
+  |Pusher|Stack operation|Mock||
+  |Mem|SPRAM dictionary pool|OK|8-bit|
+  |Exec|Execution Unit|OK|25 opcodes only|
+  |Inner|Inner-interpreter|Mock||
+  |Dict_setup|Dictionary/TIB initializer|OK||
 
 ## Implementation Details
 * Mem pool and Find
