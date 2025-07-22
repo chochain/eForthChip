@@ -2,8 +2,6 @@
 /// @file
 /// @brief Single-Port Memory modules 32-bit 32K
 ///
-`include "../verilator/mb32_io.v"
-
 module spram32_32k (             /// width cascade
     mb32_io b32_if               /// 32-bit bus slave
     );
