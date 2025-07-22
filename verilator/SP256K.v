@@ -10,10 +10,10 @@ module SP256K (
 	output reg [15:0] DO
 );
 	reg [15:0] mem [0:16383];
-	wire off = SLEEP || PWROFF_N;
+	wire off = SLEEP || ~PWROFF_N;
+   
 //	integer i;
-
-//	always @(posedge PWROFF_N) begin
+//	always @(negedge PWROFF_N) begin
 //		for (i = 0; i <= 16383; i++)
 //			mem[i] = 16'bx;
 //	end
@@ -22,7 +22,7 @@ module SP256K (
 		if (off) begin
 			DO <= 0;
 		end else
-		if (STDBY) begin
+        if (STDBY) begin
 			DO <= 16'bx;
 		end else
 		if (CS) begin
