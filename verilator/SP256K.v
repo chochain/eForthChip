@@ -11,12 +11,12 @@ module SP256K (
 );
 	reg [15:0] mem [0:16383];
 	wire off = SLEEP || PWROFF_N;
-	integer i;
+//	integer i;
 
-	always @(posedge PWROFF_N) begin
-		for (i = 0; i <= 16383; i = i+1)
-			mem[i] = 16'bx;
-	end
+//	always @(posedge PWROFF_N) begin
+//		for (i = 0; i <= 16383; i++)
+//			mem[i] = 16'bx;
+//	end
 
 	always @(posedge CK, posedge off) begin
 		if (off) begin
