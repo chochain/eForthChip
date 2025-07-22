@@ -9,7 +9,7 @@ interface mb32_io (                   // generic memory block interface
     localparam ASZ = 15;              // 32K rows
     logic           we;               // interface ports are bidirectional by default
     logic [3:0]     bmsk;             // we use modport to regulate the usage
-    logic [ASZ-3:0] ai;               // specifying either master or slave device
+    logic [ASZ-1:0] ai;               // specifying either master or slave device
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
     /* 
