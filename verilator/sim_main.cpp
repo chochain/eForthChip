@@ -100,8 +100,8 @@ int main(int argc, char** argv) {
         top->eval();
 
         // Read outputs
-        VL_PRINTF("[%" PRId64 "] clk=%x vo=%02x\n",
-                  contextp->time(), top->clk, top->vo);
+        VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
+                  contextp->time(), top->clk, top->ai, top->vi, top->vo);
     }
 
     // Final model cleanup
