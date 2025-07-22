@@ -16,6 +16,10 @@ vsim/
 *.ini
 *.xml
 
+# Verilator
+obj_dir/
+logs/
+
 # Compiled Java class files
 *.class
 

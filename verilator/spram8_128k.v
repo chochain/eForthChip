@@ -1,0 +1,25 @@
+///
+/// @file
+/// @brief Single-Port Memory modules 8-bit 128K
+///
+module spram8_128k (   /// depth cascade
+    mb8_io b8_if
+    );
+    logic [1:0] m, _m; /// byte index of (current and previous cycle)
+
+    mb_io #(32) b32_if(b8_if.clk);
+    spram32_32k m0(b32_if.slave);
+
+    assign m           = b8_if.ai[1:0];
+    assign b32_if.we   = b8_if.we;
+    assign b32_if.bmsk = 4'b1 << m;      /// byte per chip
+    assign b32_if.ai   = b8_if.ai[16:2];
+    assign b32_if.vi   = {b8_if.vi, b8_if.vi, b8_if.vi, b8_if.vi};
+    assign b8_if.vo    = _m[1:1]         /// byte mask from previous cycle
+            ? (_m[0:0] ? b32_if.vo[31:24] : b32_if.vo[23:16])
+            : (_m[0:0] ? b32_if.vo[15:8]  : b32_if.vo[7:0]);
+
+    always_ff @(posedge b8_if.clk) begin
+        if (!b8_if.we) _m <= m;          /// read needs to wait for one cycle
+    end
+endmodule : spram8_128k
