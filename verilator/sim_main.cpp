@@ -58,13 +58,7 @@ int main(int argc, char** argv) {
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
     // Set Vtop's input signals
-    top->reset_l = !0;
     top->clk = 0;
-    top->in_small = 1;
-    top->in_quad = 0x1234;
-    top->in_wide[0] = 0x11111111;
-    top->in_wide[1] = 0x22222222;
-    top->in_wide[2] = 0x3;
 
     // Simulate until $finish
     while (!contextp->gotFinish()) {
@@ -83,7 +77,8 @@ int main(int argc, char** argv) {
 
         // Toggle a fast (time/2 period) clock
         top->clk = !top->clk;
-
+        
+#if 0
         // Toggle control signals on an edge that doesn't correspond
         // to where the controls are sampled; in this example we do
         // this only on a negedge of clk, because we know
@@ -97,7 +92,7 @@ int main(int argc, char** argv) {
             // Assign some other inputs
             top->in_quad += 0x12;
         }
-
+#endif
         // Evaluate model
         // (If you have multiple models being simulated in the same
         // timestep then instead of eval(), call eval_step() on each, then
@@ -105,10 +100,8 @@ int main(int argc, char** argv) {
         top->eval();
 
         // Read outputs
-        VL_PRINTF("[%" PRId64 "] clk=%x rstl=%x iquad=%" PRIx64 " -> oquad=%" PRIx64
-                  " owide=%x_%08x_%08x\n",
-                  contextp->time(), top->clk, top->reset_l, top->in_quad, top->out_quad,
-                  top->out_wide[2], top->out_wide[1], top->out_wide[0]);
+        VL_PRINTF("[%" PRId64 "] clk=%x vo=%02x\n",
+                  contextp->time(), top->clk, top->vo);
     }
 
     // Final model cleanup
