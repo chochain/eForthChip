@@ -1,18 +1,23 @@
-// DESCRIPTION: Verilator: Verilog example module
 //
-// This file ONLY is placed under the Creative Commons Public Domain, for
-// any use, without warranty, 2017 by Wilson Snyder.
-// SPDX-License-Identifier: CC0-1.0
+// @file - Verilator main file
+// @brief
+//
 //======================================================================
+#define TRACE_FST                      // --trace or --trace-fst
 
-// For std::unique_ptr
-#include <memory>
-
-// Include common routines
-#include <verilated.h>
-
-// Include model header, generated from Verilating "top.v"
-#include "Vtop.h"
+#include <memory>                      // For std::unique_ptr
+#include <verilated.h>                 // Include common routines
+#ifdef TRACE_VCD
+#include <verilated_vcd_c.h>
+typedef VerilatedVcdC Tracer;
+#define DUMP_FILE     "logs/wave.vcd"
+#endif
+#ifdef TRACE_FST
+#include <verilated_fst_c.h>
+typedef VerilatedFstC Tracer;
+#define DUMP_FILE     "logs/wave.fst"
+#endif
+#include "Vtop.h"                      // Include model header, generated from Verilating "top.v"
 
 // Legacy function required only so linking works on Cygwin and MSVC++
 double sc_time_stamp() { return 0; }
@@ -25,7 +30,7 @@ int main(int argc, char** argv) {
 
     // Create logs/ directory in case we have traces to put under it
     Verilated::mkdir("logs");
-
+    
     // Construct a VerilatedContext to hold simulation time, etc.
     // Multiple modules (made later below with Vtop) may share the same
     // context to share time, or modules may have different contexts if
@@ -34,6 +39,7 @@ int main(int argc, char** argv) {
     // Using unique_ptr is similar to
     // "VerilatedContext* contextp = new VerilatedContext" then deleting at end.
     const std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
+    
     // Do not instead make Vtop as a file-scope static variable, as the
     // "C++ static initialization order fiasco" may cause a crash
 
@@ -57,6 +63,11 @@ int main(int argc, char** argv) {
     // "TOP" will be the hierarchical name of the module.
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
+#if defined(TRACE_VCD) || defined(TRACE_FST)    
+    Tracer *trace = new Tracer;
+    top->trace(trace, 99);
+    trace->open(DUMP_FILE);
+#endif    
     // Set Vtop's input signals
     top->clk = 0;
 
@@ -93,12 +104,15 @@ int main(int argc, char** argv) {
             top->in_quad += 0x12;
         }
 #endif
+
         // Evaluate model
         // (If you have multiple models being simulated in the same
         // timestep then instead of eval(), call eval_step() on each, then
         // eval_end_step() on each. See the manual.)
         top->eval();
-
+#if defined(TRACE_VCD) || defined(TRACE_FST)
+        trace->dump(contextp->time()*2);
+#endif        
         // Read outputs
         VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
                   contextp->time(), top->clk, top->ai, top->vi, top->vo);
@@ -106,10 +120,14 @@ int main(int argc, char** argv) {
 
     // Final model cleanup
     top->final();
+    
+#if defined(TRACE_VCD) || defined(TRACE_FST)
+    trace->flush();
+    trace->close();
+#endif    
 
     // Coverage analysis (calling write only after the test is known to pass)
 #if VM_COVERAGE
-    Verilated::mkdir("logs");
     contextp->coveragep()->write("logs/coverage.dat");
 #endif
 
