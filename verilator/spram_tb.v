@@ -17,11 +17,6 @@ module top (
     assign vi = b8_if.vi;
 
     initial begin
-        if ($test$plusargs("trace") != 0) begin
-            $display("Tracing to logs/vlt_dump.vcd...");
-            $dumpfile("logs/vlt_dump.vcd");
-            $dumpvars();
-        end
         vo = 0;
 
         // init clock
