@@ -23,7 +23,7 @@ module SP256K (
 			DO <= 0;
 		end else
         if (STDBY) begin
-			DO <= 16'bx;
+			DO <= 16'hfeed;
         end else
         if (CS) begin
 			if (WE) begin
