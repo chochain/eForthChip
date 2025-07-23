@@ -36,7 +36,7 @@ module SP256K (
 				DO <= mem[AD];
 			end
 		end
-        $display("%m MASKWE=%b, WE=%x,CS=%x, DI=%x, DO=%x", MASKWE, WE, CS, DI, DO);
+//        $display("%m MASKWE=%b, WE=%x,CS=%x, DI=%x, DO=%x", MASKWE, WE, CS, DI, DO);
 	end
 /*   
 	specify
