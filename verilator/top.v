@@ -23,7 +23,7 @@ module top (
             $dumpvars();
         end
         vo = 0;
-       
+
         // init clock
         repeat(2) @(negedge clk);
 
@@ -45,7 +45,7 @@ module top (
                 vo       = b8_if.vo;
             end
         end
-/*        
+
         $display("range check (write via interface)");
         for (int i = 0; i < ASZ; i++) begin
             repeat(1) @(negedge clk) begin
@@ -63,7 +63,7 @@ module top (
                 vo = b8_if.get(('h1 << i[ASZ-1:0]) | (i[ASZ-1:0] & 3));
             end
         end
-       
+
         $display("high address write");
         for (integer i = 0; i < ASZ; i++) begin
             repeat(1) @(negedge clk) begin
@@ -79,7 +79,7 @@ module top (
                 vo = b8_if.get('h1ffff - i[ASZ-1:0]);
             end
         end
-*/        
+
         #20 $finish;
     end       
 endmodule : top
