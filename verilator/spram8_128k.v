@@ -24,7 +24,7 @@ module spram8_128k (   /// depth cascade
             : (_m[0:0] ? b32_if.vo[15:8]  : b32_if.vo[7:0]);
 
     always_ff @(posedge b8_if.clk) begin
-        $display("%m vo32=%x", b32_if.vo);
+        $display("ram32[%x]: {%x}[%x]", b32_if.ai, b32_if.vo, _m);
         _m <= m;                        /// read needs to wait for one cycle
     end
 endmodule : spram8_128k
