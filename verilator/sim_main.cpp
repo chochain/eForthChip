@@ -1,18 +1,22 @@
 //
 // @file - Verilator main file
-// @brief
+// @brief - copy testbench (i.g. spram_tb.v) to top.v and make
+// @note - environment variables automatically set
+//    * --cc         VM_SC=0           // using C++ instead of SystemC
+//    * --no-debug   VL_DEBUG=0        // default is 1
+//    * --trace      VM_TRACE=1 VM_TRACE_VCD=1 VM_TRACE_FST=0
+//    * --trace-fst  VM_TRACE=1 VM_TRACE_VCD=0 VM_TRACE_FST=1
+//    * --coverage   VM_COVERAGE=1
 //
 //======================================================================
-#define TRACE_FST                      // --trace or --trace-fst
-
 #include <memory>                      // For std::unique_ptr
 #include <verilated.h>                 // Include common routines
-#ifdef TRACE_VCD
+#if VM_TRACE_VCD
 #include <verilated_vcd_c.h>
 typedef VerilatedVcdC Tracer;
 #define DUMP_FILE     "logs/wave.vcd"
 #endif
-#ifdef TRACE_FST
+#if VM_TRACE_FST
 #include <verilated_fst_c.h>
 typedef VerilatedFstC Tracer;
 #define DUMP_FILE     "logs/wave.fst"
@@ -63,7 +67,7 @@ int main(int argc, char** argv) {
     // "TOP" will be the hierarchical name of the module.
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
 
-#if defined(TRACE_VCD) || defined(TRACE_FST)    
+#if VM_TRACE
     Tracer *trace = new Tracer;
     top->trace(trace, 99);
     trace->open(DUMP_FILE);
@@ -110,7 +114,7 @@ int main(int argc, char** argv) {
         // timestep then instead of eval(), call eval_step() on each, then
         // eval_end_step() on each. See the manual.)
         top->eval();
-#if defined(TRACE_VCD) || defined(TRACE_FST)
+#if VM_TRACE
         trace->dump(contextp->time()*2);
 #endif        
         // Read outputs
@@ -121,7 +125,7 @@ int main(int argc, char** argv) {
     // Final model cleanup
     top->final();
     
-#if defined(TRACE_VCD) || defined(TRACE_FST)
+#if VM_TRACE
     trace->flush();
     trace->close();
 #endif    
