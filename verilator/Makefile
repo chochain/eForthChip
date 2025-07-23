@@ -39,7 +39,7 @@ VERILATOR_FLAGS += -cc --exe --timing
 VERILATOR_FLAGS += -x-assign fast
 # Warn abount lint issues; may not want this on less solid designs
 VERILATOR_FLAGS += -Wall
-# Make waveforms
+# Make waveforms --trace for VCD, --trace-fst for FST dump
 VERILATOR_FLAGS += --trace-fst
 # Check SystemVerilog assertions
 VERILATOR_FLAGS += --assert
