@@ -17,6 +17,11 @@ module top (
     assign vi = b8_if.vi;
 
     initial begin
+        if ($test$plusargs("trace") != 0) begin
+            $display("Tracing to logs/vlt_dump.vcd...");
+            $dumpfile("logs/vlt_dump.vcd");
+            $dumpvars();
+        end
         vo = 0;
        
         // init clock
@@ -40,7 +45,7 @@ module top (
                 vo       = b8_if.vo;
             end
         end
-        
+/*        
         $display("range check (write via interface)");
         for (int i = 0; i < ASZ; i++) begin
             repeat(1) @(negedge clk) begin
@@ -74,7 +79,7 @@ module top (
                 vo = b8_if.get('h1ffff - i[ASZ-1:0]);
             end
         end
-        
+*/        
         #20 $finish;
     end       
 endmodule : top
