@@ -32,7 +32,7 @@ VERILATOR_COVERAGE = $(VERILATOR_ROOT)/bin/verilator_coverage
 endif
 
 # Generate C++ in executable form
-VERILATOR_FLAGS += -cc --exe --timing
+VERILATOR_FLAGS += -cc --exe --timing --timescale 1ps/1ps
 # Generate makefile dependencies (not shown as complicates the Makefile)
 #VERILATOR_FLAGS += -MMD
 # Optimize
@@ -40,6 +40,7 @@ VERILATOR_FLAGS += -x-assign fast
 # Warn abount lint issues; may not want this on less solid designs
 VERILATOR_FLAGS += -Wall
 # Make waveforms --trace for VCD, --trace-fst for FST dump
+#VERILATOR_FLAGS += --trace
 VERILATOR_FLAGS += --trace-fst
 # Check SystemVerilog assertions
 VERILATOR_FLAGS += --assert
@@ -51,6 +52,7 @@ VERILATOR_FLAGS += --coverage
 #VERILATOR_FLAGS += --gdbbt
 
 # Input files for Verilator
+# input.vc is processed by contextp->commandArgs as cmd line options (without recompilation)
 VERILATOR_INPUT = -f input.vc top.v sim_main.cpp
 
 ######################################################################
