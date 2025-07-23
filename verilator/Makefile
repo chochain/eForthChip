@@ -86,7 +86,7 @@ run:
 
 	@echo
 	@echo "-- DONE --------------------"
-	@echo "To see waveforms, open vlt_dump.vcd in a waveform viewer"
+	@echo "To see waveforms, open logs/wave.fst in a waveform viewer"
 	@echo
 
 
