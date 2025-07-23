@@ -9,17 +9,22 @@ module spram8_128k (   /// depth cascade
 
     mb32_io     b32_if(b8_if.clk);
     spram32_32k m0(b32_if.slave);
-
-    assign m           = b8_if.ai[1:0];
+    ///
+    /// 32 to 8-bit converter
+    ///
     assign b32_if.we   = b8_if.we;
-    assign b32_if.bmsk = 4'b1 << m;      /// byte per chip
-    assign b32_if.ai   = b8_if.ai[16:2];
+    assign b32_if.ai   = b8_if.ai[16:2]; /// 32-bit address
     assign b32_if.vi   = {b8_if.vi, b8_if.vi, b8_if.vi, b8_if.vi};
-    assign b8_if.vo    = _m[1:1]         /// byte mask from previous cycle
+    assign m           = b8_if.ai[1:0];  /// byte select
+    assign b32_if.bmsk = m[1:1]          /// write byte select mux
+            ? (m[0:0] ? 4'b1000 : 4'b0100)
+            : (m[0:0] ? 4'b0010 : 4'b0001);
+    assign b8_if.vo    = _m[1:1]         /// read byte mux (from previous cycle)
             ? (_m[0:0] ? b32_if.vo[31:24] : b32_if.vo[23:16])
             : (_m[0:0] ? b32_if.vo[15:8]  : b32_if.vo[7:0]);
 
     always_ff @(posedge b8_if.clk) begin
-        if (!b8_if.we) _m <= m;          /// read needs to wait for one cycle
+        $display("%m vo32=%x", b32_if.vo);
+        _m <= m;                        /// read needs to wait for one cycle
     end
 endmodule : spram8_128k
