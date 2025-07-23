@@ -9,10 +9,10 @@ module SP256K (
 	input WE, CS, CK, STDBY, SLEEP, PWROFF_N,
 	output reg [15:0] DO
 );
-	reg [15:0] mem [0:16383];
-	wire off = SLEEP || ~PWROFF_N;
+	logic [15:0] mem [0:16383];
+	logic off = SLEEP || ~PWROFF_N;
    
-//	integer i;
+//	integer i;                          // init randomize (not needed)
 //	always @(negedge PWROFF_N) begin
 //		for (i = 0; i <= 16383; i++)
 //			mem[i] = 16'bx;
@@ -24,19 +24,21 @@ module SP256K (
 		end else
         if (STDBY) begin
 			DO <= 16'bx;
-		end else
-		if (CS) begin
-			if (!WE) begin
-				DO <= mem[AD];
-			end else begin
+        end else
+        if (CS) begin
+			if (WE) begin
 				if (MASKWE[0]) mem[AD][ 3: 0] <= DI[ 3: 0];
 				if (MASKWE[1]) mem[AD][ 7: 4] <= DI[ 7: 4];
 				if (MASKWE[2]) mem[AD][11: 8] <= DI[11: 8];
 				if (MASKWE[3]) mem[AD][15:12] <= DI[15:12];
-				DO <= 16'bx;
+				DO <= 16'hbeef;
+			end else begin
+				DO <= mem[AD];
 			end
 		end
+        $display("%m MASKWE=%b, WE=%x,CS=%x, DI=%x, DO=%x", MASKWE, WE, CS, DI, DO);
 	end
+/*   
 	specify
 		// https://github.com/YosysHQ/icestorm/blob/95949315364f8d9b0c693386aefadf44b28e2cf6/icefuzz/timings_up5k.txt#L13169-L13182
 		$setup(posedge AD, posedge CK, 268);
@@ -57,5 +59,6 @@ module SP256K (
 		// https://github.com/YosysHQ/icestorm/blob/95949315364f8d9b0c693386aefadf44b28e2cf6/icefuzz/timings_up5k.txt#L13223-L13238
 		(posedge SLEEP *> (DO : 16'b0)) = 1099;
 	endspecify
+*/ 
 endmodule
 
