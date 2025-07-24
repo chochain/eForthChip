@@ -2,7 +2,7 @@
 /// @file
 /// @brief eforth1 - Single-Port Memory modules
 ///
-///.....spram16_64k.- 16-bit 64K block
+///     spram16_64k - 16-bit 64K block
 ///     spram32_32k - 32-bit 32K block
 ///     spram8_128k -  8-bit 128K (byte)
 ///
