@@ -9,8 +9,11 @@
 //    * --coverage   VM_COVERAGE=1
 //
 //======================================================================
+#include <iostream>
+#include <iomanip>
 #include <memory>                      // For std::unique_ptr
 #include <verilated.h>                 // Include common routines
+#include <vltstd/vpi_user.h>
 #if VM_TRACE_VCD
 #include <verilated_vcd_c.h>
 typedef VerilatedVcdC Tracer;
@@ -26,7 +29,99 @@ typedef VerilatedFstC Tracer;
 // Legacy function required only so linking works on Cygwin and MSVC++
 double sc_time_stamp() { return 0; }
 
+void _dump_tree(vpiHandle modHandle, int indent) {
+    if (!modHandle) return;
+    
+    // Print indentation
+    for (int i = 0; i < indent; i++) std::cout << "  ";
+    
+    // Get module information
+    PLI_BYTE8* modName = vpi_get_str(vpiName, modHandle);
+    PLI_BYTE8* modType = vpi_get_str(vpiType, modHandle);
+    
+    std::cout << "Module: " << (modName ? modName : "unknown") 
+              << " Type: "  << (modType ? modType : "unknown") << std::endl;
+    
+    // Iterate through child modules
+    vpiHandle modIter = vpi_iterate(vpiModule, modHandle);
+    if (modIter) {
+        vpiHandle childHandle;
+        while ((childHandle = vpi_scan(modIter))) {
+            _dump_tree(childHandle, indent + 1);
+        }
+    }
+}
+
+void dump_hierarchy(const char *name) {
+    std::cout << "VPI Hierarchy Dump: " << name << std::endl;
+    
+    // Start from top module
+    vpiHandle topHandle = vpi_handle_by_name((PLI_BYTE8*)name, NULL);
+    if (!topHandle) {
+        std::cout << " not found" << std::endl;
+        return;
+    }
+    _dump_tree(topHandle, 0);
+}
+
+// Function to read a signal's value
+void get_signal(const char *hier_name) {
+    vpiHandle sig_handle = vpi_handle_by_name((PLI_BYTE8*)hier_name, NULL);
+
+    if (!sig_handle) {
+        std::cerr << "Error: Could not find handle for signal: " << hier_name << std::endl;
+        return;
+    }
+
+    s_vpi_value value_s;
+    value_s.format = vpiHexStrVal; // Request value as a hex string
+    vpi_get_value(sig_handle, &value_s);
+
+    std::cout << "Signal: " << hier_name << ", Value: " << value_s.value.str << std::endl;
+}
+
+// Startup routine for VPI registration
+void register_vpi_tasks() {
+    // Register system tasks/functions here if needed
+    // For this example, vpi_handle_by_name is used directly
+    // in the main simulation loop.
+}
+
+// Required for VPI startup
+void (*vlog_startup_routines[])() = {
+    register_vpi_tasks,
+    0 // Null termination is crucial
+};
+
+// Main simulation loop (simplified for demonstration)
+// In a real application, this would be integrated with the Verilated model's eval loop.
 int main(int argc, char** argv) {
+    // Initialize Verilator (if using a Verilated model)
+    // Verilated::commandArgs(argc, argv);
+    // Vtop_level_module* top = new Vtop_level_module;
+
+    // Simulate some time or events
+    for (int i = 0; i < 5; ++i) {
+        std::cout << "Simulation Cycle " << i << ":" << std::endl;
+        // In a real simulation, apply inputs and call top->eval() here.
+
+        // Access signals using vpi_handle_by_name
+        get_signal("TOP.clk");
+        get_signal("top.ai");
+        get_signal("top.vi");
+        get_signal("top.vo");
+
+        std::cout << std::endl;
+    }
+
+    // Clean up Verilator (if using a Verilated model)
+    // top->final();
+    // delete top;
+
+    return 0;
+}
+
+int main0(int argc, char** argv) {
     // This is a more complicated example, please also see the simpler examples/make_hello_c.
 
     // Prevent unused variable warnings
@@ -66,7 +161,7 @@ int main(int argc, char** argv) {
     // Using unique_ptr is similar to "Vtop* top = new Vtop" then deleting at end.
     // "TOP" will be the hierarchical name of the module.
     const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
-
+    
 #if VM_TRACE
     Tracer *trace = new Tracer;
     top->trace(trace, 99);
@@ -74,6 +169,7 @@ int main(int argc, char** argv) {
 #endif    
     // Set Vtop's input signals
     top->clk = 0;
+    dump_hierarchy((*top).name());
 
     // Simulate until $finish
     while (!contextp->gotFinish()) {
@@ -92,7 +188,6 @@ int main(int argc, char** argv) {
 
         // Toggle a fast (time/2 period) clock
         top->clk = !top->clk;
-        
 #if 0
         // Toggle control signals on an edge that doesn't correspond
         // to where the controls are sampled; in this example we do
