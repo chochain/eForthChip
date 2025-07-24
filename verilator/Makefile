@@ -54,16 +54,18 @@ VERILATOR_FLAGS += --coverage
 # Input files for Verilator
 # input.vc is processed by contextp->commandArgs as cmd line options (without recompilation)
 VERILATOR_INPUT = -f input.vc top.v sim_main.cpp
+TOP_MODULE      = spram_tb.v
 
 ######################################################################
-default: run
+default: lint
 
-run:
+lint:
 	@echo
 	@echo "-- Verilator tracing example"
 
 	@echo
 	@echo "-- VERILATE ----------------"
+	cp $(TOP_MODULE) top.v
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
 
 	@echo
@@ -75,22 +77,22 @@ run:
 # 3. Or, call a submakefile where we can override the rules ourselves:
 	$(MAKE) -j -C obj_dir -f ../Makefile_obj
 
+run:
 	@echo
 	@echo "-- RUN ---------------------"
 	@rm -rf logs
 	@mkdir -p logs
 	obj_dir/Vtop +trace
-
-	@echo
-	@echo "-- COVERAGE ----------------"
-	@rm -rf logs/annotated
-	$(VERILATOR_COVERAGE) --annotate logs/annotated logs/coverage.dat
-
 	@echo
 	@echo "-- DONE --------------------"
 	@echo "To see waveforms, open logs/wave.fst in a waveform viewer"
 	@echo
 
+cover:
+	@echo
+	@echo "-- COVERAGE ----------------"
+#	@rm -rf logs/annotated
+	$(VERILATOR_COVERAGE) --annotate logs/annotated logs/coverage.dat
 
 ######################################################################
 # Other targets
