@@ -32,7 +32,7 @@ VERILATOR_COVERAGE = $(VERILATOR_ROOT)/bin/verilator_coverage
 endif
 
 # Generate C++ in executable form
-VERILATOR_FLAGS += -cc --exe --timing --timescale 1ps/1ps
+VERILATOR_FLAGS += -cc --exe --timing --timescale 1ps/1ps --sv
 # Generate makefile dependencies (not shown as complicates the Makefile)
 #VERILATOR_FLAGS += -MMD
 # Optimize
@@ -50,11 +50,13 @@ VERILATOR_FLAGS += --coverage
 #VERILATOR_FLAGS += --debug
 # Add this trace to get a backtrace in gdb
 #VERILATOR_FLAGS += --gdbbt
+# with VPI/PLI integration
+VERILATOR_FLAGS += --vpi
 
 # Input files for Verilator
 # input.vc is processed by contextp->commandArgs as cmd line options (without recompilation)
-VERILATOR_INPUT = -f input.vc top.v sim_main.cpp
-TOP_MODULE      = spram_tb.v
+VERILATOR_INPUT = -f input.vc top.sv sim_main.cpp
+TOP_MODULE      = spram_tb.sv
 
 ######################################################################
 default: lint
@@ -65,8 +67,8 @@ lint:
 
 	@echo
 	@echo "-- VERILATE ----------------"
-	cp $(TOP_MODULE) top.v
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
+	cp $(TOP_MODULE) top.sv
+	$(VERILATOR) -I../source $(VERILATOR_FLAGS) $(VERILATOR_INPUT)
 
 	@echo
 	@echo "-- BUILD -------------------"
