@@ -95,6 +95,7 @@ void (*vlog_startup_routines[])() = {
     0 // Null termination is crucial
 };
 
+#if 0 // simple - raw object
 // Main simulation loop (simplified for demonstration)
 // In a real application, this would be integrated with the Verilated model's eval loop.
 int main(int argc, char** argv) {
@@ -134,6 +135,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+#else // complex - unique_ptr
+
 int init_ctx(const std::unique_ptr<VerilatedContext> &ctx, int argc, char** argv) {
     // Do not instead make Vtop as a file-scope static variable, as the
     // "C++ static initialization order fiasco" may cause a crash
@@ -156,7 +159,7 @@ int init_ctx(const std::unique_ptr<VerilatedContext> &ctx, int argc, char** argv
     return 0;
 }
 
-int main0(int argc, char** argv) {
+int main(int argc, char** argv) {
     // This is a more complicated example, please also see the simpler examples/make_hello_c.
     // Prevent unused variable warnings
     if (false && argc && argv) {}
@@ -186,6 +189,8 @@ int main0(int argc, char** argv) {
 #endif    
     // Set Vtop's input signals
     top->clk = 0;
+
+    dump_hierarchy("TOP.top");
 
     // Simulate until $finish
     while (!ctx->gotFinish()) {
@@ -239,6 +244,7 @@ int main0(int argc, char** argv) {
     trace->flush();
     trace->close();
 #endif    
+    dump_hierarchy("TOP.top");
 
     // Coverage analysis (calling write only after the test is known to pass)
 #if VM_COVERAGE
@@ -249,3 +255,5 @@ int main0(int argc, char** argv) {
     // Don't use exit() or destructor won't get called
     return 0;
 }
+
+#endif // simple or complex main
