@@ -4,11 +4,12 @@
 ///
 module top (
     input logic         clk,
+    input logic         rst,   // not used, for testsing only
     output logic [16:0] ai,
     output logic [7:0]  vi, 
     output logic [7:0]  vo
     );
-    localparam ASZ  = 17;   // 128K
+    localparam ASZ  = 17;      // 128K
   
     mb_io #(8)  b8_if(clk);
     spram8_128k u1(b8_if.slave);
@@ -41,7 +42,7 @@ module top (
                 vo       = b8_if.vo;
             end
         end
-
+/*
         $display("range check (write via interface)");
         for (i = 0; i < ASZ; i++) begin
             repeat(1) @(negedge clk) begin
@@ -75,7 +76,7 @@ module top (
                 vo = b8_if.get('h1ffff - i[ASZ-1:0]);
             end
         end
-
+*/
         #20 $finish;
     end       
 endmodule : top
