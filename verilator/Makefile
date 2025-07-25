@@ -87,14 +87,13 @@ run:
 	obj_dir/Vtop +trace
 	@echo
 	@echo "-- DONE --------------------"
-	@echo "To see waveforms, open logs/wave.fst in a waveform viewer"
-	@echo
 
 cover:
 	@echo
 	@echo "-- COVERAGE ----------------"
 #	@rm -rf logs/annotated
 	$(VERILATOR_COVERAGE) --annotate logs/annotated logs/coverage.dat
+
 
 ######################################################################
 # Other targets
