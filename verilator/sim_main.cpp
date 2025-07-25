@@ -25,6 +25,7 @@ typedef VerilatedFstC Tracer;
 #define DUMP_FILE     "logs/wave.fst"
 #endif
 #include "Vtop.h"                      // Include model header, generated from Verilating "top.v"
+#define COVER_FILE    "logs/coverage.dat"
 
 // Legacy function required only so linking works on Cygwin and MSVC++
 double sc_time_stamp() { return 0; }
@@ -104,6 +105,7 @@ int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     Vtop &top = *new Vtop;
 
+    Verilated::scopesDump();
     dump_hierarchy("TOP.top");
     
     // Simulate some time or events
@@ -182,15 +184,20 @@ int main(int argc, char** argv) {
     // "TOP" will be the hierarchical name of the module.
     const std::unique_ptr<Vtop> top{ new Vtop{ ctx.get(), "TOP" } };
 
+    // TOP module is instaintiated
+    // We can dump them now
+    ctx->scopesDump();
+    dump_hierarchy("TOP.top");
+
+    // Enable VCD or FST tracer
 #if VM_TRACE
     Tracer *trace = new Tracer;
     top->trace(trace, 99);
     trace->open(DUMP_FILE);
-#endif    
+#endif
+    
     // Set Vtop's input signals
     top->clk = 0;
-
-    dump_hierarchy("TOP.top");
 
     // Simulate until $finish
     while (!ctx->gotFinish()) {
@@ -236,19 +243,20 @@ int main(int argc, char** argv) {
         VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
                   ctx->time(), top->clk, top->ai, top->vi, top->vo);
     }
-
     // Final model cleanup
     top->final();
+    dump_hierarchy("TOP.top");
     
 #if VM_TRACE
     trace->flush();
     trace->close();
+    VL_PRINTF("%s created, open with gtkwave\n", DUMP_FILE);
 #endif    
-    dump_hierarchy("TOP.top");
 
     // Coverage analysis (calling write only after the test is known to pass)
 #if VM_COVERAGE
-    ctx->coveragep()->write("logs/coverage.dat");
+    ctx->coveragep()->write(COVER_FILE);
+    VL_PRINTF("%s created, 'make cover' to annotate\n", COVER_FILE);
 #endif
 
     // Return good completion status
