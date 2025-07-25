@@ -38,9 +38,11 @@ void _dump_tree(vpiHandle modHandle, int indent) {
     // Get module information
     PLI_BYTE8* modName = vpi_get_str(vpiName, modHandle);
     PLI_BYTE8* modType = vpi_get_str(vpiType, modHandle);
-    
-    std::cout << "Module: " << (modName ? modName : "unknown") 
-              << " Type: "  << (modType ? modType : "unknown") << std::endl;
+
+    if (strcmp(modType, "vpiModule")) {        // custom module?
+        std::cout << '<' << modType << '>';   
+    }
+    std::cout << (modName ? modName : "???") << std::endl;
     
     // Iterate through child modules
     vpiHandle modIter = vpi_iterate(vpiModule, modHandle);
@@ -77,7 +79,7 @@ void get_signal(const char *hier_name) {
     value_s.format = vpiHexStrVal; // Request value as a hex string
     vpi_get_value(sig_handle, &value_s);
 
-    std::cout << "Signal: " << hier_name << ", Value: " << value_s.value.str << std::endl;
+    std::cout << hier_name << '=' << value_s.value.str << std::endl;
 }
 
 // Startup routine for VPI registration
@@ -97,33 +99,65 @@ void (*vlog_startup_routines[])() = {
 // In a real application, this would be integrated with the Verilated model's eval loop.
 int main(int argc, char** argv) {
     // Initialize Verilator (if using a Verilated model)
-    // Verilated::commandArgs(argc, argv);
-    // Vtop_level_module* top = new Vtop_level_module;
+    Verilated::debug(0);
+    Verilated::commandArgs(argc, argv);
+    Vtop &top = *new Vtop;
 
+    dump_hierarchy("TOP.top");
+    
     // Simulate some time or events
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i, Verilated::timeInc(1)) {
         std::cout << "Simulation Cycle " << i << ":" << std::endl;
-        // In a real simulation, apply inputs and call top->eval() here.
+        
+        top.clk = !top.clk;
+        top.ai  = i;
+        top.eval();
 
         // Access signals using vpi_handle_by_name
-        get_signal("TOP.clk");
-        get_signal("top.ai");
-        get_signal("top.vi");
-        get_signal("top.vo");
+        get_signal("TOP.top.clk");
+        get_signal("TOP.top.ai");
+        get_signal("TOP.top.vi");
+        get_signal("TOP.top.vo");
+        get_signal("TOP.top._clk");
 
         std::cout << std::endl;
+        
+        VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
+                  Verilated::time(), top.clk, top.ai, top.vi, top.vo);
     }
+    dump_hierarchy("TOP.top");
 
     // Clean up Verilator (if using a Verilated model)
-    // top->final();
-    // delete top;
+    top.final();
+    delete &top;
+
+    return 0;
+}
+
+int init_ctx(const std::unique_ptr<VerilatedContext> &ctx, int argc, char** argv) {
+    // Do not instead make Vtop as a file-scope static variable, as the
+    // "C++ static initialization order fiasco" may cause a crash
+
+    // Set debug level, 0 is off, 9 is highest presently used
+    // May be overridden by commandArgs argument parsing
+    ctx->debug(0);     // use --debugi-spram8_128k 1
+
+    // Randomization reset policy
+    // May be overridden by commandArgs argument parsing
+    ctx->randReset(2);
+
+    // Verilator must compute traced signals
+    ctx->traceEverOn(true);
+
+    // Pass arguments so Verilated code can see them, e.g. $value$plusargs
+    // This needs to be called before you create any model
+    ctx->commandArgs(argc, argv);
 
     return 0;
 }
 
 int main0(int argc, char** argv) {
     // This is a more complicated example, please also see the simpler examples/make_hello_c.
-
     // Prevent unused variable warnings
     if (false && argc && argv) {}
 
@@ -137,31 +171,14 @@ int main0(int argc, char** argv) {
 
     // Using unique_ptr is similar to
     // "VerilatedContext* contextp = new VerilatedContext" then deleting at end.
-    const std::unique_ptr<VerilatedContext> contextp{new VerilatedContext};
-    
-    // Do not instead make Vtop as a file-scope static variable, as the
-    // "C++ static initialization order fiasco" may cause a crash
-
-    // Set debug level, 0 is off, 9 is highest presently used
-    // May be overridden by commandArgs argument parsing
-    contextp->debug(0);
-
-    // Randomization reset policy
-    // May be overridden by commandArgs argument parsing
-    contextp->randReset(2);
-
-    // Verilator must compute traced signals
-    contextp->traceEverOn(true);
-
-    // Pass arguments so Verilated code can see them, e.g. $value$plusargs
-    // This needs to be called before you create any model
-    contextp->commandArgs(argc, argv);
+    const std::unique_ptr<VerilatedContext> ctx{ new VerilatedContext };
+    if (init_ctx(ctx, argc, argv)) return 1;
 
     // Construct the Verilated model, from Vtop.h generated from Verilating "top.v".
     // Using unique_ptr is similar to "Vtop* top = new Vtop" then deleting at end.
     // "TOP" will be the hierarchical name of the module.
-    const std::unique_ptr<Vtop> top{new Vtop{contextp.get(), "TOP"}};
-    
+    const std::unique_ptr<Vtop> top{ new Vtop{ ctx.get(), "TOP" } };
+
 #if VM_TRACE
     Tracer *trace = new Tracer;
     top->trace(trace, 99);
@@ -169,10 +186,9 @@ int main0(int argc, char** argv) {
 #endif    
     // Set Vtop's input signals
     top->clk = 0;
-    dump_hierarchy((*top).name());
 
     // Simulate until $finish
-    while (!contextp->gotFinish()) {
+    while (!ctx->gotFinish()) {
         // Historical note, before Verilator 4.200 Verilated::gotFinish()
         // was used above in place of contextp->gotFinish().
         // Most of the contextp-> calls can use Verilated:: calls instead;
@@ -180,7 +196,7 @@ int main0(int argc, char** argv) {
         // being used (per thread).  It's faster and clearer to use the
         // newer contextp-> versions.
 
-        contextp->timeInc(1);  // 1 timeprecision period passes...
+        ctx->timeInc(1);  // 1 timeprecision period passes...
         // Historical note, before Verilator 4.200 a sc_time_stamp()
         // function was required instead of using timeInc.  Once timeInc()
         // is called (with non-zero), the Verilated libraries assume the
@@ -194,7 +210,7 @@ int main0(int argc, char** argv) {
         // this only on a negedge of clk, because we know
         // reset is not sampled there.
         if (!top->clk) {
-            if (contextp->time() > 1 && contextp->time() < 10) {
+            if (ctx->time() > 1 && ctx->time() < 10) {
                 top->reset_l = !1;  // Assert reset
             } else {
                 top->reset_l = !0;  // Deassert reset
@@ -203,18 +219,17 @@ int main0(int argc, char** argv) {
             top->in_quad += 0x12;
         }
 #endif
-
         // Evaluate model
         // (If you have multiple models being simulated in the same
         // timestep then instead of eval(), call eval_step() on each, then
         // eval_end_step() on each. See the manual.)
         top->eval();
 #if VM_TRACE
-        trace->dump(contextp->time()*2);
+        trace->dump(ctx->time() * 2);
 #endif        
         // Read outputs
         VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
-                  contextp->time(), top->clk, top->ai, top->vi, top->vo);
+                  ctx->time(), top->clk, top->ai, top->vi, top->vo);
     }
 
     // Final model cleanup
@@ -227,7 +242,7 @@ int main0(int argc, char** argv) {
 
     // Coverage analysis (calling write only after the test is known to pass)
 #if VM_COVERAGE
-    contextp->coveragep()->write("logs/coverage.dat");
+    ctx->coveragep()->write("logs/coverage.dat");
 #endif
 
     // Return good completion status
