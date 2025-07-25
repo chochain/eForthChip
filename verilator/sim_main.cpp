@@ -43,20 +43,22 @@ void _dump_module(const char *name) {
     }
     cout << "ScopeName: " << sp->name()
          << ", Ident: " << sp->identifier() << endl;
-    sp->scopeDump();
+//    sp->scopeDump();
             
     VerilatedVarNameMap &m = *sp->varsp();
     for (auto it = m.begin(); it != m.end(); it++) {
-        VerilatedVar &v = it->second;  // value
-        cout << v.datap() << "[" <<v.totalSize() << "] "  // addr:sz
-             << " " << v.name()                           // var name
-             << (v.isPublicRW() ? "*" : "-")              
-             << " <= " << it->first << endl;              // key
-        for (int i=0; i< v.dims(); i++) {
-            cout << "  " << v.left(i) << ":" << v.right(i) << ":" << v.low(i)  << ":" << v.high(i)
-                 << " inc=" << v.increment(i)
-                 << " #ele=" << v.elements(i) << endl;
+        VerilatedVar &v = it->second;               // value
+        cout << (v.isPublicRW() ? '*' : ' ')        // accessable
+             << v.datap() << ":" <<v.totalSize()    // addr:sz
+             << " [" << v.left(0) << ":" << v.right(0) << "]"
+//             << v.increment(0) << ":" << v.elements()
+             << " " << v.name();
+        for (int i=1; i< v.dims(); i++) {
+            cout << "[" << v.left(i) << ":" << v.right(i) << "]"
+//                 << v.increment(i) << ":" << v.elements()
+                 << " ";
         }
+        cout << endl;
     }
 }    
 
