@@ -161,6 +161,15 @@ int init_ctx(const std::unique_ptr<VerilatedContext> &ctx, int argc, char** argv
     return 0;
 }
 
+void inject(size_t t, const std::unique_ptr<Vtop> &top) {
+    if (top->clk) return;
+    // Toggle control signals on an edge that doesn't correspond
+    // to where the controls are sampled; in this example we do
+    // this only on a negedge of clk, because we know
+    // reset is not sampled there.
+    top->rst = t > 1 && t < 10 ? 1 : 0;
+}
+
 int main(int argc, char** argv) {
     // This is a more complicated example, please also see the simpler examples/make_hello_c.
     // Prevent unused variable warnings
@@ -208,7 +217,8 @@ int main(int argc, char** argv) {
         // being used (per thread).  It's faster and clearer to use the
         // newer contextp-> versions.
 
-        ctx->timeInc(1);  // 1 timeprecision period passes...
+        ctx->timeInc(1);       // 1 timeprecision period passes...
+        size_t t = ctx->time();
         // Historical note, before Verilator 4.200 a sc_time_stamp()
         // function was required instead of using timeInc.  Once timeInc()
         // is called (with non-zero), the Verilated libraries assume the
@@ -216,32 +226,19 @@ int main(int argc, char** argv) {
 
         // Toggle a fast (time/2 period) clock
         top->clk = !top->clk;
-#if 0
-        // Toggle control signals on an edge that doesn't correspond
-        // to where the controls are sampled; in this example we do
-        // this only on a negedge of clk, because we know
-        // reset is not sampled there.
-        if (!top->clk) {
-            if (ctx->time() > 1 && ctx->time() < 10) {
-                top->reset_l = !1;  // Assert reset
-            } else {
-                top->reset_l = !0;  // Deassert reset
-            }
-            // Assign some other inputs
-            top->in_quad += 0x12;
-        }
-#endif
+
+        inject(t, top);
         // Evaluate model
         // (If you have multiple models being simulated in the same
         // timestep then instead of eval(), call eval_step() on each, then
         // eval_end_step() on each. See the manual.)
         top->eval();
 #if VM_TRACE
-        trace->dump(ctx->time() * 2);
+        trace->dump(t * 2);
 #endif        
         // Read outputs
-        VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
-                  ctx->time(), top->clk, top->ai, top->vi, top->vo);
+        VL_PRINTF("[%" PRId64 "] clk=%x rst=%x ai=%4x vi=%02x vo=%02x\n",
+                  t, top->clk, top->rst, top->ai, top->vi, top->vo);
     }
     // Final model cleanup
     top->final();
