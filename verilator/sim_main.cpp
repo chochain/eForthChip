@@ -12,7 +12,9 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>                      // For std::unique_ptr
+#include <string>
 #include <verilated.h>                 // Include common routines
+#include <verilated_syms.h>
 #include <vltstd/vpi_user.h>
 #if VM_TRACE_VCD
 #include <verilated_vcd_c.h>
@@ -30,20 +32,45 @@ typedef VerilatedFstC Tracer;
 // Legacy function required only so linking works on Cygwin and MSVC++
 double sc_time_stamp() { return 0; }
 
+using namespace std;
+
+void _dump_module(const char *name) {
+    string fn = string("TOP.") + name;
+    const VerilatedScope *sp = Verilated::scopeFind(fn.c_str());
+    if (!sp) {
+        cout << name << " not found" << endl;
+        return;
+    }
+    cout << "ScopeName: " << sp->name()
+         << ", Ident: " << sp->identifier() << endl;
+    sp->scopeDump();
+            
+    VerilatedVarNameMap &m = *sp->varsp();
+    for (auto it = m.begin(); it != m.end(); it++) {
+        VerilatedVar &v = it->second;  // value
+        cout << v.datap() << ": " << v.name()
+             << " <= " << it->first << endl;       // key
+    }
+}    
+
 void _dump_tree(vpiHandle modHandle, int indent) {
     if (!modHandle) return;
     
     // Print indentation
-    for (int i = 0; i < indent; i++) std::cout << "  ";
+    for (int i = 0; i < indent; i++) cout << "  ";
     
     // Get module information
-    PLI_BYTE8* modName = vpi_get_str(vpiName, modHandle);
-    PLI_BYTE8* modType = vpi_get_str(vpiType, modHandle);
+    PLI_BYTE8* fullName = vpi_get_str(vpiFullName, modHandle);
+    PLI_BYTE8* modName  = vpi_get_str(vpiName,     modHandle);
+    PLI_BYTE8* modType  = vpi_get_str(vpiType,     modHandle);
 
     if (strcmp(modType, "vpiModule")) {        // custom module?
-        std::cout << '<' << modType << '>';   
+        cout << '<' << modType << '>';   
     }
-    std::cout << (modName ? modName : "???") << std::endl;
+    if (modName) {
+        cout << (modName ? modName : "???") << endl;
+        _dump_module(fullName);
+    }
     
     // Iterate through child modules
     vpiHandle modIter = vpi_iterate(vpiModule, modHandle);
@@ -56,12 +83,12 @@ void _dump_tree(vpiHandle modHandle, int indent) {
 }
 
 void dump_hierarchy(const char *name) {
-    std::cout << "VPI Hierarchy Dump: " << name << std::endl;
+    cout << "VPI Hierarchy Dump: " << name << endl;
     
     // Start from top module
     vpiHandle topHandle = vpi_handle_by_name((PLI_BYTE8*)name, NULL);
     if (!topHandle) {
-        std::cout << " not found" << std::endl;
+        cout << " not found" << endl;
         return;
     }
     _dump_tree(topHandle, 0);
@@ -72,7 +99,7 @@ void get_signal(const char *hier_name) {
     vpiHandle sig_handle = vpi_handle_by_name((PLI_BYTE8*)hier_name, NULL);
 
     if (!sig_handle) {
-        std::cerr << "Error: Could not find handle for signal: " << hier_name << std::endl;
+        cerr << "Error: Could not find handle for signal: " << hier_name << endl;
         return;
     }
 
@@ -80,7 +107,7 @@ void get_signal(const char *hier_name) {
     value_s.format = vpiHexStrVal; // Request value as a hex string
     vpi_get_value(sig_handle, &value_s);
 
-    std::cout << hier_name << '=' << value_s.value.str << std::endl;
+    cout << hier_name << '=' << value_s.value.str << endl;
 }
 
 // Startup routine for VPI registration
@@ -96,7 +123,7 @@ void (*vlog_startup_routines[])() = {
     0 // Null termination is crucial
 };
 
-#if 0 // simple - raw object
+#if 1 // simple - raw object
 // Main simulation loop (simplified for demonstration)
 // In a real application, this would be integrated with the Verilated model's eval loop.
 int main(int argc, char** argv) {
@@ -105,31 +132,31 @@ int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     Vtop &top = *new Vtop;
 
-    Verilated::scopesDump();
+    Verilated::internalsDump();
     dump_hierarchy("TOP.top");
     
     // Simulate some time or events
     for (int i = 0; i < 5; ++i, Verilated::timeInc(1)) {
-        std::cout << "Simulation Cycle " << i << ":" << std::endl;
+        cout << "Simulation Cycle " << i << ":" << endl;
         
         top.clk = !top.clk;
-        top.ai  = i;
+        top.rst = i < 2;
         top.eval();
 
         // Access signals using vpi_handle_by_name
         get_signal("TOP.top.clk");
+        get_signal("TOP.top.rst");
         get_signal("TOP.top.ai");
         get_signal("TOP.top.vi");
         get_signal("TOP.top.vo");
-        get_signal("TOP.top._clk");
 
-        std::cout << std::endl;
+        cout << endl;
         
         VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
                   Verilated::time(), top.clk, top.ai, top.vi, top.vo);
     }
     dump_hierarchy("TOP.top");
-
+    
     // Clean up Verilator (if using a Verilated model)
     top.final();
     delete &top;
@@ -139,7 +166,7 @@ int main(int argc, char** argv) {
 
 #else // complex - unique_ptr
 
-int init_ctx(const std::unique_ptr<VerilatedContext> &ctx, int argc, char** argv) {
+int init_ctx(const unique_ptr<VerilatedContext> &ctx, int argc, char** argv) {
     // Do not instead make Vtop as a file-scope static variable, as the
     // "C++ static initialization order fiasco" may cause a crash
 
@@ -161,7 +188,7 @@ int init_ctx(const std::unique_ptr<VerilatedContext> &ctx, int argc, char** argv
     return 0;
 }
 
-void inject(size_t t, const std::unique_ptr<Vtop> &top) {
+void inject(size_t t, const unique_ptr<Vtop> &top) {
     if (top->clk) return;
     // Toggle control signals on an edge that doesn't correspond
     // to where the controls are sampled; in this example we do
@@ -185,13 +212,13 @@ int main(int argc, char** argv) {
 
     // Using unique_ptr is similar to
     // "VerilatedContext* contextp = new VerilatedContext" then deleting at end.
-    const std::unique_ptr<VerilatedContext> ctx{ new VerilatedContext };
+    const unique_ptr<VerilatedContext> ctx{ new VerilatedContext };
     if (init_ctx(ctx, argc, argv)) return 1;
 
     // Construct the Verilated model, from Vtop.h generated from Verilating "top.v".
     // Using unique_ptr is similar to "Vtop* top = new Vtop" then deleting at end.
     // "TOP" will be the hierarchical name of the module.
-    const std::unique_ptr<Vtop> top{ new Vtop{ ctx.get(), "TOP" } };
+    const unique_ptr<Vtop> top{ new Vtop{ ctx.get(), "TOP" } };
 
     // TOP module is instaintiated
     // We can dump them now
