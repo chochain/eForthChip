@@ -32,7 +32,7 @@ VERILATOR_COVERAGE = $(VERILATOR_ROOT)/bin/verilator_coverage
 endif
 
 # Generate C++ in executable form
-VERILATOR_FLAGS += --cc --exe --timing --timescale 1ps/1ps -sv
+VERILATOR_FLAGS += --cc --exe --timing --timescale 1ps/1ps -sv --top-module top
 # Generate makefile dependencies (not shown as complicates the Makefile)
 #VERILATOR_FLAGS += -MMD
 # Optimize
@@ -51,7 +51,7 @@ VERILATOR_FLAGS += --coverage
 # Add this trace to get a backtrace in gdb
 #VERILATOR_FLAGS += --gdbbt
 # with VPI/PLI integration
-VERILATOR_FLAGS += --vpi
+VERILATOR_FLAGS += --vpi --public-flat-rw
 
 # Input files for Verilator
 # input.vc is processed by contextp->commandArgs as cmd line options (without recompilation)
