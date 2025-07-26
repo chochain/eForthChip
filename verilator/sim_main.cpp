@@ -34,29 +34,31 @@ double sc_time_stamp() { return 0; }
 
 using namespace std;
 
-void _dump_module(const char *name) {
+void _dump_module(const char *name, int depth) {
+    auto indent = [](int depth) {
+        for (int i = 0; i < depth; i++) cout << "   ";
+    };
     string fn = string("TOP.") + name;
     const VerilatedScope *sp = Verilated::scopeFind(fn.c_str());
     if (!sp) {
         cout << name << " not found" << endl;
         return;
     }
-    cout << "ScopeName: " << sp->name()
-         << ", Ident: " << sp->identifier() << endl;
-//    sp->scopeDump();
+//    sp->scopeDump();                                          // to cross-check
+    
+    indent(depth);
+    cout << sp->identifier() << ": " << sp->name() << endl;
             
     VerilatedVarNameMap &m = *sp->varsp();
     for (auto it = m.begin(); it != m.end(); it++) {
-        VerilatedVar &v = it->second;               // value
-        cout << (v.isPublicRW() ? '*' : ' ')        // accessable
-             << v.datap() << ":" <<v.totalSize()    // addr:sz
-             << " [" << v.left(0) << ":" << v.right(0) << "]"
-//             << v.increment(0) << ":" << v.elements()
-             << " " << v.name();
+        VerilatedVar &v = it->second;                           // value
+        indent(depth+1);
+        cout << v.datap() << ":" <<v.totalSize()                // addr:sz
+             << (v.isPublicRW() ? ' ' : '*')                    // accessable
+             << '[' << v.left(0) << ':' << v.right(0) << "] "   // see VerilatedRange
+             << v.name();
         for (int i=1; i< v.dims(); i++) {
-            cout << "[" << v.left(i) << ":" << v.right(i) << "]"
-//                 << v.increment(i) << ":" << v.elements()
-                 << " ";
+            cout << '[' << v.low(i) << ':' << v.high(i) << ']';
         }
         cout << endl;
     }
@@ -65,21 +67,15 @@ void _dump_module(const char *name) {
 void _dump_tree(vpiHandle modHandle, int indent) {
     if (!modHandle) return;
     
-    // Print indentation
-    for (int i = 0; i < indent; i++) cout << "  ";
-    
     // Get module information
     PLI_BYTE8* fullName = vpi_get_str(vpiFullName, modHandle);
     PLI_BYTE8* modName  = vpi_get_str(vpiName,     modHandle);
     PLI_BYTE8* modType  = vpi_get_str(vpiType,     modHandle);
 
     if (strcmp(modType, "vpiModule")) {        // custom module?
-        cout << '<' << modType << '>';   
+        cout << '<' << modType << '>' << modName << endl;
     }
-    if (modName) {
-        cout << (modName ? modName : "???") << endl;
-        _dump_module(fullName);
-    }
+    _dump_module(fullName, indent);
     
     // Iterate through child modules
     vpiHandle modIter = vpi_iterate(vpiModule, modHandle);
