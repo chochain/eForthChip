@@ -97,10 +97,10 @@ cover:
 view: logs/wave.fst
 	/bin/gtkwave $^
 
-synth:
+synth: top.v
 	@echo
 	@echo "-- YOSYS ----------------"
-	yosys -q -p 'synth_ice40 -sv -top top -blif top.blif' top.v
+	yosys -p "read_verilog -sv $^; synth_ice40 -top top -blif top.blif"
 
 ######################################################################
 # Other targets
