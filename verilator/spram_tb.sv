@@ -81,6 +81,6 @@ module top (
             end
         end
 
-        #20 $finish;
+        #2 $finish;
     end       
 endmodule : top
