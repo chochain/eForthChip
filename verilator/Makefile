@@ -94,6 +94,13 @@ cover:
 #	@rm -rf logs/annotated
 	$(VERILATOR_COVERAGE) --annotate logs/annotated logs/coverage.dat
 
+view: logs/wave.fst
+	/bin/gtkwave $^
+
+synth:
+	@echo
+	@echo "-- YOSYS ----------------"
+	yosys -q -p 'synth_ice40 -sv -top top -blif top.blif' top.v
 
 ######################################################################
 # Other targets
