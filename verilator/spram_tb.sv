@@ -42,7 +42,7 @@ module top (
                 vo       = b8_if.vo;
             end
         end
-/*
+
         $display("range check (write via interface)");
         for (i = 0; i < ASZ; i++) begin
             repeat(1) @(negedge clk) begin
@@ -76,7 +76,7 @@ module top (
                 vo = b8_if.get('h1ffff - i[ASZ-1:0]);
             end
         end
-*/
+
         #20 $finish;
     end       
 endmodule : top
