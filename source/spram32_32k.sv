@@ -3,7 +3,7 @@
 /// @brief Single-Port Memory modules 32-bit 32K
 ///
 module spram32_32k (                 /// width cascade
-    mb_io b32_if                     /// 32-bit bus slave
+    mb32_io b32_if                   /// 32-bit bus slave
     );
     logic [3:0]  msk[1:0];           /// byte select mask
     logic [31:0] vo32[0:1];
