@@ -2,8 +2,11 @@
 /// @file
 /// @brief Single-Port Memory modules 32-bit 32K
 ///
+`ifndef EFORTH1_SPRAM32_32K
+`define EFORTH1_SPRAM32_32K
+
 module spram32_32k (                 /// width cascade
-    mb32_io b32_if                   /// 32-bit bus slave
+        mb32_io.slave b32_if         /// 32-bit bus slave
     );
     logic [3:0]  msk0, msk1;         /// byte select mask
     logic [31:0] vo32a, vo32b;
@@ -71,3 +74,5 @@ module spram32_32k (                 /// width cascade
         .DO(vo32b[31:16])
     );
 endmodule : spram32_32k
+
+`endif // EFORTH1_SPRAM32_32K

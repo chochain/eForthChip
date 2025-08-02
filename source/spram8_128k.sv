@@ -2,14 +2,17 @@
 /// @file
 /// @brief Single-Port Memory modules 8-bit 128K
 ///
+`ifndef EFORTH1_SPRAM8_128K
+`define EFORTH1_SPRAM8_128K
+
 module spram8_128k (                           /// depth cascade
-    mb8_io b8_if
+        mb8_io.slave b8_if
     );
     logic [1:0] m, _m;                         /// byte index of (current and previous cycle)
     /// TODO: add cache
 
     mb32_io     b32_if(b8_if.clk);
-    spram32_32k m0(b32_if);
+    spram32_32k m0(b32_if.slave);
     ///
     /// 32 to 8-bit converter
     ///
@@ -29,3 +32,5 @@ module spram8_128k (                           /// depth cascade
         _m <= m;                               /// read needs to wait for one cycle
     end
 endmodule : spram8_128k
+
+`endif // EFORTH1_SPRAM8_128K
