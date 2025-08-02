@@ -133,7 +133,7 @@ void (*vlog_startup_routines[])() = {
     0 // Null termination is crucial
 };
 
-#if 1 // simple - raw object
+#if 0 // simple - raw object
 // Main simulation loop (simplified for demonstration)
 // In a real application, this would be integrated with the Verilated model's eval loop.
 int main(int argc, char** argv) {
@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
     }
     // Final model cleanup
     top->final();
-    dump_hierarchy("TOP.top");
+//    dump_hierarchy("TOP.top");
     
 #if VM_TRACE
     trace->flush();
