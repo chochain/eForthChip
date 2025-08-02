@@ -3,6 +3,9 @@
 /// @brief universal memory bus interface - paramatric sizing
 /// @note use modport to regulate the usage
 ///
+`ifndef EFORTH1_MB32_IO
+`define EFORTH1_MB32_IO
+
 interface mb32_io (                   // generic memory block interface
         input logic clk
     );
@@ -13,4 +16,9 @@ interface mb32_io (                   // generic memory block interface
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
     logic [3:0]     bmsk;
+    
+    modport master(output we, bmsk, ai, vi);
+    modport slave(input clk, we, bmsk, ai, vi, output vo);
 endinterface
+
+`endif // EFORTH1_MB32_IO

@@ -3,6 +3,9 @@
 /// @brief universal memory bus interface - paramatric sizing
 /// @note use modport to regulate the usage
 ///
+`ifndef EFORTH1_MB8_IO
+`define EFORTH1_MB8_IO
+
 interface mb8_io (                     // generic memory block interface
         input logic clk
     );
@@ -12,4 +15,9 @@ interface mb8_io (                     // generic memory block interface
     logic [ASZ-1:0] ai;                // specifying either master or slave device
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
+
+    modport master(output we, ai, vi);
+    modport slave(input clk, we, ai, vi, output vo);
 endinterface
+
+`endif // EFORTH1_MB8_IO
