@@ -108,11 +108,16 @@ void get_signal(const char *hier_name) {
         return;
     }
 
-    s_vpi_value value_s;
-    value_s.format = vpiHexStrVal; // Request value as a hex string
+    s_vpi_value value_s, value_i;          // value formater
+    value_s.format = vpiHexStrVal;         // as hex str, (or vpiBinStrVal)
+    value_i.format = vpiIntVal;            // as int str
     vpi_get_value(sig_handle, &value_s);
+    vpi_get_value(sig_handle, &value_i);
 
-    cout << hier_name << '=' << value_s.value.str << endl;
+    cout << hier_name
+         << "= h'" << value_s.value.str
+         << " (" << value_i.value.integer << ")"
+         << endl;
 }
 
 // Startup routine for VPI registration
@@ -137,8 +142,8 @@ int main(int argc, char** argv) {
     Verilated::commandArgs(argc, argv);
     Vtop &top = *new Vtop;
 
-    Verilated::internalsDump();
-    dump_hierarchy("TOP.top");
+//    Verilated::internalsDump();  // for comparison (string output, not useful)
+    dump_hierarchy("TOP.top");     // our own dump (with sizing)
     
     // Simulate some time or events
     for (int i = 0; i < 5; ++i, Verilated::timeInc(1)) {
@@ -160,7 +165,7 @@ int main(int argc, char** argv) {
         VL_PRINTF("[%" PRId64 "] clk=%x ai=%4x vi=%02x vo=%02x\n",
                   Verilated::time(), top.clk, top.ai, top.vi, top.vo);
     }
-    dump_hierarchy("TOP.top");
+//    dump_hierarchy("TOP.top");   // can be called after
     
     // Clean up Verilator (if using a Verilated model)
     top.final();
