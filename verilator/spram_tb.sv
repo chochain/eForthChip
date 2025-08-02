@@ -11,7 +11,7 @@ module top (
     );
     localparam ASZ  = 17;      // 128K
   
-    mb8_io #(8) b8_if(clk);
+    mb8_io      b8_if(clk);
     spram8_128k u1(b8_if);
 
     assign ai = b8_if.ai;
