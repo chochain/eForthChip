@@ -3,12 +3,12 @@
 /// @brief Single-Port Memory modules 8-bit 128K
 ///
 module spram8_128k (                           /// depth cascade
-    mb_io b8_if
+    mb8_io b8_if
     );
     logic [1:0] m, _m;                         /// byte index of (current and previous cycle)
     /// TODO: add cache
 
-    mb_io #(32) b32_if(b8_if.clk);
+    mb32_io     b32_if(b8_if.clk);
     spram32_32k m0(b32_if);
     ///
     /// 32 to 8-bit converter
