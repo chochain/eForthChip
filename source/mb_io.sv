@@ -20,10 +20,9 @@ interface mb_io #(                     // generic memory block interface
     clocking io_clk @(posedge clk);    // if needed, specify input and output signal delay    
         default input #1 output #1;
     endclocking
-    */
     modport master(output we, bmsk, ai, vi, import put, get);
     modport slave(input clk, we, bmsk, ai, vi, output vo);
-    
+    */
     function void put([ASZ-1:0] ax, [DSZ-1:0] vx);
         we = 1'b1;
         ai = ax;
