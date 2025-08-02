@@ -13,4 +13,4 @@ interface mb32_io (                   // generic memory block interface
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
     logic [3:0]     bmsk;
-endinterface: mb32_io
+endinterface

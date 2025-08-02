@@ -12,4 +12,4 @@ interface mb8_io (                     // generic memory block interface
     logic [ASZ-1:0] ai;                // specifying either master or slave device
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
-endinterface: mb8_io
+endinterface
