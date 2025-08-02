@@ -35,7 +35,7 @@ module spram32_32k (                 /// width cascade
         .WE(b32_if.we),
         .CS(~cs),
         .CK(b32_if.clk),
-        .STDBY(1'b0),
+        .STDBY(1'b0),                /// can use cs to save power
         .SLEEP(1'b0),
         .PWROFF_N(1'b1),
         .DO(vo32[0][31:16])
@@ -47,7 +47,7 @@ module spram32_32k (                 /// width cascade
         .WE(b32_if.we),
         .CS(cs),
         .CK(b32_if.clk),
-        .STDBY(1'b0),
+        .STDBY(1'b0),                /// can use ~cs to save power
         .SLEEP(1'b0),
         .PWROFF_N(1'b1),
         .DO(vo32[1][15:0])
@@ -59,7 +59,7 @@ module spram32_32k (                 /// width cascade
         .WE(b32_if.we),
         .CS(cs),
         .CK(b32_if.clk),
-        .STDBY(1'b0),
+        .STDBY(1'b0),                /// can use ~cs to save power
         .SLEEP(1'b0),
         .PWROFF_N(1'b1),
         .DO(vo32[1][31:16])
