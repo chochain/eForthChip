@@ -12,7 +12,7 @@ module top (
     localparam ASZ  = 17;      // 128K
   
     mb_io #(8)  b8_if(clk);
-    spram8_128k u1(b8_if.slave);
+    spram8_128k u1(b8_if);
 
     assign ai = b8_if.ai;
     assign vi = b8_if.vi;

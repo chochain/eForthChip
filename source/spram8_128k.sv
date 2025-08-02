@@ -8,7 +8,7 @@ module spram8_128k (   /// depth cascade
     logic [1:0] m, _m; /// byte index of (current and previous cycle)
 
     mb_io #(32) b32_if(b8_if.clk);
-    spram32_32k m0(b32_if.slave);
+    spram32_32k m0(b32_if);
     ///
     /// 32 to 8-bit converter
     ///
