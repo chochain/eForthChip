@@ -16,7 +16,7 @@ interface mb8_io (                     // generic memory block interface
     logic [DSZ-1:0] vi;
     logic [DSZ-1:0] vo;
 
-    modport master(output we, ai, vi);
+    modport master(input clk, output we, ai, vi, vo);
     modport slave(input clk, we, ai, vi, output vo);
 endinterface
 

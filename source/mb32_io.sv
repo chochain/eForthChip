@@ -17,7 +17,7 @@ interface mb32_io (                   // generic memory block interface
     logic [DSZ-1:0] vo;
     logic [3:0]     bmsk;
     
-    modport master(output we, bmsk, ai, vi);
+    modport master(input clk, output we, bmsk, ai, vi, vo);
     modport slave(input clk, we, bmsk, ai, vi, output vo);
 endinterface
 
