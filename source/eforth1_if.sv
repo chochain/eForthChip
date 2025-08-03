@@ -25,7 +25,7 @@ interface mb_io #(                      // generic memory block interface
         default input #1 output #1;
     endclocking
     */
-    modport master(output we, bmsk, ai, vi, import put, get);
+    modport master(input clk, output we, bmsk, ai, vi, vo);
     modport slave(input clk, we, bmsk, ai, vi, output vo);
     
     function void put([ASZ-1:0] ax, [DSZ-1:0] vx);
