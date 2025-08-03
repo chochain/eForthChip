@@ -30,7 +30,7 @@ module spram32_32k (                  /// width cascade
     SP256K bank00 (
         .AD(b32_if.ai[13:0]),
         .DI(b32_if.vi[15:0]),
-        .MASKWE(msk0),
+        .MSKWE(msk0),
         .WE(b32_if.we),
         .CS(~hi),
         .CK(b32_if.clk),
@@ -42,7 +42,7 @@ module spram32_32k (                  /// width cascade
     SP256K bank01 (
         .AD(b32_if.ai[13:0]),
         .DI(b32_if.vi[31:16]),
-        .MASKWE(msk1),
+        .MSKWE(msk1),
         .WE(b32_if.we),
         .CS(~hi),
         .CK(b32_if.clk),
@@ -54,7 +54,7 @@ module spram32_32k (                  /// width cascade
     SP256K bank10 (
         .AD(b32_if.ai[13:0]),
         .DI(b32_if.vi[15:0]),
-        .MASKWE(msk0),
+        .MSKWE(msk0),
         .WE(b32_if.we),
         .CS(hi),
         .CK(b32_if.clk),
@@ -66,7 +66,7 @@ module spram32_32k (                  /// width cascade
     SP256K bank11 (
         .AD(b32_if.ai[13:0]),
         .DI(b32_if.vi[31:16]),
-        .MASKWE(msk1),
+        .MSKWE(msk1),
         .WE(b32_if.we),
         .CS(hi),
         .CK(b32_if.clk),
