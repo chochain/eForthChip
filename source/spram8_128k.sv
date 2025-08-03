@@ -4,6 +4,9 @@
 ///
 `ifndef EFORTH1_SPRAM8_128K
 `define EFORTH1_SPRAM8_128K
+`include "../source/mb8_io.sv"
+`include "../source/mb32_io.sv"
+`include "../source/spram32_32k.sv"
 
 module spram8_128k (                           /// depth cascade
         mb8_io.slave b8_if
